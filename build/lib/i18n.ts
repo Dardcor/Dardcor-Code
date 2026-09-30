@@ -390,8 +390,7 @@ const editorProject: string = 'vscode-editor',
 	workbenchProject: string = 'vscode-workbench',
 	extensionsProject: string = 'vscode-extensions',
 	setupProject: string = 'vscode-setup',
-	serverProject: string = 'vscode-server',
-	sessionsProject: string = 'vscode-sessions';
+	serverProject: string = 'vscode-server';
 
 export function getResource(sourceFile: string): Resource {
 	let resource: string;
@@ -416,11 +415,6 @@ export function getResource(sourceFile: string): Resource {
 		return { name: resource, project: workbenchProject };
 	} else if (/^dc\/workbench/.test(sourceFile)) {
 		return { name: 'dc/workbench', project: workbenchProject };
-	} else if (/^dc\/sessions\/contrib/.test(sourceFile)) {
-		resource = sourceFile.split('/', 4).join('/');
-		return { name: resource, project: sessionsProject };
-	} else if (/^dc\/sessions/.test(sourceFile)) {
-		return { name: 'dc/sessions', project: sessionsProject };
 	}
 
 	throw new Error(`Could not identify the XLF bundle for ${sourceFile}`);

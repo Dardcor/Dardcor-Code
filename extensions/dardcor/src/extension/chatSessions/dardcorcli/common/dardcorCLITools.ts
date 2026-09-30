@@ -1627,12 +1627,13 @@ function emptyToolInvocationCompleted(_invocation: ChatToolInvocationPart, _tool
 
 function genericToolInvocationCompleted(invocation: ChatToolInvocationPart, toolCall: UnknownToolCall, result: ToolCallResult): void {
 	if (result.success && result.result?.content) {
+		const rawOutput = typeof result.result.content === 'string' ? result.result.content : JSON.stringify(result.result.content, null, 2);
+		const output = rawOutput.length > 2000 ? rawOutput.slice(0, 2000) + `\n\n[... Truncated: showing first 2000 of ${rawOutput.length} characters ...]` : rawOutput;
 		invocation.toolSpecificData = {
-			output: typeof result.result.content === 'string' ? result.result.content : JSON.stringify(result.result.content, null, 2),
+			output,
 			input: toolCall.arguments ? JSON.stringify(toolCall.arguments, null, 2) : ''
 		};
 	}
-
 }
 
 

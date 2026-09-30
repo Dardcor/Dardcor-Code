@@ -30,7 +30,6 @@ import { ACTION_ID_NEW_CHAT } from '../actions/chatActions.js';
 import { IViewsService } from '../../../../services/views/common/viewsService.js';
 import { ChatViewPane } from '../widgetHosts/viewPane/chatViewPane.js';
 import { ICommandService } from '../../../../../platform/commands/common/commands.js';
-import { IsSessionsWindowContext } from '../../../../common/contextkeys.js';
 import { IQuickInputService } from '../../../../../platform/quickinput/common/quickInput.js';
 import { KeybindingWeight } from '../../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { KeyCode, KeyMod } from '../../../../../base/common/keyCodes.js';
@@ -704,7 +703,6 @@ const renameSupportedSessionTypes = ContextKeyExpr.or(
 const renameFocusedChatSessionKeybindingWhen = ContextKeyExpr.and(
 	ChatContextKeys.inChatSession,
 	ChatContextKeys.inQuickChat.negate(),
-	IsSessionsWindowContext.negate(),
 	ChatContextKeys.chatSessionSupportsRename,
 );
 
@@ -938,11 +936,10 @@ export class OpenAgentSessionInEditorGroupAction extends BaseOpenAgentSessionAct
 					primary: KeyMod.WinCtrl | KeyCode.Enter
 				},
 				weight: KeybindingWeight.WorkbenchContrib + 1,
-				when: ContextKeyExpr.and(ChatContextKeys.agentSessionsViewerFocused, IsSessionsWindowContext.negate()),
+				when: ChatContextKeys.agentSessionsViewerFocused,
 			},
 			menu: {
 				id: MenuId.AgentSessionsContext,
-				when: IsSessionsWindowContext.negate(),
 				order: 1,
 				group: 'navigation'
 			}
@@ -972,11 +969,10 @@ export class OpenAgentSessionInNewEditorGroupAction extends BaseOpenAgentSession
 					primary: KeyMod.WinCtrl | KeyMod.Alt | KeyCode.Enter
 				},
 				weight: KeybindingWeight.WorkbenchContrib + 1,
-				when: ContextKeyExpr.and(ChatContextKeys.agentSessionsViewerFocused, IsSessionsWindowContext.negate()),
+				when: ChatContextKeys.agentSessionsViewerFocused,
 			},
 			menu: {
 				id: MenuId.AgentSessionsContext,
-				when: IsSessionsWindowContext.negate(),
 				order: 2,
 				group: 'navigation'
 			}

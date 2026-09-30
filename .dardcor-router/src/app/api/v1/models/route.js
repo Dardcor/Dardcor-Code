@@ -40,6 +40,68 @@ const LIVE_MODEL_RESOLVERS = {
       return null;
     }
   },
+  codex: async (conn) => {
+    try {
+      if (!conn?.accessToken) return null;
+      const res = await fetch("https://chatgpt.com/backend-api/codex/models?client_version=0.154.0", {
+        headers: {
+          "Authorization": `Bearer ${conn.accessToken}`,
+          "originator": "codex_cli_rs",
+          "User-Agent": "codex_cli_rs/0.154.0",
+        },
+      });
+      if (!res.ok) return null;
+      const json = await res.json();
+      if (!Array.isArray(json.models) || !json.models.length) return null;
+      return {
+        models: json.models.map((m) => ({
+          id: m.slug,
+          name: m.display_name || m.slug,
+        })),
+      };
+    } catch {
+      return null;
+    }
+  },
+  "chatgpt-web": async (conn) => {
+    const plan = String(conn?.providerSpecificData?.chatgptPlanType || "free").toLowerCase();
+    if (plan === "pro") {
+      return {
+        models: [
+          { id: "auto", name: "ChatGPT Auto (Default)" },
+          { id: "gpt-4o", name: "GPT-4o (Unlimited)" },
+          { id: "o1", name: "OpenAI o1" },
+          { id: "o1-pro", name: "OpenAI o1 Pro Mode" },
+          { id: "o3-mini", name: "OpenAI o3 Mini" },
+          { id: "gpt-4.5", name: "GPT 4.5" },
+        ],
+      };
+    }
+    if (plan === "plus" || plan === "team") {
+      return {
+        models: [
+          { id: "auto", name: "ChatGPT Auto (Default)" },
+          { id: "gpt-4o", name: "GPT-4o" },
+          { id: "gpt-4o-mini", name: "GPT-4o Mini" },
+          { id: "o1", name: "OpenAI o1" },
+          { id: "o1-mini", name: "OpenAI o1 Mini" },
+          { id: "o3-mini", name: "OpenAI o3 Mini" },
+          { id: "gpt-4.5", name: "GPT 4.5 Preview" },
+        ],
+      };
+    }
+    return {
+      models: [
+        { id: "gpt-5.6-luna", name: "GPT-5.6 Luna (Reasoning)" },
+        { id: "gpt-5.6-terra", name: "GPT-5.6 Terra" },
+        { id: "gpt-5.5", name: "GPT-5.5" },
+        { id: "auto", name: "ChatGPT Auto (Default)" },
+        { id: "gpt-4o", name: "GPT-4o (Free Tier)" },
+        { id: "gpt-4o-mini", name: "GPT-4o Mini" },
+        { id: "o3-mini", name: "OpenAI o3 Mini" },
+      ],
+    };
+  },
   kiro: async (conn) => {
     const result = await resolveKiroModels({
       accessToken: conn.accessToken,

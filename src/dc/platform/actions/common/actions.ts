@@ -327,9 +327,6 @@ export class MenuId {
 	static readonly SessionItemContextMenu = new MenuId('SessionItemContextMenu');
 	static readonly SessionHeaderContext = new MenuId('SessionsSessionHeaderContext');
 	static readonly AgentsTitleBarControlMenu = new MenuId('AgentsTitleBarControlMenu');
-	static readonly AgentsChangesToolbar = new MenuId('AgentsChangesToolbar');
-	static readonly AgentsChangesPrimaryActionSubMenu = new MenuId('AgentsChangesPrimaryActionSubMenu');
-	static readonly AgentsChangeInlineToolbar = new MenuId('AgentsChangeInlineToolbar');
 	static readonly ChatViewSessionTitleNavigationToolbar = new MenuId('ChatViewSessionTitleNavigationToolbar');
 	static readonly ChatViewSessionTitleToolbar = new MenuId('ChatViewSessionTitleToolbar');
 	static readonly ChatContextUsageActions = new MenuId('ChatContextUsageActions');

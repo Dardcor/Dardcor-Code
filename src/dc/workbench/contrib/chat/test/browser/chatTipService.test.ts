@@ -26,7 +26,6 @@ import { ChatTipService, CREATE_AGENT_INSTRUCTIONS_TRACKING_COMMAND, CREATE_AGEN
 import { IChatMode, IChatModes } from '../../common/chatModes.js';
 import { AgentInstructionFileType, IPromptPath, IPromptsService, IAgentInstructionFile, PromptsStorage } from '../../common/promptSyntax/service/promptsService.js';
 import { URI } from '../../../../../base/common/uri.js';
-import { IsSessionsWindowContext } from '../../../../common/contextkeys.js';
 import { ChatContextKeys } from '../../common/actions/chatContextKeys.js';
 import { storeSelectedModel } from '../../common/chatSelectedModel.js';
 import { ChatAgentLocation, ChatModeKind } from '../../common/constants.js';
@@ -89,9 +88,7 @@ suite('ChatTipService', () => {
 		const registrations = new Map<string, IDisposable>();
 		for (const tip of TIP_CATALOG) {
 			const message = tip.buildMessage({
-				keybindingService: { lookupKeybinding: () => undefined } as Partial<IKeybindingService> as IKeybindingService,
-				experimentalTipMessages: new Map(),
-			}).value;
+				keybindingService: { lookupKeybinding: () => undefined } as Partial<IKeybindingService> as IKeybindingService,			}).value;
 			for (const commandId of extractCommandIds(message)) {
 				if (registrations.has(commandId) || CommandsRegistry.getCommand(commandId)) {
 					continue;
@@ -228,9 +225,7 @@ suite('ChatTipService', () => {
 			const markdown = tip.buildMessage({
 				keybindingService: {
 					lookupKeybinding: () => undefined,
-				} as Partial<IKeybindingService> as IKeybindingService,
-				experimentalTipMessages: new Map(),
-			}).value;
+				} as Partial<IKeybindingService> as IKeybindingService,			}).value;
 
 			const commandLinkRegex = /\[[^\]]+\]\((command:[^)]+)\)/g;
 			let match: RegExpExecArray | null;
@@ -593,7 +588,6 @@ suite('ChatTipService', () => {
 	test('returns a tip for the Agents new-session composer when foreground session count is zero', () => {
 		const service = createService();
 		contextKeyService.createKey(ChatContextKeys.foregroundSessionCount.key, 0);
-		contextKeyService.createKey(IsSessionsWindowContext.key, true);
 
 		const tip = service.getWelcomeTip(contextKeyService);
 		assert.ok(tip, 'Should return a tip for the Agents new-session composer');
@@ -1621,23 +1615,13 @@ suite('ChatTipService', () => {
 		'tip.autoAcceptDelay',
 		'tip.codeActions',
 	]) {
-		test(`excludes ${tipId} in the Agents window`, async () => {
+		test(`shows ${tipId}`, async () => {
 			const service = createService();
 			contextKeyService.createKey(ChatContextKeys.chatModeKind.key, ChatModeKind.Agent);
-			contextKeyService.createKey(IsSessionsWindowContext.key, true);
-			await new Promise<void>(r => queueMicrotask(r));
-
-			assertTipNeverShown(service, tipId);
-		});
-
-		test(`shows ${tipId} outside the Agents window`, async () => {
-			const service = createService();
-			contextKeyService.createKey(ChatContextKeys.chatModeKind.key, ChatModeKind.Agent);
-			contextKeyService.createKey(IsSessionsWindowContext.key, false);
 			await new Promise<void>(r => queueMicrotask(r));
 
 			const tip = findTipById(service, tipId);
-			assert.ok(tip, `Should show ${tipId} outside the Agents window`);
+			assert.ok(tip, `Should show ${tipId}`);
 		});
 	}
 

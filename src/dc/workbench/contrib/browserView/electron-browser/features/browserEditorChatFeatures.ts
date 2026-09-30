@@ -1110,7 +1110,6 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
 					}
 				},
 			},
-			agentsWindow: { default: true },
 		},
 		'workbench.browser.experimentalUserTools.enabled': {
 			type: 'boolean',

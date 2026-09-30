@@ -3090,10 +3090,7 @@ class LayoutStateModel extends Disposable {
 		// Auxiliary bar: Maximized settings
 		if (this.isNew[StorageScope.WORKSPACE]) {
 			const defaultAuxiliaryBarVisibility = this.configurationService.getValue(WorkbenchLayoutSettings.AUXILIARYBAR_DEFAULT_VISIBILITY);
-			const startupEditor = this.configurationService.getValue<'none' | 'welcomePage' | 'readme' | 'newUntitledFile' | 'welcomePageInEmptyWorkbench' | 'terminal' | 'agentSessionsWelcomePage'>('workbench.startupEditor');
-			if (startupEditor === 'agentSessionsWelcomePage') {
-				this.applyAuxiliaryBarHiddenOverride(true);
-			} else if (
+			if (
 				defaultAuxiliaryBarVisibility === 'maximized' ||
 				(defaultAuxiliaryBarVisibility === 'maximizedInWorkspace' && this.contextService.getWorkbenchState() !== WorkbenchState.EMPTY)
 			) {
@@ -3132,10 +3129,6 @@ class LayoutStateModel extends Disposable {
 
 		this.setRuntimeValue(LayoutStateKeys.AUXILIARYBAR_LAST_NON_MAXIMIZED_SIZE, this.getInitializationValue(LayoutStateKeys.AUXILIARYBAR_SIZE));
 		this.setRuntimeValue(LayoutStateKeys.AUXILIARYBAR_WAS_LAST_MAXIMIZED, true);
-	}
-
-	private applyAuxiliaryBarHiddenOverride(value: boolean): void {
-		this.setRuntimeValue(LayoutStateKeys.AUXILIARYBAR_HIDDEN, value);
 	}
 
 	save(workspace: boolean, global: boolean): void {

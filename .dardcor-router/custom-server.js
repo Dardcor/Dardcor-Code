@@ -13,6 +13,22 @@ const origCreate = http.createServer.bind(http);
 const PEER_TOKEN = crypto.randomBytes(24).toString("hex");
 process.env.DARDCORROUTER_PEER_TOKEN = PEER_TOKEN;
 
+const portIdx = process.argv.findIndex((a) => a === "--port" || a === "-p");
+if (portIdx !== -1 && process.argv[portIdx + 1]) {
+  process.env.PORT = process.argv[portIdx + 1];
+}
+const hostIdx = process.argv.findIndex((a) => a === "--hostname" || a === "-H");
+if (hostIdx !== -1 && process.argv[hostIdx + 1]) {
+  process.env.HOSTNAME = process.argv[hostIdx + 1];
+}
+
+process.on("uncaughtException", (err) => {
+  console.error("[custom-server] Uncaught Exception:", err?.message || err);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("[custom-server] Unhandled Rejection:", reason?.message || reason);
+});
+
 let backgroundRefreshStarted = false;
 
 function startBackgroundTokenRefreshFromCustomServer() {

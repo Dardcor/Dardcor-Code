@@ -46,8 +46,8 @@ describe("web-cookie provider contracts", () => {
     const entry = REGISTRY.find(({ id }) => id === providerId);
 
     expect(entry).toBeDefined();
-    expect(entry.category).toBe("webCookie");
-    expect(entry.authType).toBe("cookie");
+    expect(["webCookie", "oauth"]).toContain(entry.category);
+    expect(["cookie", "access_token"]).toContain(entry.authType);
     expect(entry.models).toEqual(expect.any(Array));
     expect(entry.models.length).toBeGreaterThan(0);
 

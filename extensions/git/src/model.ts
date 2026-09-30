@@ -1117,11 +1117,6 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 			return false;
 		}
 
-		// Allow opening repositories in the agent session workspace
-		if (workspace.isAgentSessionsWorkspace) {
-			return false;
-		}
-
 		const workspaceFolders = workspace.workspaceFolders
 			.filter(folder => folder.uri.scheme === 'file');
 

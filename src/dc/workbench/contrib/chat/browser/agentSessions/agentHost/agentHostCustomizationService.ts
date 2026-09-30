@@ -29,9 +29,29 @@ import { IChatService } from '../../../common/chatService/chatService.js';
 import { isUntitledChatSession } from '../../../common/model/chatUri.js';
 import { IAgentHostUntitledProvisionalSessionService } from './agentHostUntitledProvisionalSessionService.js';
 import { IAgentHostActiveClientService } from './agentHostActiveClientService.js';
-import { IAgentHostMcpServer } from '../../../../../../sessions/common/agentHostSessionsProvider.js';
 import { resolveMcpServerAuthentication, agentHostMcpServerId } from './agentHostAuth.js';
 import { IOutputService } from '../../../../../services/output/common/output.js';
+import { type CustomizationDisabledReason } from '../../../../../../platform/agentHost/common/customizationEnablement.js';
+import { type TextRange } from '../../../../../../platform/agentHost/common/state/protocol/common/state.js';
+
+export interface IAgentHostMcpServer {
+	readonly id: string;
+	readonly name: string;
+	readonly enabled: boolean;
+	readonly enablement?: readonly CustomizationEnablement[];
+	readonly isPluginProvided?: boolean;
+	readonly isClientBundled?: boolean;
+	readonly owningPluginClientId?: string;
+	readonly disabledReason?: CustomizationDisabledReason;
+	readonly status: McpServerStatus;
+	readonly state: McpServerState;
+	readonly sourceUri?: URI;
+	readonly sourceRange?: TextRange;
+	readonly logOutputChannelId?: string;
+	start(): Promise<void>;
+	stop(): Promise<void>;
+	setEnabled(enabled: boolean): void;
+}
 
 export const IAgentHostCustomizationService = createDecorator<IAgentHostCustomizationService>('agentHostCustomizationService');
 

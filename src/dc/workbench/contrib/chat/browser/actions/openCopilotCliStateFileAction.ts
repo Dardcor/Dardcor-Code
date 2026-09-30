@@ -9,10 +9,8 @@ import { Categories } from '../../../../../platform/action/common/actionCommonCa
 import { Action2 } from '../../../../../platform/actions/common/actions.js';
 import { agentHostAuthority } from '../../../../../platform/agentHost/common/agentHostUri.js';
 import { IRemoteAgentHostService } from '../../../../../platform/agentHost/common/remoteAgentHostService.js';
-import { ContextKeyExpr } from '../../../../../platform/contextkey/common/contextkey.js';
 import { ServicesAccessor } from '../../../../../platform/instantiation/common/instantiation.js';
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
-import { IsSessionsWindowContext } from '../../../../common/contextkeys.js';
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
 import { IPathService } from '../../../../services/path/common/pathService.js';
 import { IChatWidgetService } from '../chat.js';
@@ -80,10 +78,7 @@ export class OpenCopilotCliStateFileAction extends Action2 {
 			title: localize2('openSessionEventsFile', "Open Dardcor AI CLI State File"),
 			f1: true,
 			category: Categories.Developer,
-			precondition: ContextKeyExpr.and(
-				ChatContextKeys.enabled,
-				IsSessionsWindowContext.negate(),
-			),
+			precondition: ChatContextKeys.enabled,
 		});
 	}
 

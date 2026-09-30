@@ -61,7 +61,6 @@ const excludeGlobs = [
 	'**/dc/platform/environment/test/node/nativeModules.test.js', // native modules are compiled against Electron and this test would fail with node.js
 	'**/dc/base/parts/storage/test/node/storage.test.js', // same as above, due to direct dependency to sqlite native module
 	'**/dc/workbench/contrib/testing/test/**', // flaky (https://github.com/microsoft/vscode/issues/137853)
-	'**/dc/sessions/test/web.test.js', // web-only E2E test that imports CSS — cannot run in Node
 ];
 
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));

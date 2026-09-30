@@ -705,13 +705,13 @@ const MULTI_TURN: IFixtureMessage[] = [
 	{
 		user: 'What does this project do?',
 		assistant: [
-			{ kind: 'markdown', text: 'This project is **Visual Studio Code**, a free source-code editor made by Microsoft for Windows, Linux and macOS.' },
+			{ kind: 'markdown', text: 'This project is **Dardcor Code**, an advanced AI-powered source-code editor made by Dardcor Corporation for Windows, Linux and macOS.' },
 		],
 	},
 	{
 		user: 'Where is the entrypoint?',
 		assistant: [
-			{ kind: 'markdown', text: 'The desktop entrypoint is in `src/vs/code/electron-main/main.ts`. The browser/server entrypoints live under `src/vs/server/`.' },
+			{ kind: 'markdown', text: 'The desktop entrypoint is in `src/dc/code/electron-main/main.ts`. The browser/server entrypoints live under `src/dc/server/`.' },
 		],
 	},
 	{

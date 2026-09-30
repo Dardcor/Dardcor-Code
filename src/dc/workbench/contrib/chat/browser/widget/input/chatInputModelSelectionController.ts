@@ -14,9 +14,8 @@
  * so each surface states it.
  *
  * Models publish late and can be republished under new identifiers, so a conversation's model is
- * remembered per conversation and reclaimed when it appears. The two surfaces differ only in what
- * they do while waiting: Workbench chat shows a stand-in, since being wrong costs a repaint, while
- * the Agents Window waits, since it writes through to a backend.
+ * remembered per conversation and reclaimed when it appears. Workbench chat shows a stand-in while
+ * waiting for the model list, since being wrong costs a repaint.
  */
 import { Disposable, IDisposable, toDisposable } from '../../../../../../base/common/lifecycle.js';
 import { IObservable, observableValue } from '../../../../../../base/common/observable.js';

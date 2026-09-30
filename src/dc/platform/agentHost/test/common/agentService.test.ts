@@ -8,7 +8,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import { IConfigurationService } from '../../../configuration/common/configuration.js';
 import { AgentSession, GITHUB_COPILOT_PROTECTED_RESOURCE, GITHUB_REPO_PROTECTED_RESOURCE, protectedResourcesRequireGitHubCopilotSignIn } from '../../common/agent.js';
-import { AgentHostClaudeAgentEnabledSettingId, AgentHostCodexAgentEnabledSettingId, AgentHostOTelEnvVars, buildAgentHostOTelEnv, CodexPreferAgentHostEditorSettingId, isAgentEnabled, readAgentHostOTelPolicySettings, sanitizeAgentHostOTelPolicySettings, shouldSurfaceLocalAgentHostProvider } from '../../common/agentService.js';
+import { AgentHostClaudeAgentEnabledSettingId, AgentHostOTelEnvVars, buildAgentHostOTelEnv, CodexPreferAgentHostEditorSettingId, isAgentEnabled, readAgentHostOTelPolicySettings, sanitizeAgentHostOTelPolicySettings, shouldSurfaceLocalAgentHostProvider } from '../../common/agentService.js';
 import type { ProtectedResourceMetadata } from '../../common/state/protocol/state.js';
 import { buildChatUri, buildDefaultChatUri, resolveChatUri } from '../../common/state/sessionState.js';
 import { TestConfigurationService } from '../../../configuration/test/common/testConfigurationService.js';
@@ -76,24 +76,19 @@ suite('shouldSurfaceLocalAgentHostProvider', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	test('surfaces enabled providers and uses window-specific Codex settings', () => {
+	test('surfaces enabled providers and uses Codex settings', () => {
 		const configurationService = new TestConfigurationService({
 			[AgentHostClaudeAgentEnabledSettingId]: true,
-			[AgentHostCodexAgentEnabledSettingId]: true,
 			[CodexPreferAgentHostEditorSettingId]: true,
 		});
 
 		assert.deepStrictEqual({
-			agentsClaude: shouldSurfaceLocalAgentHostProvider('claude', configurationService, true),
-			editorClaude: shouldSurfaceLocalAgentHostProvider('claude', configurationService, false),
-			agentsCodex: shouldSurfaceLocalAgentHostProvider('codex', configurationService, true),
-			editorCodex: shouldSurfaceLocalAgentHostProvider('codex', configurationService, false),
-			otherProvider: shouldSurfaceLocalAgentHostProvider('copilot', configurationService, true),
+			claude: shouldSurfaceLocalAgentHostProvider('claude', configurationService),
+			codex: shouldSurfaceLocalAgentHostProvider('codex', configurationService),
+			otherProvider: shouldSurfaceLocalAgentHostProvider('copilot', configurationService),
 		}, {
-			agentsClaude: true,
-			editorClaude: true,
-			agentsCodex: true,
-			editorCodex: true,
+			claude: true,
+			codex: true,
 			otherProvider: true,
 		});
 	});
@@ -101,32 +96,21 @@ suite('shouldSurfaceLocalAgentHostProvider', () => {
 	test('surfaces Claude when the setting is absent, matching its default', () => {
 		const configurationService = new TestConfigurationService();
 
-		assert.deepStrictEqual({
-			agentsClaude: shouldSurfaceLocalAgentHostProvider('claude', configurationService, true),
-			editorClaude: shouldSurfaceLocalAgentHostProvider('claude', configurationService, false),
-		}, {
-			agentsClaude: true,
-			editorClaude: true,
-		});
+		assert.strictEqual(shouldSurfaceLocalAgentHostProvider('claude', configurationService), true);
 	});
 
-	test('hides disabled providers in their governed windows', () => {
+	test('hides disabled providers', () => {
 		const configurationService = new TestConfigurationService({
 			[AgentHostClaudeAgentEnabledSettingId]: false,
-			[AgentHostCodexAgentEnabledSettingId]: false,
-			[CodexPreferAgentHostEditorSettingId]: true,
+			[CodexPreferAgentHostEditorSettingId]: false,
 		});
 
 		assert.deepStrictEqual({
-			agentsClaude: shouldSurfaceLocalAgentHostProvider('claude', configurationService, true),
-			editorClaude: shouldSurfaceLocalAgentHostProvider('claude', configurationService, false),
-			agentsCodex: shouldSurfaceLocalAgentHostProvider('codex', configurationService, true),
-			editorCodex: shouldSurfaceLocalAgentHostProvider('codex', configurationService, false),
+			claude: shouldSurfaceLocalAgentHostProvider('claude', configurationService),
+			codex: shouldSurfaceLocalAgentHostProvider('codex', configurationService),
 		}, {
-			agentsClaude: false,
-			editorClaude: false,
-			agentsCodex: false,
-			editorCodex: true,
+			claude: false,
+			codex: false,
 		});
 	});
 });

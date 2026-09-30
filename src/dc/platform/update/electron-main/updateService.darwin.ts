@@ -18,7 +18,7 @@ import { IApplicationStorageMainService } from '../../storage/electron-main/stor
 import { ITelemetryService } from '../../telemetry/common/telemetry.js';
 import { AvailableForDownload, IUpdate, State, StateType, UpdateType } from '../common/update.js';
 import { IMeteredConnectionService } from '../../meteredConnection/common/meteredConnection.js';
-import { AbstractUpdateService, createUpdateURL, getUpdateRequestHeaders, IUpdateURLOptions, UpdateErrorClassification } from './abstractUpdateService.js';
+import { AbstractUpdateService, createUpdateURL, getUpdateRequestHeaders, isVersionNewer, IUpdateURLOptions, UpdateErrorClassification } from './abstractUpdateService.js';
 
 export class DarwinUpdateService extends AbstractUpdateService implements IRelaunchHandler {
 
@@ -96,6 +96,9 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 	protected buildUpdateFeedUrl(quality: string, commit: string, options?: IUpdateURLOptions): string | undefined {
 		const assetID = this.productService.darwinUniversalAssetId ?? (process.arch === 'x64' ? 'darwin' : 'darwin-arm64');
 		const url = createUpdateURL(this.productService.updateUrl!, assetID, quality, commit, options);
+		if (url.endsWith('.json')) {
+			return url;
+		}
 		const headers = getUpdateRequestHeaders(this.productService.version);
 		try {
 			this.logService.trace('update#buildUpdateFeedUrl - setting feed URL for Electron autoUpdater', { url, assetID, quality, commit, headers });
@@ -117,10 +120,16 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 
 		const internalOrg = this.getInternalOrg();
 		const background = !explicit && !internalOrg;
-		const url = this.buildUpdateFeedUrl(this.quality, pendingCommit ?? this.productService.commit!, { background, internalOrg });
+		const commitOrVersion = pendingCommit ?? this.productService.commit ?? this.productService.dardcorVersion ?? this.productService.version;
+		const url = this.buildUpdateFeedUrl(this.quality, commitOrVersion!, { background, internalOrg });
 
 		if (!url) {
 			this.setState(State.Idle(UpdateType.Archive));
+			return;
+		}
+
+		if (url.endsWith('.json')) {
+			this.checkForUpdateNoDownload(url);
 			return;
 		}
 
@@ -149,7 +158,29 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 			const statusCode = context.res.statusCode;
 			this.logService.trace('update#checkForUpdateNoDownload - response', { statusCode });
 
-			const update = await asJson<IUpdate>(context);
+			const rawPayload = await asJson<any>(context);
+			let update: IUpdate | null = null;
+			if (rawPayload) {
+				if (rawPayload.platforms) {
+					const assetID = this.productService.darwinUniversalAssetId ?? (process.arch === 'x64' ? 'darwin-x64' : 'darwin-arm64');
+					const platformEntry = rawPayload.platforms[assetID] ?? rawPayload.platforms['darwin'] ?? rawPayload.platforms['darwin-arm64'] ?? rawPayload.platforms['darwin-x64'];
+					if (platformEntry) {
+						const targetVer = platformEntry.productVersion ?? platformEntry.version ?? rawPayload.version;
+						const currentVer = this.productService.dardcorVersion ?? this.productService.version;
+						if (isVersionNewer(targetVer, currentVer)) {
+							update = {
+								url: platformEntry.url,
+								version: platformEntry.version ?? targetVer,
+								productVersion: targetVer,
+								sha256hash: platformEntry.sha256hash ?? platformEntry.hash
+							};
+						}
+					}
+				} else if (rawPayload.url && (rawPayload.version || rawPayload.productVersion)) {
+					update = rawPayload as IUpdate;
+				}
+			}
+
 			if (!update || !update.url || !update.version || !update.productVersion) {
 				this.logService.trace('update#checkForUpdateNoDownload - no update available');
 				const notAvailable = this.state.type === StateType.CheckingForUpdates && this.state.explicit;
@@ -197,6 +228,12 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 	}
 
 	protected override async doDownloadUpdate(state: AvailableForDownload): Promise<void> {
+		if (state.update.url && (this.productService.updateUrl?.endsWith('.json') || !this.quality)) {
+			electron.shell.openExternal(state.update.url);
+			this.setState(State.Idle(UpdateType.Archive));
+			return;
+		}
+
 		// Rebuild feed URL and trigger download via Electron's auto-updater
 		this.buildUpdateFeedUrl(this.quality!, state.update.version, { internalOrg: this.getInternalOrg() });
 		this.setState(State.CheckingForUpdates(true));

@@ -32,7 +32,7 @@ suite('aiCustomizationWelcomePagePromptLaunchers', () => {
 			{ showGettingStartedBanner: false },
 			callbacks,
 			{} as ICommandService,
-			{ isSessionsWindow: true, managementSections: [] } as unknown as IAICustomizationWorkspaceService,
+			{ managementSections: [] } as unknown as IAICustomizationWorkspaceService,
 			{} as IHoverService,
 			'Copilot',
 		));
@@ -83,7 +83,6 @@ suite('aiCustomizationWelcomePagePromptLaunchers', () => {
 			},
 			{} as ICommandService,
 			{
-				isSessionsWindow: true,
 				managementSections: [
 					AICustomizationManagementSection.Plugins,
 					AICustomizationManagementSection.McpServers,

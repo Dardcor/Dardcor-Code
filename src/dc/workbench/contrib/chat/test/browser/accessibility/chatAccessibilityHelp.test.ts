@@ -35,7 +35,7 @@ suite('Chat Accessibility Help', () => {
 
 	test('documents the archive suggestion only while it is shown', () => {
 		const keybindingService = new MockKeybindingService();
-		const shown = getAccessibilityHelpText('agentView', keybindingService, true, false, false, true, true);
+		const shown = getAccessibilityHelpText('agentView', keybindingService, true, false, true, true);
 		const hidden = getAccessibilityHelpText('agentView', keybindingService, true);
 
 		assert.deepStrictEqual({
@@ -112,26 +112,12 @@ suite('Chat Accessibility Help', () => {
 		});
 	});
 
-	test('only describes the selection side chat affordance in the sessions window', () => {
-		const keybindingService = {
-			lookupKeybindings: () => [],
-		} as unknown as IKeybindingService;
-
-		assert.deepStrictEqual({
-			sessionsWindow: getAccessibilityHelpText('agentView', keybindingService, true, true).includes('Ask Question'),
-			regularWindow: getAccessibilityHelpText('agentView', keybindingService, true, false).includes('Ask Question'),
-		}, {
-			sessionsWindow: true,
-			regularWindow: false,
-		});
-	});
-
 	test('only describes the sticky prompt header when it is shown', () => {
 		const keybindingService = {
 			lookupKeybindings: () => [],
 		} as unknown as IKeybindingService;
-		const shownHelp = getAccessibilityHelpText('agentView', keybindingService, true, false, true);
-		const hiddenHelp = getAccessibilityHelpText('agentView', keybindingService, true, false, false);
+		const shownHelp = getAccessibilityHelpText('agentView', keybindingService, true, true);
+		const hiddenHelp = getAccessibilityHelpText('agentView', keybindingService, true, false);
 
 		assert.deepStrictEqual({
 			shown: shownHelp.includes('pinned to the top of the transcript'),
@@ -219,7 +205,6 @@ suite('Chat Accessibility Help', () => {
 			afterFirstRequest: getAccessibilityHelpText('agentView', keybindingService, true).includes('Agent Host sessions can be renamed after sending the first request'),
 			quickChat: getAccessibilityHelpText('quickChat', keybindingService, true).includes(keybinding),
 			inlineChat: getAccessibilityHelpText('inlineChat', keybindingService, true).includes(keybinding),
-			sessionsWindow: getAccessibilityHelpText('agentView', keybindingService, true, true).includes(keybinding),
 		}, {
 			panelChat: true,
 			agentView: true,
@@ -227,7 +212,6 @@ suite('Chat Accessibility Help', () => {
 			afterFirstRequest: true,
 			quickChat: false,
 			inlineChat: false,
-			sessionsWindow: false,
 		});
 	});
 });

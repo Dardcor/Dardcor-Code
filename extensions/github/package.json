@@ -182,8 +182,7 @@
           "group": "1_actions@3",
           "when": "github.hasGitHubRepo && timelineItem =~ /git:file:commit\\b/"
         }
-      ],
-      "agents/changes/actions/primary": []
+      ]
     },
     "configuration": [
       {

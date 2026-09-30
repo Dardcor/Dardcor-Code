@@ -18,7 +18,6 @@ import { INativeEnvironmentService } from '../../../../../platform/environment/c
 import { IMainProcessService } from '../../../../../platform/ipc/common/mainProcessService.js';
 import { NullLogService } from '../../../../../platform/log/common/log.js';
 import { INativeHostService } from '../../../../../platform/native/common/native.js';
-import { getWorkspaceIdentifier } from '../../../../../platform/workspaces/common/workspaceIdentifier.js';
 import { UnusedWorkspaceStorageDataCleaner } from '../../../../electron-utility/sharedProcess/contrib/storageDataCleaner.js';
 
 suite('UnusedWorkspaceStorageDataCleaner', () => {
@@ -36,21 +35,18 @@ suite('UnusedWorkspaceStorageDataCleaner', () => {
 		await Promises.rm(testDir);
 	});
 
-	test('preserves agents window workspace storage', async () => {
-		const agentSessionsWorkspace = URI.file(join(testDir, 'agent-sessions.code-workspace'));
-		const agentsWindowFolder = getWorkspaceIdentifier(agentSessionsWorkspace).id;
+	test('preserves empty extension development and non-empty workspace storage', async () => {
 		const md5LikeFolder = '0'.repeat(32); // simulates a real (non-empty) workspace
 		const otherEmptyFolder = 'random-empty-id';
 
 		const workspaceStorageHome = join(testDir, 'workspaceStorage');
 		await fs.promises.mkdir(workspaceStorageHome);
-		for (const folder of [agentsWindowFolder, md5LikeFolder, 'ext-dev', otherEmptyFolder]) {
+		for (const folder of [md5LikeFolder, 'ext-dev', otherEmptyFolder]) {
 			await fs.promises.mkdir(join(workspaceStorageHome, folder));
 		}
 
 		const environmentService = {
 			workspaceStorageHome: URI.file(workspaceStorageHome).with({ scheme: Schemas.file }),
-			agentSessionsWorkspace
 		} as INativeEnvironmentService;
 
 		const nativeHostService = {
@@ -71,6 +67,6 @@ suite('UnusedWorkspaceStorageDataCleaner', () => {
 		await cleaner.cleanUpStorage();
 
 		const remaining = (await Promises.readdir(workspaceStorageHome)).sort();
-		assert.deepStrictEqual(remaining, [agentsWindowFolder, md5LikeFolder, 'ext-dev'].sort());
+		assert.deepStrictEqual(remaining, [md5LikeFolder, 'ext-dev'].sort());
 	});
 });

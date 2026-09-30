@@ -261,7 +261,7 @@ jobs:
           sha256sum linux_assets/Dardcor-Code_1.0.0_arm64.deb | awk '{print $1}' > linux_assets/Dardcor-Code_1.0.0_arm64.deb.sig
 
           # 25. updater.json
-          echo '{"url": "https://github.com/Dardcor/Dardcor-Code/releases/latest", "version": "1.0.0"}' > linux_assets/updater.json
+          node build/generate-updater-json.cjs linux_assets "${{ github.repository }}" "v1.0.0" "1.0.0"
 
           ls -lh linux_assets/
 
@@ -377,6 +377,13 @@ jobs:
           name: mac_assets
           path: release_assets/
 
+      - name: Checkout Repository for Scripts
+        uses: actions/checkout@v4
+
+      - name: Generate Structured updater.json
+        run: |
+          node build/generate-updater-json.cjs release_assets "${{ github.repository }}" "${{ github.ref_name }}"
+
       - name: Verify Total 25 Assets Count
         run: |
           cd release_assets
@@ -409,7 +416,7 @@ jobs:
       - name: Upload All 25 Assets to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Dardcor Code v1.0.0"
+          name: "Dardcor Code ${{ startsWith(github.ref_name, 'v') && github.ref_name || format('v{0}', github.ref_name) }}"
           tag_name: ${{ github.ref_name }}
           files: release_assets/*
         env:

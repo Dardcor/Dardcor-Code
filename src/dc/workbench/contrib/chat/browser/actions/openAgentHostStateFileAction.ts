@@ -8,10 +8,8 @@ import { localize, localize2 } from '../../../../../nls.js';
 import { Categories } from '../../../../../platform/action/common/actionCommonCategories.js';
 import { Action2 } from '../../../../../platform/actions/common/actions.js';
 import { IAgentHostConnectionsService } from '../../../../../platform/agentHost/common/agentHostConnectionsService.js';
-import { ContextKeyExpr } from '../../../../../platform/contextkey/common/contextkey.js';
 import { ServicesAccessor } from '../../../../../platform/instantiation/common/instantiation.js';
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
-import { IsSessionsWindowContext } from '../../../../common/contextkeys.js';
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
 import { IChatWidgetService } from '../chat.js';
 import { ChatContextKeys } from '../../common/actions/chatContextKeys.js';
@@ -76,10 +74,7 @@ export class OpenAgentHostStateFileAction extends Action2 {
 			title: localize2('openAgentHostStateFile', "Open Agent Host State File"),
 			f1: true,
 			category: Categories.Developer,
-			precondition: ContextKeyExpr.and(
-				ChatContextKeys.enabled,
-				IsSessionsWindowContext.negate(),
-			),
+			precondition: ChatContextKeys.enabled,
 		});
 	}
 

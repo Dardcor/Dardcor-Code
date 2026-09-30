@@ -1088,7 +1088,7 @@ export class AICustomizationListWidget extends Disposable {
 
 		// Hooks have a simplified action set
 		if (promptType === PromptsType.hook) {
-			if (!this.workspaceService.isSessionsWindow && !descriptor.hideGenerateButton) {
+			if (!descriptor.hideGenerateButton) {
 				// Core Local: Generate is primary, configure hooks in dropdown
 				actions.push({
 					label: `$(${Codicon.sparkle.id}) Generate ${typeLabel}`,
@@ -1103,7 +1103,7 @@ export class AICustomizationListWidget extends Disposable {
 					});
 				}
 			} else if (!override?.commandId) {
-				// Sessions / non-local: configure hooks (view + create)
+				// Non-local: configure hooks (view + create)
 				actions.push({
 					label: `$(${Codicon.add.id}) ${localize('configureHooks', "Configure Hooks")}`,
 					enabled: hasWorkspace,
@@ -1118,7 +1118,7 @@ export class AICustomizationListWidget extends Disposable {
 
 		if (!override?.rootFile) {
 			// Determine the primary action (first in list)
-			if (!this.workspaceService.isSessionsWindow && !descriptor.hideGenerateButton) {
+			if (!descriptor.hideGenerateButton) {
 				// Core Local: Generate is primary
 				actions.push({
 					label: `$(${Codicon.sparkle.id}) Generate ${typeLabel}`,

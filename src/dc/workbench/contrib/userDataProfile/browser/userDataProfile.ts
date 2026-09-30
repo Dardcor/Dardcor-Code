@@ -7,7 +7,6 @@ import { Disposable, DisposableStore, IDisposable, MutableDisposable } from '../
 import { isWeb } from '../../../../base/common/platform.js';
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 import { localize, localize2 } from '../../../../nls.js';
-import { IsSessionsWindowContext } from '../../../common/contextkeys.js';
 import { Action2, MenuId, MenuRegistry, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { ContextKeyExpr, ContextKeyExpression, IContextKey, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { IUserDataProfile, IUserDataProfilesService } from '../../../../platform/userDataProfile/common/userDataProfile.js';
@@ -193,7 +192,7 @@ export class UserDataProfilesWorkbenchContribution extends Disposable implements
 			submenu: ProfilesMenu,
 			group: '2_configuration',
 			order: 1,
-			when: ContextKeyExpr.and(HAS_PROFILES_CONTEXT, IsSessionsWindowContext.negate())
+			when: HAS_PROFILES_CONTEXT
 		});
 	}
 
@@ -377,7 +376,7 @@ export class UserDataProfilesWorkbenchContribution extends Disposable implements
 							id: MenuId.MenubarPreferencesMenu,
 							group: '2_configuration',
 							order: 1,
-							when: ContextKeyExpr.and(HAS_PROFILES_CONTEXT.negate(), IsSessionsWindowContext.negate())
+							when: HAS_PROFILES_CONTEXT.negate()
 						},
 						{
 							id: ProfilesMenu,

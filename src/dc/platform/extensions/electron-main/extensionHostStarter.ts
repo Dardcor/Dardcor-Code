@@ -76,8 +76,12 @@ export class ExtensionHostStarter extends Disposable implements IDisposable, IEx
 		const id = String(++ExtensionHostStarter._lastId);
 		const extHost = new WindowUtilityProcess(this._logService, this._windowsMainService, this._telemetryService, this._lifecycleMainService);
 		this._extHosts.set(id, extHost);
+		const stderrDisposable = extHost.onStderr(data => {
+			this._logService.error(`Extension host (id ${id}) stderr: ${data.replace(/\r?\n$/, '')}`);
+		});
 		const disposable = extHost.onExit(({ pid, code, signal }) => {
 			disposable.dispose();
+			stderrDisposable.dispose();
 			this._logService.info(`Extension host with pid ${pid} exited with code: ${code}, signal: ${signal}.`);
 			setTimeout(() => {
 				extHost.dispose();

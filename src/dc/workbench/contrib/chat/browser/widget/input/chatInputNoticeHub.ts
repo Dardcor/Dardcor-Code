@@ -30,7 +30,7 @@ interface ITrackedHost extends IChatInputSurface {
 
 /**
  * Window-level registry of chat input notice hosts. Chat inputs exist in several
- * surfaces (panel, editor, Agents window) that do not share a widget service, so
+ * surfaces (panel and editor) that do not share a widget service, so
  * notice commands resolve their target through here rather than through any one
  * surface's widget registry.
  */

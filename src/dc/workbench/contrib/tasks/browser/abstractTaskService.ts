@@ -2137,9 +2137,6 @@ export abstract class AbstractTaskService extends Disposable implements ITaskSer
 				break;
 			case InstancePolicy.prompt:
 			default: {
-				if (this._environmentService.isSessionsWindow) {
-					this._logService.warn(`[tasks] InstancePolicy.prompt hit in sessions window for task '${task._label}'\n${new Error().stack}`);
-				}
 				this._showQuickPick(this._taskSystem!.getActiveTasks().filter(t => task._id === t._id),
 					nls.localize('TaskService.instanceToTerminate', 'Select an instance to terminate'),
 					{

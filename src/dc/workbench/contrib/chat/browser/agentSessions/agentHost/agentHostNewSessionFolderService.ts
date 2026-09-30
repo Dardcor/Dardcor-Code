@@ -82,7 +82,6 @@ export type FolderPickerDecisionUpdate =
  * @param agentHostProviderId the locked Agent Host provider, or `undefined` for a non-Agent-Host widget.
  * @param decision the harness decision for `sessionResource`, or `undefined` when not (yet) known.
  * @param previousTrackedSessionResource the session the current visibility value reflects.
- * @param isSessionsWindow whether the widget lives in the Agents window (which owns folder choice).
  * @param sessionIsEmpty whether the session has no requests yet (its working directory isn't fixed).
  * @param currentSelectedFolder the folder already chosen for `sessionResource`, if any.
  * @param folderExtUri provider-aware comparator (from `IUriIdentityService.extUri`) used to
@@ -94,7 +93,6 @@ export function resolveFolderPickerDecisionUpdate(
 	agentHostProviderId: string | undefined,
 	decision: ISessionFolderPickerDecision | undefined,
 	previousTrackedSessionResource: URI | undefined,
-	isSessionsWindow: boolean,
 	sessionIsEmpty: boolean,
 	currentSelectedFolder: URI | undefined,
 	folderExtUri: IExtUri,
@@ -114,9 +112,8 @@ export function resolveFolderPickerDecisionUpdate(
 	}
 	let selectPrimary: URI | undefined;
 	// Auto-select the pinned primary only before the session starts (its working
-	// directory is fixed once the first request is sent) and never in the Agents
-	// window, which owns folder choice through its own workspace picker.
-	if (decision.primary && !isSessionsWindow && sessionIsEmpty) {
+	// directory is fixed once the first request is sent).
+	if (decision.primary && sessionIsEmpty) {
 		const primary = URI.parse(decision.primary);
 		// Use the provider-aware comparator so a folder differing only by case is
 		// treated as already-selected only when its filesystem is case-insensitive

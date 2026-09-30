@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { getProviderIconSrc, markProviderIconMissing } from "@/shared/utils/providerIcon";
-import { Card, Button, Badge, Input, Modal, CardSkeleton, OAuthModal, KiroOAuthWrapper, CursorAuthModal, XiaomiMimoAuthModal, IFlowCookieModal, GitLabAuthModal, Toggle, Select, EditConnectionModal, NoAuthProxyCard, ConfirmModal } from "@/shared/components";
+import { Card, Button, Badge, Input, Modal, CardSkeleton, OAuthModal, KiroOAuthWrapper, CursorAuthModal, ChatGPTWebAuthModal, DeepSeekWebAuthModal, GeminiWebAuthModal, XiaomiMimoAuthModal, IFlowCookieModal, GitLabAuthModal, Toggle, Select, EditConnectionModal, NoAuthProxyCard, ConfirmModal } from "@/shared/components";
 import { OAUTH_PROVIDERS, APIKEY_PROVIDERS, FREE_PROVIDERS, FREE_TIER_PROVIDERS, WEB_COOKIE_PROVIDERS, getProviderAlias, isOpenAICompatibleProvider, isAnthropicCompatibleProvider, AI_PROVIDERS } from "@/shared/constants/providers";
 import { getModelsByProviderId, getModelKind } from "@/shared/constants/models";
 import { getThinkingLevels } from "open-sse/providers/thinkingLevels.js";
@@ -109,7 +109,7 @@ export default function ProviderDetailPage() {
       setShowXiaomiMimoModal(true);
       return;
     }
-    if (isOAuth) {
+    if (isOAuth || providerId === "chatgpt-web") {
       openOAuthConnection();
       return;
     }
@@ -123,7 +123,7 @@ export default function ProviderDetailPage() {
   };
 
   const triggerAddConnection = () => {
-    if (isOAuth) {
+    if (isOAuth || providerId === "chatgpt-web") {
       triggerOAuthConnection();
       return;
     }
@@ -154,11 +154,12 @@ export default function ProviderDetailPage() {
       }
     : (OAUTH_PROVIDERS[providerId] || APIKEY_PROVIDERS[providerId] || FREE_PROVIDERS[providerId] || FREE_TIER_PROVIDERS[providerId] || WEB_COOKIE_PROVIDERS[providerId]);
   const authModes = providerInfo?.authModes || [];
-  const isOAuth = !!OAUTH_PROVIDERS[providerId] || !!FREE_PROVIDERS[providerId] || authModes.includes("oauth");
+  const isOAuth = !!OAUTH_PROVIDERS[providerId] || !!FREE_PROVIDERS[providerId] || authModes.includes("oauth") || ["chatgpt-web", "deepseek-web", "gemini-web"].includes(providerId);
   const supportsApiKeyAuth = !!APIKEY_PROVIDERS[providerId] || authModes.includes("apikey");
   const isFreeNoAuth = !!FREE_PROVIDERS[providerId]?.noAuth;
   const staticModels = getModelsByProviderId(providerId);
-  const models = providerId === "cursor" && liveModels.length > 0
+  const isDynamicLiveModelProvider = ["cursor", "chatgpt-web", "deepseek-web", "gemini-web"].includes(providerId);
+  const models = isDynamicLiveModelProvider && liveModels.length > 0
     ? liveModels
     : staticModels;
   const providerAlias = getProviderAlias(providerId);
@@ -472,11 +473,11 @@ export default function ProviderDetailPage() {
     fetchDisabledModels();
   }, [fetchConnections, fetchAliases, fetchCustomModels, fetchDisabledModels]);
 
-  // Cursor's model availability is account-specific and changes frequently.
+  // Dynamic providers model availability is account-specific and changes frequently.
   // Load the active account's live catalog for the dashboard; the static
   // registry remains the fallback while the request is pending or unavailable.
   useEffect(() => {
-    if (providerId !== "cursor") {
+    if (!isDynamicLiveModelProvider) {
       setLiveModels([]);
       return;
     }
@@ -498,7 +499,7 @@ export default function ProviderDetailPage() {
       .catch(() => {});
 
     return () => { cancelled = true; };
-  }, [providerId, connections]);
+  }, [providerId, connections, isDynamicLiveModelProvider]);
 
   // Fetch suggested models from provider's public API (if configured)
   useEffect(() => {
@@ -604,7 +605,7 @@ export default function ProviderDetailPage() {
           const fetcher = (OAUTH_PROVIDERS[providerId] || APIKEY_PROVIDERS[providerId] || FREE_PROVIDERS[providerId] || FREE_TIER_PROVIDERS[providerId])?.modelsFetcher;
           if (fetcher) setSuggestedModels(await fetchSuggestedModels(fetcher));
         })(),
-        providerId === "cursor"
+        isDynamicLiveModelProvider
           ? (async () => {
               const connection = connections.find((item) => item.isActive !== false);
               if (!connection?.id) return;
@@ -1965,6 +1966,24 @@ export default function ProviderDetailPage() {
         />
       ) : providerId === "cursor" ? (
         <CursorAuthModal
+          isOpen={showOAuthModal}
+          onSuccess={handleOAuthSuccess}
+          onClose={() => setShowOAuthModal(false)}
+        />
+      ) : providerId === "chatgpt-web" ? (
+        <ChatGPTWebAuthModal
+          isOpen={showOAuthModal}
+          onSuccess={handleOAuthSuccess}
+          onClose={() => setShowOAuthModal(false)}
+        />
+      ) : providerId === "deepseek-web" ? (
+        <DeepSeekWebAuthModal
+          isOpen={showOAuthModal}
+          onSuccess={handleOAuthSuccess}
+          onClose={() => setShowOAuthModal(false)}
+        />
+      ) : providerId === "gemini-web" ? (
+        <GeminiWebAuthModal
           isOpen={showOAuthModal}
           onSuccess={handleOAuthSuccess}
           onClose={() => setShowOAuthModal(false)}

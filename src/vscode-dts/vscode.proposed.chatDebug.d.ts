@@ -190,6 +190,11 @@ declare module 'vscode' {
 		copilotUsageNanoAiu?: number;
 
 		/**
+		 * The per-request cost from `dardcor_usage.total_nano_aiu`, in nano-AIUs.
+		 */
+		dardcorUsageNanoAiu?: number;
+
+		/**
 		 * Create a new ChatDebugModelTurnEvent.
 		 * @param created The timestamp when the event was created.
 		 */

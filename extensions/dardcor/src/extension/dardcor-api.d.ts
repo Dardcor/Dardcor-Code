@@ -8,7 +8,6 @@
 
 // List of all API proposals we depend on
 /// <reference path="../../../../src/vscode-dts/vscode.proposed.activeComment.d.ts" />
-/// <reference path="../../../../src/vscode-dts/vscode.proposed.agentSessionsWorkspace.d.ts" />
 /// <reference path="../../../../src/vscode-dts/vscode.proposed.aiRelatedInformation.d.ts" />
 /// <reference path="../../../../src/vscode-dts/vscode.proposed.aiSettingsSearch.d.ts" />
 /// <reference path="../../../../src/vscode-dts/vscode.proposed.aiTextSearchProvider.d.ts" />

@@ -43,10 +43,5 @@ export function resolveWorkbenchCommonProperties(
 	// __GDPR__COMMON__ "common.cli" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
 	result['common.cli'] = !!process.env['VSCODE_CLI'];
 
-	if (environmentService.isSessionsWindow) {
-		// __GDPR__COMMON__ "common.isAgentsWindow" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
-		result['common.isAgentsWindow'] = true;
-	}
-
 	return result;
 }

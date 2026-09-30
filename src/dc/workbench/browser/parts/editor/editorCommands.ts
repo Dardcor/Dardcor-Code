@@ -27,7 +27,7 @@ import { ITelemetryService } from '../../../../platform/telemetry/common/telemet
 import { ActiveGroupEditorsByMostRecentlyUsedQuickAccess } from './editorQuickAccess.js';
 import { SideBySideEditor } from './sideBySideEditor.js';
 import { TextDiffEditor } from './textDiffEditor.js';
-import { ActiveEditorCanSplitInGroupContext, ActiveEditorGroupEmptyContext, ActiveEditorGroupLockedContext, ActiveEditorStickyContext, EditorPartModalContext, EditorPartModalMaximizedContext, EditorPartModalNavigationContext, EditorPartModalSidebarContext, IsSessionsWindowContext, MultipleEditorGroupsContext, SideBySideEditorActiveContext, TextCompareEditorActiveContext } from '../../../common/contextkeys.js';
+import { ActiveEditorCanSplitInGroupContext, ActiveEditorGroupEmptyContext, ActiveEditorGroupLockedContext, ActiveEditorStickyContext, EditorPartModalContext, EditorPartModalMaximizedContext, EditorPartModalNavigationContext, EditorPartModalSidebarContext, MultipleEditorGroupsContext, SideBySideEditorActiveContext, TextCompareEditorActiveContext } from '../../../common/contextkeys.js';
 import { CloseDirection, EditorInputCapabilities, EditorsOrder, IResourceDiffEditorInput, IUntitledTextResourceEditorInput, isDiffEditorInput, isEditorInputWithOptionsAndGroup } from '../../../common/editor.js';
 import { EditorInput } from '../../../common/editor/editorInput.js';
 import { SideBySideEditorInput } from '../../../common/editor/sideBySideEditorInput.js';
@@ -1461,8 +1461,7 @@ function registerModalEditorCommands(): void {
 				menu: {
 					id: MenuId.ModalEditorTitle,
 					group: 'navigation',
-					order: 0,
-					when: IsSessionsWindowContext.negate()
+					order: 0
 				}
 			});
 		}
@@ -1490,8 +1489,7 @@ function registerModalEditorCommands(): void {
 				menu: [{
 					id: MenuId.ModalEditorTitleContext,
 					group: '1_window',
-					order: 0,
-					when: IsSessionsWindowContext
+					order: 0
 				}]
 			});
 		}

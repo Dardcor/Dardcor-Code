@@ -97,12 +97,6 @@ else {
 					default: true
 				}
 			},
-			sessionsWindowAllowedExtensions: [
-				'github.dardcor-chat',
-				'dardcor.dardcor-ai',
-				'github.copilot-chat',
-				'google.google-antigravity'
-			]
 		});
 	}
 }

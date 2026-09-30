@@ -52,6 +52,69 @@ function matchAndCount(currentContent: string, oldString: string, eol: string) {
 	return r.type === 'multiple' ? r.matchPositions.length : r.editPosition.length;
 }
 
+export function tryLocalProximityHealing(
+	currentContent: string,
+	targetString: string,
+	eol: string
+): string | undefined {
+	if (!targetString || !currentContent) {
+		return undefined;
+	}
+
+	const normalizedTarget = targetString.replace(/\r\n/g, '\n');
+	const normalizedContent = currentContent.replace(/\r\n/g, '\n');
+	if (normalizedContent.includes(normalizedTarget)) {
+		if (eol === '\r\n') {
+			const crlfTarget = normalizedTarget.replace(/\n/g, '\r\n');
+			if (currentContent.includes(crlfTarget)) {
+				return crlfTarget;
+			}
+		} else {
+			if (currentContent.includes(normalizedTarget)) {
+				return normalizedTarget;
+			}
+		}
+	}
+
+	const targetLines = normalizedTarget.split('\n');
+	while (targetLines.length > 0 && targetLines[0].trim() === '') {
+		targetLines.shift();
+	}
+	while (targetLines.length > 0 && targetLines[targetLines.length - 1].trim() === '') {
+		targetLines.pop();
+	}
+
+	if (targetLines.length === 0) {
+		return undefined;
+	}
+
+	const contentLines = currentContent.split(eol);
+	const targetTrimmed = targetLines.map(l => l.trim());
+	const windowSize = targetLines.length;
+	const candidateIndices: number[] = [];
+
+	for (let i = 0; i <= contentLines.length - windowSize; i++) {
+		let match = true;
+		for (let j = 0; j < windowSize; j++) {
+			if (contentLines[i + j].trim() !== targetTrimmed[j]) {
+				match = false;
+				break;
+			}
+		}
+		if (match) {
+			candidateIndices.push(i);
+		}
+	}
+
+	if (candidateIndices.length === 1) {
+		const matchStart = candidateIndices[0];
+		const matchedSlice = contentLines.slice(matchStart, matchStart + windowSize);
+		return matchedSlice.join(eol);
+	}
+
+	return undefined;
+}
+
 /**
  * Attempts to correct edit parameters if the original oldString is not found.
  * It tries unescaping, and then LLM-based correction.
@@ -137,12 +200,22 @@ export async function healReplaceStringParams(
 				);
 			}
 		} else if (occurrences === 0) {
-			const llmCorrectedOldString = await correctOldStringMismatch(
-				healEndpoint,
+			const localHealed = tryLocalProximityHealing(
 				currentContent,
 				unescapedOldStringAttempt,
-				token,
+				eol
 			);
+
+			if (localHealed && matchAndCount(currentContent, localHealed, eol) === expectedReplacements) {
+				finalOldString = localHealed;
+				occurrences = expectedReplacements;
+			} else {
+				const llmCorrectedOldString = await correctOldStringMismatch(
+					healEndpoint,
+					currentContent,
+					unescapedOldStringAttempt,
+					token,
+				);
 			const llmOldOccurrences = matchAndCount(
 				currentContent,
 				llmCorrectedOldString,
@@ -173,7 +246,8 @@ export async function healReplaceStringParams(
 				};
 				return result;
 			}
-		} else {
+		}
+	} else {
 			// Unescaping oldString resulted in > 1 occurrences
 			const result: CorrectedEditResult = {
 				params: { ...originalParams },

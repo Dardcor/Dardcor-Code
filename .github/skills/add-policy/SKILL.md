@@ -279,7 +279,7 @@ GitHub backend, use the mock policy server — see
 ## One Policy for Many Settings (`policyReference`)
 
 A single policy can govern multiple settings (e.g. gate an agent in both the editor
-window and the Agents window). The **owner** declares the full `policy: { name, … }`;
+editor workbench settings). The **owner** declares the full `policy: { name, … }`;
 other settings declare `policyReference: { name }` pointing at the owner's policy name.
 
 ```typescript

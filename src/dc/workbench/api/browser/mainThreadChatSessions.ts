@@ -906,10 +906,8 @@ export class MainThreadChatSessions extends Disposable implements MainThreadChat
 				const ref = await this._chatService.acquireOrLoadSession(modifiedResource, ChatAgentLocation.Chat, CancellationToken.None);
 				ref?.dispose();
 			}
-			// When a chat widget exists for `originalResource` but is not an
-			// `IChatViewViewContext` (e.g. the Agents Window's session-view chat
-			// widget), that widget owns the rebind to `modifiedResource` via its
-			// own observer-driven mechanism. Eagerly load+dispose here would
+			// When a custom chat widget owns the resource, it manages the rebind to
+			// `modifiedResource` through its own observer-driven mechanism. Eagerly load+dispose here would
 			// drop the chat model refcount to 0 between this dispose and the
 			// widget's async re-acquire, tearing down the ext-host
 			// `CopilotCLISession` (and its SDK session) — which aborts any

@@ -19,7 +19,6 @@ import { EditorResourceAccessor, SideBySideEditor } from '../../../../common/edi
 import { AgentEditorCommentsOverlayWidget } from '../../../../services/agentEditorComments/browser/agentEditorCommentsOverlayWidget.js';
 import { IEditorGroup, IEditorGroupsService } from '../../../../services/editor/common/editorGroupsService.js';
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
-import { IWorkbenchEnvironmentService } from '../../../../services/environment/common/environmentService.js';
 import { IListService } from '../../../../../platform/list/browser/listService.js';
 import { resolveCommandsContext } from '../../../../browser/parts/editor/editorCommandsContext.js';
 import { ChatContextKeys } from '../../common/actions/chatContextKeys.js';
@@ -215,12 +214,8 @@ export class PlanReviewFeedbackEditorOverlay extends Disposable implements IWork
 	constructor(
 		@IEditorGroupsService editorGroupsService: IEditorGroupsService,
 		@IInstantiationService instantiationService: IInstantiationService,
-		@IWorkbenchEnvironmentService environmentService: IWorkbenchEnvironmentService,
 	) {
 		super();
-		if (environmentService.isSessionsWindow) {
-			return;
-		}
 		const editorGroups = observableFromEvent(
 			this,
 			Event.any(editorGroupsService.onDidAddGroup, editorGroupsService.onDidRemoveGroup),

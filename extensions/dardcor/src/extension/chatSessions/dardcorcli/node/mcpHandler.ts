@@ -50,15 +50,6 @@ export class CopilotCLIMCPHandler implements ICopilotCLIMCPHandler {
 
 	public async loadMcpConfig(sessionUri: URI): Promise<{ mcpConfig: Record<string, MCPServerConfig> | undefined; disposable: IDisposable }> {
 
-		// TODO: Sessions window settings override is not honored with extension
-		//       configuration API, so this needs to be a core setting
-		const isSessionsWindow = this.configurationService.getNonExtensionConfig<boolean>('chat.experimentalSessionsWindowOverride') ?? false;
-
-		// Sessions window: use the gateway approach which proxies all MCP servers from core
-		if (isSessionsWindow) {
-			return this.loadMcpConfigWithGateway(sessionUri);
-		}
-
 		// Standard path: use the CLIMCPServerEnabled setting
 		const enabled = this.configurationService.getConfig(ConfigKey.Advanced.CLIMCPServerEnabled);
 

@@ -19,5 +19,7 @@
  * the resulting JS code and replace it with a <number> that is then looked
  * up from the `_VSCODE_NLS_MESSAGES` array.
  */
+declare var _DCCODE_NLS_MESSAGES: string[];
 declare var _VSCODE_NLS_MESSAGES: string[];
+declare var _DCCODE_NLS_LANGUAGE: string | undefined;
 declare var _VSCODE_NLS_LANGUAGE: string | undefined;

@@ -189,12 +189,7 @@ export class PromptLaunchersAICustomizationWelcomePage extends Disposable implem
 				if (!value) {
 					return;
 				}
-				let query: string;
-				if (this.workspaceService.isSessionsWindow) {
-					query = `Generate agent customizations. ${value}`;
-				} else {
-					query = `/init ${value}`;
-				}
+				const query = `/init ${value}`;
 
 				// Show confirmation immediately — before prefillChat so it's visible
 				// even if prefillChat navigates focus away from this editor
@@ -303,15 +298,13 @@ export class PromptLaunchersAICustomizationWelcomePage extends Disposable implem
 			}));
 		}
 
-		if (!this.workspaceService.isSessionsWindow) {
-			const otherGrid = this.renderOverviewSection(
-				localize('overviewOtherCustomizations', "Other Customizations"),
-				localize('overviewOtherCustomizationsDescription', "Configure specialized voice and dictation behavior."),
-				'welcome-prompts-other-section',
-			);
-			for (const customization of this.standaloneCustomizations) {
-				this.renderStandaloneCustomization(otherGrid, customization);
-			}
+		const otherGrid = this.renderOverviewSection(
+			localize('overviewOtherCustomizations', "Other Customizations"),
+			localize('overviewOtherCustomizationsDescription', "Configure specialized voice and dictation behavior."),
+			'welcome-prompts-other-section',
+		);
+		for (const customization of this.standaloneCustomizations) {
+			this.renderStandaloneCustomization(otherGrid, customization);
 		}
 
 		// Content changed — recompute scroll dimensions.

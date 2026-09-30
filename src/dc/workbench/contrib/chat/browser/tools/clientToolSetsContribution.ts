@@ -9,7 +9,6 @@ import { ThemeIcon } from '../../../../../base/common/themables.js';
 import { localize } from '../../../../../nls.js';
 import { IWorkbenchContribution } from '../../../../common/contributions.js';
 import { browserChatToolReferenceNames } from '../../../../../platform/browserView/common/browserChatToolReferenceNames.js';
-import { IAICustomizationWorkspaceService } from '../../common/aiCustomizationWorkspaceService.js';
 import { ILanguageModelToolsService, IToolData, ToolDataSource } from '../../common/tools/languageModelToolsService.js';
 
 interface IDynamicToolSetSpec {
@@ -29,41 +28,22 @@ export class ClientToolSetsContribution extends Disposable implements IWorkbench
 
 	constructor(
 		@ILanguageModelToolsService toolsService: ILanguageModelToolsService,
-		@IAICustomizationWorkspaceService workspaceService: IAICustomizationWorkspaceService,
 	) {
 		super();
 
-		if (!workspaceService.isSessionsWindow) {
-			this._register(this._registerDynamicToolSet(toolsService, {
-				id: 'vscode-tasks',
-				referenceName: 'vscodeTasks',
-				icon: Codicon.tasklist,
-				description: localize('clientToolSet.tasks.description', "Tasks and Problems"),
-				detail: localize('clientToolSet.tasks.detail', "Create and run tasks and inspect workspace problems."),
-				members: [
-					'createAndRunTask',
-					'runTask',
-					'getTaskOutput',
-					'problems',
-				],
-			}));
-		}
-
-		if (workspaceService.isSessionsWindow) {
-			this._register(this._registerDynamicToolSet(toolsService, {
-				id: 'vscode-automations',
-				referenceName: 'vscodeAutomations',
-				icon: Codicon.calendar,
-				description: localize('clientToolSet.automations.description', "Automations"),
-				detail: localize('clientToolSet.automations.detail', "List, configure, run, and delete scheduled agent automations."),
-				members: [
-					'listAutomations',
-					'configureAutomation',
-					'runAutomation',
-					'deleteAutomation',
-				],
-			}));
-		}
+		this._register(this._registerDynamicToolSet(toolsService, {
+			id: 'vscode-tasks',
+			referenceName: 'vscodeTasks',
+			icon: Codicon.tasklist,
+			description: localize('clientToolSet.tasks.description', "Tasks and Problems"),
+			detail: localize('clientToolSet.tasks.detail', "Create and run tasks and inspect workspace problems."),
+			members: [
+				'createAndRunTask',
+				'runTask',
+				'getTaskOutput',
+				'problems',
+			],
+		}));
 
 		this._register(this._registerDynamicToolSet(toolsService, {
 			id: 'vscode-browser',
@@ -81,27 +61,28 @@ export class ClientToolSetsContribution extends Disposable implements IWorkbench
 			description: localize('clientToolSet.vscode.description', "Dardcor Code"),
 			detail: localize('clientToolSet.vscode.detail', "Navigate code, manage extensions, and run built-in Dardcor Code commands."),
 			members: [
-				...(workspaceService.isSessionsWindow ? [] : ['runTests', 'testFailure', 'rename', 'usages']),
+				'runTests',
+				'testFailure',
+				'rename',
+				'usages',
 				'toolSearch',
 			],
 		}));
 
-		if (!workspaceService.isSessionsWindow) {
-			this._register(this._registerDynamicToolSet(toolsService, {
-				id: 'vscode-notebooks',
-				referenceName: 'vscodeNotebooks',
-				icon: Codicon.notebook,
-				description: localize('clientToolSet.notebooks.description', "Jupyter Notebooks"),
-				detail: localize('clientToolSet.notebooks.detail', "Create and edit Jupyter notebooks and run their cells."),
-				members: [
-					'createJupyterNotebook',
-					'editNotebook',
-					'runNotebookCell',
-					'getNotebookSummary',
-					'readNotebookCellOutput',
-				],
-			}));
-		}
+		this._register(this._registerDynamicToolSet(toolsService, {
+			id: 'vscode-notebooks',
+			referenceName: 'vscodeNotebooks',
+			icon: Codicon.notebook,
+			description: localize('clientToolSet.notebooks.description', "Jupyter Notebooks"),
+			detail: localize('clientToolSet.notebooks.detail', "Create and edit Jupyter notebooks and run their cells."),
+			members: [
+				'createJupyterNotebook',
+				'editNotebook',
+				'runNotebookCell',
+				'getNotebookSummary',
+				'readNotebookCellOutput',
+			],
+		}));
 	}
 
 	/**

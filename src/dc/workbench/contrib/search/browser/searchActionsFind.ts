@@ -14,7 +14,6 @@ import * as Constants from '../common/constants.js';
 import * as SearchEditorConstants from '../../searchEditor/browser/constants.js';
 import { ISearchConfiguration, ISearchConfigurationProperties } from '../../../services/search/common/search.js';
 import { URI } from '../../../../base/common/uri.js';
-import { IsSessionsWindowContext } from '../../../common/contextkeys.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
 import { Action2, MenuId, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
@@ -244,10 +243,8 @@ registerAction2(class FindInFilesAction extends Action2 {
 				id: MenuId.MenubarEditMenu,
 				group: '4_find_global',
 				order: 1,
-				when: IsSessionsWindowContext.negate(),
 			}],
-			f1: true,
-			precondition: IsSessionsWindowContext.negate()
+			f1: true
 		});
 
 	}

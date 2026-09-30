@@ -12,7 +12,7 @@ import { ContextKeyExpr, IContextKey, IContextKeyService, RawContextKey } from '
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { INACTIVE_TUNNEL_MODE, IRemoteTunnelService, TunnelMode, TunnelStatus } from '../../../../platform/remoteTunnel/common/remoteTunnel.js';
-import { IsSessionsWindowContext, RemoteNameContext } from '../../../common/contextkeys.js';
+import { RemoteNameContext } from '../../../common/contextkeys.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 import { ChatContextKeyExprs, ChatContextKeys } from '../common/actions/chatContextKeys.js';
 import { IRemoteTunnelStartOptions, RemoteTunnelCommandIds } from '../../remoteTunnel/electron-browser/remoteTunnel.contribution.js';
@@ -107,7 +107,6 @@ registerAction2(class ToggleRemoteConnectionsAction extends Action2 {
 				group: 'navigation',
 				when: ContextKeyExpr.and(
 					ChatContextKeys.enabled,
-					IsSessionsWindowContext.toNegated(),
 					RemoteNameContext.isEqualTo(''),
 					ChatContextKeyExprs.isAgentHostSession,
 				)

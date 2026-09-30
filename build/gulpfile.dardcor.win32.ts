@@ -94,8 +94,8 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 
 		const quality = (product as typeof product & { quality?: string }).quality || 'dev';
 		const useVersionedUpdate = (product as typeof product & { win32VersionedUpdate?: boolean })?.win32VersionedUpdate;
-		const versionedResourcesFolder = useVersionedUpdate ? commit!.substring(0, 10) : '';
-		const issPath = path.join(import.meta.dirname, 'win32', 'code.iss');
+		const dardcorIssPath = path.join(import.meta.dirname, 'win32', 'dardcor.iss');
+		const issPath = fs.existsSync(dardcorIssPath) ? dardcorIssPath : path.join(import.meta.dirname, 'win32', 'code.iss');
 		const productJsonRelativePath = path.join(versionedResourcesFolder, 'resources/app/product.json');
 		let originalProductJsonPath = path.join(sourcePath, productJsonRelativePath);
 		if (!fs.existsSync(originalProductJsonPath)) {

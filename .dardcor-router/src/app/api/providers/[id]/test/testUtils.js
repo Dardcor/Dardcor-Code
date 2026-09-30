@@ -23,6 +23,7 @@ import { buildClineHeaders } from "@/shared/utils/clineAuth";
 // OAuth provider test endpoints
 const OAUTH_TEST_CONFIG = {
   claude: { checkExpiry: true, refreshable: true },
+  "chatgpt-web": { checkExpiry: true, refreshable: false },
   codex: {
     url: "https://chatgpt.com/backend-api/codex/responses",
     method: "POST",
@@ -345,6 +346,19 @@ async function testOAuthConnection(connection, effectiveProxy = null) {
   }
 
   if (config.checkExpiry) {
+    if (connection.provider === "chatgpt-web") {
+      try {
+        const parts = String(accessToken || "").split(".");
+        if (parts.length === 3) {
+          const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
+          const now = Math.floor(Date.now() / 1000);
+          if (payload.exp && payload.exp < now) {
+            return { valid: false, error: "Sesi ChatGPT Web telah kadaluarsa. Silakan klik Connect untuk memperbarui.", refreshed: false };
+          }
+          return { valid: true, error: null, refreshed: false, newTokens: null };
+        }
+      } catch {}
+    }
     if (refreshed) return { valid: true, error: null, refreshed, newTokens };
     if (tokenExpired) return { valid: false, error: "Token expired", refreshed: false };
     return { valid: true, error: null, refreshed: false, newTokens: null };
@@ -750,6 +764,21 @@ async function testApiKeyConnection(connection, effectiveProxy = null) {
         const data = await res.json().catch(() => null);
         const valid = !!(data && data.user);
         return { valid, error: valid ? null : "Session expired — re-paste cookie" };
+      }
+      case "chatgpt-web": {
+        const token = connection.accessToken || connection.apiKey || "";
+        try {
+          const parts = String(token).split(".");
+          if (parts.length === 3) {
+            const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
+            const now = Math.floor(Date.now() / 1000);
+            if (payload.exp && payload.exp < now) {
+              return { valid: false, error: "Sesi ChatGPT Web telah kadaluarsa. Silakan klik Connect untuk memperbarui." };
+            }
+            return { valid: true, error: null };
+          }
+        } catch {}
+        return { valid: !!token, error: token ? null : "Token sesi tidak ditemukan" };
       }
       case "opencode-go": {
         const res = await fetchWithConnectionProxy("https://opencode.ai/zen/go/v1/chat/completions", {

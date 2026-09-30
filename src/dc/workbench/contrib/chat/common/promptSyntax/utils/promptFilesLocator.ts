@@ -182,12 +182,14 @@ export class PromptFilesLocator {
 			throw new Error(`Unsupported prompt file storage: ${storage}`);
 		}
 
-		const configuredLocations = this.getPromptSourceFolders(type);
+		const isConfigured = PromptsConfig.getLocationsValue(this.configService, type) !== undefined;
+		const defaultFolders = this.getDefaultSourceFolders(type);
+		const allFolders = isConfigured ? this.getPromptSourceFolders(type) : defaultFolders;
 		const localRoot = storage === PromptsStorage.local ? root : undefined;
-		const absoluteLocations = await this.toAbsoluteLocations(type, configuredLocations.filter(location => location.storage === storage), undefined, localRoot);
+		const absoluteLocations = await this.toAbsoluteLocations(type, allFolders.filter(location => location.storage === storage), defaultFolders, localRoot);
 
 		if (storage === PromptsStorage.user && this.isUserDataPromptType(type)) {
-			const localLocations = await this.toAbsoluteLocations(type, configuredLocations.filter(location => location.storage === PromptsStorage.local));
+			const localLocations = await this.toAbsoluteLocations(type, allFolders.filter(location => location.storage === PromptsStorage.local), defaultFolders);
 			absoluteLocations.push(...localLocations.filter(location => this.sourceFolderOverlapsUserData(type, location.searchRoot)));
 			absoluteLocations.push(this.userDataFolder);
 		}
@@ -249,7 +251,7 @@ export class PromptFilesLocator {
 			for (const folder of parentFolders) {
 				if (!this.getWorkspaceFolder(folder.searchRoot)) {
 					// if the folder is not part of the workspace, we need to watch it
-					const recursive = folder.filePattern !== undefined || type === PromptsType.instructions; // instructions can be in subfolders, so watch recursively
+					const recursive = folder.filePattern !== undefined || type === PromptsType.instructions || type === PromptsType.skill; // instructions and skills can be in subfolders, so watch recursively
 					externalFolderWatchers.add(this.fileService.watch(folder.searchRoot, { recursive, excludes: [] }));
 				}
 			}
@@ -257,8 +259,7 @@ export class PromptFilesLocator {
 
 		const update = async () => {
 			try {
-				const configuredLocations = this.getPromptSourceFolders(type);
-				parentFolders = await this.toAbsoluteLocations(type, configuredLocations, undefined);
+				parentFolders = await this.getSourceFoldersInDiscoveryOrder(type);
 
 				if (token.isCancellationRequested) {
 					return;
@@ -287,7 +288,8 @@ export class PromptFilesLocator {
 				eventEmitter.fire();
 				return;
 			}
-			if (parentFolders.some(folder => e.affects(folder.searchRoot))) {
+			if (parentFolders.some(folder => e.affects(folder.searchRoot) || e.affects(dirname(folder.searchRoot)))) {
+				void update();
 				eventEmitter.fire();
 				return;
 			}
@@ -451,8 +453,10 @@ export class PromptFilesLocator {
 	 * @returns List of possible unambiguous prompt file folders.
 	 */
 	public async getConfigBasedSourceFolders(type: PromptsType): Promise<readonly URI[]> {
-		const configuredLocations = this.getPromptSourceFolders(type);
-		const absoluteLocations = await this.toAbsoluteLocations(type, configuredLocations);
+		const isConfigured = PromptsConfig.getLocationsValue(this.configService, type) !== undefined;
+		const defaultFolders = this.getDefaultSourceFolders(type);
+		const allFolders = isConfigured ? this.getPromptSourceFolders(type) : defaultFolders;
+		const absoluteLocations = await this.toAbsoluteLocations(type, allFolders, defaultFolders);
 
 		// For anything that doesn't support glob patterns, we can return
 		if (type !== PromptsType.prompt && type !== PromptsType.instructions) {
@@ -895,8 +899,7 @@ export class PromptFilesLocator {
 	 * Searches for skills in all configured locations.
 	 */
 	public async findAgentSkills(token: CancellationToken): Promise<IPromptPath[]> {
-		const configuredLocations = this.getPromptSourceFolders(PromptsType.skill);
-		const absoluteLocations = await this.toAbsoluteLocations(PromptsType.skill, configuredLocations);
+		const absoluteLocations = await this.getSourceFoldersInDiscoveryOrder(PromptsType.skill);
 		const allResults: IPromptPath[] = [];
 
 		for (const { uri, source, storage } of absoluteLocations) {

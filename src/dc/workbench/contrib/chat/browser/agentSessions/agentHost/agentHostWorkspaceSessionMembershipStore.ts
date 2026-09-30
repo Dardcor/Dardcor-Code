@@ -11,7 +11,6 @@ import { createDecorator } from '../../../../../../platform/instantiation/common
 import { ILogService } from '../../../../../../platform/log/common/log.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../../../platform/storage/common/storage.js';
 import { IWorkspaceContextService, WorkbenchState } from '../../../../../../platform/workspace/common/workspace.js';
-import { IWorkbenchEnvironmentService } from '../../../../../services/environment/common/environmentService.js';
 
 const STORAGE_KEY = 'agentHost.workspaceSessionMembership.v1';
 const RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
@@ -58,7 +57,6 @@ export class AgentHostWorkspaceSessionMembershipStore implements IAgentHostWorks
 		@IStorageService private readonly _storageService: IStorageService,
 		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
 		@ILogService private readonly _logService: ILogService,
-		@IWorkbenchEnvironmentService private readonly _environmentService: IWorkbenchEnvironmentService,
 	) { }
 
 	protected now(): number {
@@ -139,8 +137,7 @@ export class AgentHostWorkspaceSessionMembershipStore implements IAgentHostWorks
 
 	/** Restricts durable provenance to Editor Windows with an actual multi-root workspace. */
 	private _isEnabled(): boolean {
-		return !this._environmentService.isSessionsWindow
-			&& this._workspaceContextService.getWorkbenchState() === WorkbenchState.WORKSPACE
+		return this._workspaceContextService.getWorkbenchState() === WorkbenchState.WORKSPACE
 			&& this._workspaceContextService.getWorkspace().folders.length > 1;
 	}
 

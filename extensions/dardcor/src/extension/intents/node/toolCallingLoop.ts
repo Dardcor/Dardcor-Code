@@ -399,63 +399,67 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 	 * is available) so the caller can surface it in the progress spinner.
 	 */
 	private autopilotLastUserReason: string | undefined;
+	private _recentToolCallSignatures: string[] = [];
 
-	/**
-	 * Autopilot stop hook. In standard Autopilot the model signals completion by calling
-	 * `task_complete`; if it stops without doing so we nudge it to keep going. In Advanced
-	 * Autopilot (`chat.autopilot.advanced.enabled`) completion is judged by the goal
-	 * classifier instead and `task_complete` is ignored as a stop signal — see
-	 * {@link advancedAutopilotContinue}. Returns a continuation message or `undefined` to
-	 * let the loop stop.
-	 */
+	protected isAutonomousMode(): boolean {
+		const permLevel = this.options.request.permissionLevel;
+		return permLevel === 'autopilot' || permLevel === 'autoApprove';
+	}
+
+	protected detectToolCallOscillation(toolCalls: readonly any[]): boolean {
+		if (!toolCalls || toolCalls.length === 0) {
+			return false;
+		}
+		const sig = toolCalls.map(tc => `${tc.name}:${JSON.stringify(tc.arguments ?? tc.parameters ?? {})}`).sort().join('|');
+		this._recentToolCallSignatures.push(sig);
+		if (this._recentToolCallSignatures.length > 6) {
+			this._recentToolCallSignatures.shift();
+		}
+		if (this._recentToolCallSignatures.length >= 3) {
+			const lastThree = this._recentToolCallSignatures.slice(-3);
+			if (lastThree[0] === lastThree[1] && lastThree[1] === lastThree[2]) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	protected async shouldAutopilotContinue(result: IToolCallSingleResult, token: CancellationToken): Promise<string | undefined> {
 		this.autopilotLastUserReason = undefined;
 
 		const advancedAutopilotEnabled = this._configurationService.getNonExtensionConfig<boolean>('chat.autopilot.advanced.enabled') === true;
 
-		// Advanced Autopilot delegates the completion decision entirely to the goal
-		// classifier. The model's `task_complete` call is intentionally NOT treated as a
-		// stop signal here — the loop only stops when the classifier agrees the original
-		// request has been satisfied (or a hard safety cap is reached).
 		if (advancedAutopilotEnabled) {
 			return this.advancedAutopilotContinue(result, token);
 		}
 
 		if (this.taskCompleted) {
-			this._logService.info('[ToolCallingLoop] Autopilot: task_complete was called, stopping');
+			this._logService.info('[ToolCallingLoop] Autonomous: task_complete was called, stopping');
 			return undefined;
 		}
 
-		// might have called task_complete alongside other tools in an earlier round
 		const calledTaskComplete = this.toolCallRounds.some(
 			round => round.toolCalls.some(tc => tc.name === ToolCallingLoop.TASK_COMPLETE_TOOL_NAME)
 		);
 		if (calledTaskComplete) {
 			this.taskCompleted = true;
-			this._logService.info('[ToolCallingLoop] Autopilot: task_complete found in history, stopping');
+			this._logService.info('[ToolCallingLoop] Autonomous: task_complete found in history, stopping');
 			return undefined;
 		}
 
-		// If the model produced a substantive text response with no tool calls, treat it
-		// as a final summary and let the loop stop. Nudging in this case typically just
-		// wastes a turn — the model considers itself done. The user can always continue
-		// the conversation if it wasn't.
-		if (result.round.toolCalls.length === 0 && result.round.response.trim().length > 0) {
-			this._logService.info('[ToolCallingLoop] Autopilot: model produced a text-only response, treating as done');
+		const hadToolCalls = this.toolCallRounds.some(round => round.toolCalls.length > 0);
+		if (!hadToolCalls && result.round.toolCalls.length === 0 && result.round.response.trim().length > 0) {
+			this._logService.info('[ToolCallingLoop] Autonomous: text-only response with no prior tools, treating as done');
 			return undefined;
 		}
 
-		// safety valve — only give up after exhausting all continuation attempts
 		if (this.autopilotIterationCount >= ToolCallingLoop.MAX_AUTOPILOT_ITERATIONS) {
-			this._logService.info(`[ToolCallingLoop] Autopilot: hit max iterations (${ToolCallingLoop.MAX_AUTOPILOT_ITERATIONS}), letting it stop`);
+			this._logService.info(`[ToolCallingLoop] Autonomous: hit max iterations (${ToolCallingLoop.MAX_AUTOPILOT_ITERATIONS}), letting it stop`);
 			return undefined;
 		}
 
-		// If we already nudged once and the model still produced no tool calls, the model
-		// is effectively done — further nudges just waste tokens. Bail out and let the
-		// loop stop.
 		if (this.autopilotStopHookActive && result.round.toolCalls.length === 0) {
-			this._logService.info('[ToolCallingLoop] Autopilot: prior nudge produced no tool calls, stopping to avoid wasted requests');
+			this._logService.info('[ToolCallingLoop] Autonomous: prior nudge produced no tool calls, stopping to avoid wasted requests');
 			return undefined;
 		}
 
@@ -660,7 +664,7 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 	 * from the tools service and appended so the model can always signal completion.
 	 */
 	protected ensureAutopilotTools(availableTools: LanguageModelToolInformation[]): LanguageModelToolInformation[] {
-		if (this.options.request.permissionLevel !== 'autopilot') {
+		if (!this.isAutonomousMode()) {
 			return availableTools;
 		}
 		if (availableTools.some(t => t.name === ToolCallingLoop.TASK_COMPLETE_TOOL_NAME)) {
@@ -670,10 +674,10 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 			accessor => accessor.get(IToolsService).getTool(ToolCallingLoop.TASK_COMPLETE_TOOL_NAME)
 		);
 		if (taskCompleteTool) {
-			this._logService.info('[ToolCallingLoop] Added task_complete tool for autopilot mode');
+			this._logService.info('[ToolCallingLoop] Added task_complete tool for autonomous mode');
 			return [...availableTools, taskCompleteTool];
 		}
-		this._logService.warn('[ToolCallingLoop] task_complete tool not found — autopilot completion may not work');
+		this._logService.warn('[ToolCallingLoop] task_complete tool not found — autonomous completion may not work');
 		return availableTools;
 	}
 
@@ -1136,22 +1140,17 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 
 		while (true) {
 			if (lastResult && i++ >= this.options.toolCallLimit) {
-				// In Autopilot mode, silently increase the limit and continue
-				// without showing the confirmation dialog, up to a hard cap.
-				const permLevel = this.options.request.permissionLevel;
-				if (permLevel === 'autopilot' && this.options.toolCallLimit < 200) {
-					this.options.toolCallLimit = Math.min(Math.round(this.options.toolCallLimit * 3 / 2), 200);
-					this.showAutopilotProgress(outputStream, l10n.t('Autopilot: extending tool call limit\u2026'), l10n.t('Autopilot extended tool call limit'));
+				if (this.isAutonomousMode()) {
+					this.options.toolCallLimit = this.options.toolCallLimit + 50;
+					this.showAutopilotProgress(outputStream, l10n.t('Autonomous: extending tool call limit\u2026'), l10n.t('Autonomous extended tool call limit'));
 				} else {
 					lastResult = this.hitToolCallLimit(outputStream, lastResult);
 					break;
 				}
 			}
 
-			// Check if VS Code has requested we gracefully yield before starting the next iteration.
-			// In autopilot mode, don't yield until the task is actually complete.
 			if (lastResult && this.options.yieldRequested?.()) {
-				if (this.options.request.permissionLevel !== 'autopilot' || this.taskCompleted) {
+				if (!this.isAutonomousMode() || this.taskCompleted) {
 					break;
 				}
 			}
@@ -1174,25 +1173,27 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 				this._sessionTranscriptService.logAssistantTurnEnd(sessionId, turnId);
 				agentSpan?.addEvent('turn_end', { turnId, ...(chatSessionId ? { [CopilotChatAttr.CHAT_SESSION_ID]: chatSessionId } : {}) });
 
-				// If the model produced productive (non-task_complete) tool calls after being nudged,
-				// reset the stop hook flag and iteration count so it can be nudged again.
+				if (this.detectToolCallOscillation(result.round.toolCalls)) {
+					this._logService.warn('[ToolCallingLoop] Oscillation detected: repeated identical tool calls 3 times consecutively. Halting loop.');
+					this.showAutopilotProgress(outputStream, l10n.t('Autonomous: halted due to repeating tool loop'), l10n.t('Autonomous loop halted (no progress)'));
+					break;
+				}
+
 				if (this.autopilotStopHookActive && result.round.toolCalls.length && !result.round.toolCalls.some(tc => tc.name === ToolCallingLoop.TASK_COMPLETE_TOOL_NAME)) {
 					this.autopilotStopHookActive = false;
 					this.autopilotIterationCount = 0;
 				}
 
 				if (!result.round.toolCalls.length || result.response.type !== ChatFetchResponseType.Success) {
-					// If cancelled, don't run stop hooks - just break immediately
 					if (token.isCancellationRequested) {
 						break;
 					}
 
-					// In auto-approve modes, auto-retry on transient errors (not rate-limited or quota-exceeded)
 					if (result.response.type !== ChatFetchResponseType.Success && this.shouldAutoRetry(result.response)) {
 						this.autopilotRetryCount++;
 						this._logService.info(`[ToolCallingLoop] Auto-retrying on error (attempt ${this.autopilotRetryCount}/${ToolCallingLoop.MAX_AUTOPILOT_RETRIES}): ${result.response.type}`);
-						if (this.options.request.permissionLevel === 'autopilot') {
-							this.showAutopilotProgress(outputStream, l10n.t('Autopilot: recovering from a request error\u2026'), l10n.t('Autopilot recovered from a request error'));
+						if (this.isAutonomousMode()) {
+							this.showAutopilotProgress(outputStream, l10n.t('Autonomous: recovering from a request error\u2026'), l10n.t('Autonomous recovered from a request error'));
 						} else {
 							this.showAutopilotProgress(outputStream, l10n.t('Recovering from a request error\u2026'), l10n.t('Recovered from a request error'));
 						}
@@ -1200,7 +1201,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 						continue;
 					}
 
-					// Before stopping, execute the stop hook
 					if (this.options.request.subAgentInvocationId) {
 						const stopHookResult = await this.executeSubagentStopHook({
 							agent_id: this.options.request.subAgentInvocationId,
@@ -1210,11 +1210,8 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 						const joinedReasons = stopHookResult.reasons?.join('; ');
 						this._logService.info(`[ToolCallingLoop] Subagent stop hook result: shouldContinue=${stopHookResult.shouldContinue}, reasons=${joinedReasons}`);
 						if (stopHookResult.shouldContinue && stopHookResult.reasons?.length) {
-							// The stop hook blocked stopping - show reasons and continue
 							this.showSubagentStopHookBlockedMessage(outputStream, stopHookResult.reasons);
-							// Store the joined reasons so it can be passed to the model in the next prompt
 							this.stopHookReason = joinedReasons;
-							// Also persist on the round so it survives across turns
 							result.round.hookContext = formatHookContext(stopHookResult.reasons);
 							this._logService.info(`[ToolCallingLoop] Subagent stop hook blocked, continuing with reasons: ${joinedReasons}`);
 							stopHookActive = true;
@@ -1225,11 +1222,8 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 						const joinedReasons = stopHookResult.reasons?.join('; ');
 						this._logService.info(`[ToolCallingLoop] Stop hook result: shouldContinue=${stopHookResult.shouldContinue}, reasons=${joinedReasons}`);
 						if (stopHookResult.shouldContinue && stopHookResult.reasons?.length) {
-							// The stop hook blocked stopping - show reasons and continue
 							this.showStopHookBlockedMessage(outputStream, stopHookResult.reasons);
-							// Store the joined reasons so it can be passed to the model in the next prompt
 							this.stopHookReason = joinedReasons;
-							// Also persist on the round so it survives across turns
 							result.round.hookContext = formatHookContext(stopHookResult.reasons);
 							this._logService.info(`[ToolCallingLoop] Stop hook blocked, continuing with reasons: ${joinedReasons}`);
 							stopHookActive = true;
@@ -1238,19 +1232,17 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 						}
 					}
 
-					// In Autopilot mode, check if the task is actually done before stopping.
-					// This acts as an internal stop hook that keeps the agent churning until completion.
-					if (this.options.request.permissionLevel === 'autopilot' && result.response.type === ChatFetchResponseType.Success) {
+					if (this.isAutonomousMode() && result.response.type === ChatFetchResponseType.Success) {
 						const autopilotContinue = await this.shouldAutopilotContinue(result, token);
 						if (autopilotContinue) {
-							this._logService.info(`[ToolCallingLoop] Autopilot internal stop hook: continuing because task may not be complete`);
+							this._logService.info(`[ToolCallingLoop] Autonomous internal stop hook: continuing because task may not be complete`);
 							const userReason = this.autopilotLastUserReason;
 							const spinnerMessage = userReason
-								? l10n.t('Autopilot: continuing — {0}', userReason)
-								: l10n.t('Autopilot: verifying task is done\u2026');
+								? l10n.t('Autonomous: continuing — {0}', userReason)
+								: l10n.t('Autonomous: verifying task is done\u2026');
 							const spinnerPastTense = userReason
-								? l10n.t('Autopilot continued: {0}', userReason)
-								: l10n.t('Autopilot continued working');
+								? l10n.t('Autonomous continued: {0}', userReason)
+								: l10n.t('Autonomous continued working');
 							this.showAutopilotProgress(outputStream, spinnerMessage, spinnerPastTense);
 							this.stopHookReason = autopilotContinue;
 							result.round.hookContext = formatHookContext([autopilotContinue]);
@@ -1667,6 +1659,7 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 					completionTokens: fetchResult.usage.completion_tokens,
 					promptTokens: fetchResult.usage.prompt_tokens,
 					outputBuffer: endpoint.maxOutputTokens,
+					copilotCredits: this._accumulatedCopilotCredits,
 					dardcorCredits: this._accumulatedCopilotCredits,
 					promptTokenDetails,
 				});
@@ -1679,6 +1672,7 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 				stream.usage({
 					completionTokens: 0,
 					promptTokens: 0,
+					copilotCredits: this._accumulatedCopilotCredits,
 					dardcorCredits: this._accumulatedCopilotCredits,
 				});
 			}

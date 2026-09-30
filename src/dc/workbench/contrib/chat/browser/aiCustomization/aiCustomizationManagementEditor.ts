@@ -110,7 +110,6 @@ import { ChatConfiguration } from '../../common/constants.js';
 import { AICustomizationWelcomePage, type ICustomizationMigrationCategorySummary } from './aiCustomizationWelcomePage.js';
 import { type CustomizationMigrationTargetFolders, type IMigratedCustomizationsResult, migrateCustomizations } from './customizationMigration.js';
 import { CUSTOMIZATION_MIGRATION_CATEGORIES, CustomizationMigrationCategoryId, getCustomizationMigrationCategory, type ICustomizationMigrationBanner, type ICustomizationMigrationCandidatePresentation, type ICustomizationMigrationCategory } from './customizationMigrationCategories.js';
-import { IViewsService } from '../../../../services/views/common/viewsService.js';
 import { ILabelService } from '../../../../../platform/label/common/label.js';
 import { showNoFoldersDialog } from '../promptSyntax/pickers/askForPromptSourceFolder.js';
 import { isAgentHostTarget } from '../../common/chatSessionsService.js';
@@ -640,7 +639,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 		@INotificationService private readonly notificationService: INotificationService,
 		@IDialogService private readonly dialogService: IDialogService,
 		@ICustomizationHarnessService private readonly harnessService: ICustomizationHarnessService,
-		@IViewsService private readonly viewsService: IViewsService,
 		@ILabelService private readonly labelService: ILabelService,
 		@IAICustomizationItemsModel private readonly itemsModel: IAICustomizationItemsModel,
 		@IMcpService private readonly mcpService: IMcpService,
@@ -806,7 +804,7 @@ export class AICustomizationManagementEditor extends EditorPane {
 
 	private getActiveHarnessLabel(): string {
 		const label = this.harnessService.getActiveDescriptor().label;
-		return label || (this.workspaceService.isSessionsWindow ? '' : localize('localHarnessLabel', "Local"));
+		return label || localize('localHarnessLabel', "Local");
 	}
 
 	private updateTargetLabelPresentation(): void {
@@ -1049,24 +1047,10 @@ export class AICustomizationManagementEditor extends EditorPane {
 				},
 				prefillChat: async (query, options) => {
 					try {
-						if (this.workspaceService.isSessionsWindow) {
-							const sessionsViewId = 'workbench.view.sessions.chat';
-							if (options?.newChat) {
-								await this.commandService.executeCommand('workbench.action.sessions.newChat');
-							}
-							const view = await this.viewsService.openView(sessionsViewId, true);
-							const chatView = view as unknown as { prefillInput?(text: string): void; sendQuery?(text: string): void } | undefined;
-							if (options?.isPartialQuery && chatView?.prefillInput) {
-								chatView.prefillInput(query);
-							} else if (chatView?.sendQuery) {
-								chatView.sendQuery(query);
-							}
-						} else {
-							if (options?.newChat) {
-								await this.commandService.executeCommand('workbench.action.chat.newChat');
-							}
-							await this.commandService.executeCommand('workbench.action.chat.open', { query, isPartialQuery: options?.isPartialQuery ?? false });
+						if (options?.newChat) {
+							await this.commandService.executeCommand('workbench.action.chat.newChat');
 						}
+						await this.commandService.executeCommand('workbench.action.chat.open', { query, isPartialQuery: options?.isPartialQuery ?? false });
 					} catch (err) {
 						onUnexpectedError(err);
 					}
@@ -2851,26 +2835,13 @@ export class AICustomizationManagementEditor extends EditorPane {
 
 		if (type === PromptsType.hook) {
 			const preferredStorage = target === 'user' ? PromptsStorage.user : PromptsStorage.local;
-			if (this.workspaceService.isSessionsWindow) {
-				// Sessions: show hooks filtered to Copilot CLI (GitHub Copilot) hook types
-				await this.instantiationService.invokeFunction(showConfigureHooksQuickPick, {
-					openEditor: async (resource) => {
-						await this.showEmbeddedEditor(resource, basename(resource), PromptsType.hook, preferredStorage, preferredStorage === PromptsStorage.local);
-						return;
-					},
-					target: Target.GitHubCopilot,
-					preferredStorage,
-				});
-			} else {
-				// Core: use the default core behaviour
-				await this.instantiationService.invokeFunction(showConfigureHooksQuickPick, {
-					openEditor: async (resource) => {
-						await this.showEmbeddedEditor(resource, basename(resource), PromptsType.hook, preferredStorage, preferredStorage === PromptsStorage.local);
-						return;
-					},
-					preferredStorage,
-				});
-			}
+			await this.instantiationService.invokeFunction(showConfigureHooksQuickPick, {
+				openEditor: async (resource) => {
+					await this.showEmbeddedEditor(resource, basename(resource), PromptsType.hook, preferredStorage, preferredStorage === PromptsStorage.local);
+					return;
+				},
+				preferredStorage,
+			});
 			return;
 		}
 		const sessionResource = this.harnessService.activeSessionResource.get();

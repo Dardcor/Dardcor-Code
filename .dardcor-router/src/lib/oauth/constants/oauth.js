@@ -24,6 +24,15 @@ export const CLAUDE_CONFIG = { ...PROVIDER_OAUTH["claude"] };
 // Codex (OpenAI) OAuth Configuration (Authorization Code Flow with PKCE)
 export const CODEX_CONFIG = { ...PROVIDER_OAUTH["codex"] };
 
+// ChatGPT Web OAuth Configuration (Authorization Code Flow with PKCE)
+export const CHATGPT_WEB_CONFIG = { ...PROVIDER_OAUTH["chatgpt-web"] };
+
+// DeepSeek Web Configuration
+export const DEEPSEEK_WEB_CONFIG = { ...PROVIDER_OAUTH["deepseek-web"] };
+
+// Gemini Web Configuration
+export const GEMINI_WEB_CONFIG = { ...PROVIDER_OAUTH["gemini-web"] };
+
 // Gemini (Google) OAuth Configuration (Standard OAuth2)
 // clientId/clientSecret from GOOGLE_OAUTH_CLIENT (shared.js) — not stored in registry
 export const GEMINI_CONFIG = { ...GOOGLE_OAUTH_CLIENT, ...PROVIDER_OAUTH["gemini-cli"] };
@@ -235,6 +244,9 @@ export const PROVIDERS = {
   CODEBUDDY_INTL: "codebuddy-intl",
   KIMCHI: "kimchi",
   GROK_CLI: "grok-cli",
+  CHATGPT_WEB: "chatgpt-web",
+  DEEPSEEK_WEB: "deepseek-web",
+  GEMINI_WEB: "gemini-web",
   TRAE: "trae",
   WINDSURF: "windsurf",
   ZED: "zed",

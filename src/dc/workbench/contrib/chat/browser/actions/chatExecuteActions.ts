@@ -22,8 +22,6 @@ import { IInstantiationService } from '../../../../../platform/instantiation/com
 import { KeybindingWeight } from '../../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { ITelemetryService } from '../../../../../platform/telemetry/common/telemetry.js';
-import { AgentHostAllowSignedOutWhenUsableSettingId } from '../../../../../platform/agentHost/common/agentService.js';
-import { IsSessionsWindowContext } from '../../../../common/contextkeys.js';
 import { ChatContextKeys, ChatContextKeyExprs } from '../../common/actions/chatContextKeys.js';
 import { buildCustomAgentHandoffsInfo, getHandoffId, IChatMode, IChatModeService, IChatModes } from '../../common/chatModes.js';
 import { reportChatModeChange } from '../../common/chatModeTelemetry.js';
@@ -391,7 +389,6 @@ export class OpenModelPickerAction extends Action2 {
 						ContextKeyExpr.or(
 							ChatContextKeys.lockedToCodingAgent.negate(),
 							ChatContextKeys.chatSessionHasTargetedModels,
-							IsSessionsWindowContext,
 							ChatContextKeyExprs.isAgentHostSession),
 						ContextKeyExpr.or(
 							ContextKeyExpr.equals(ChatContextKeys.location.key, ChatAgentLocation.Chat),
@@ -402,11 +399,7 @@ export class OpenModelPickerAction extends Action2 {
 						ContextKeyExpr.or(
 							ChatContextKeys.inAgentSessionsWelcome.negate(),
 							ChatContextKeys.chatSessionHasTargetedModels,
-							ChatContextKeys.agentSessionType.isEqualTo(AgentSessionProviders.Local),
-							ContextKeyExpr.and(
-								IsSessionsWindowContext,
-								ChatContextKeys.agentSessionType.isEqualTo(AgentSessionProviders.AgentHostCopilot),
-								ContextKeyExpr.equals(`config.${AgentHostAllowSignedOutWhenUsableSettingId}`, true)))
+							ChatContextKeys.agentSessionType.isEqualTo(AgentSessionProviders.Local))
 					)
 			}
 		});
@@ -444,7 +437,6 @@ export class OpenPermissionPickerAction extends Action2 {
 						ChatContextKeys.chatModeKind.notEqualsTo(ChatModeKind.Ask),
 						ChatContextKeys.inQuickChat.negate(),
 						ChatContextKeys.inAutomationsDialog.negate(),
-						IsSessionsWindowContext.negate(),
 						ContextKeyExpr.or(
 							ChatContextKeys.lockedToCodingAgent.negate(),
 							ChatContextKeys.lockedCodingAgentId.isEqualTo(AgentSessionProviders.Background),
@@ -527,24 +519,12 @@ export class OpenSessionTargetPickerAction extends Action2 {
 			precondition: ContextKeyExpr.and(ChatContextKeys.enabled, ContextKeyExpr.or(ChatContextKeys.chatSessionIsEmpty, ChatContextKeys.inAgentSessionsWelcome), ChatContextKeys.currentlyEditingInput.negate(), ChatContextKeys.currentlyEditing.negate()),
 			menu: [
 				{
-					id: MenuId.ChatInput,
-					order: 0,
-					when: ContextKeyExpr.and(
-						ChatContextKeys.enabled,
-						ChatContextKeys.location.isEqualTo(ChatAgentLocation.Chat),
-						ChatContextKeys.inQuickChat.negate(),
-						ChatContextKeys.chatSessionIsEmpty,
-						IsSessionsWindowContext),
-					group: 'navigation',
-				},
-				{
 					id: MenuId.ChatInputSecondary,
 					order: 0,
 					when: ContextKeyExpr.and(
 						ChatContextKeys.enabled,
 						ChatContextKeys.location.isEqualTo(ChatAgentLocation.Chat),
 						ChatContextKeys.inQuickChat.negate(),
-						IsSessionsWindowContext.negate(),
 						ChatContextKeys.chatSessionIsEmpty),
 					group: 'navigation',
 				},
@@ -581,8 +561,7 @@ export class OpenDelegationPickerAction extends Action2 {
 						ChatContextKeys.location.isEqualTo(ChatAgentLocation.Chat),
 						ChatContextKeys.inQuickChat.negate(),
 						ChatContextKeys.chatSessionSupportsDelegation,
-						ChatContextKeys.chatSessionIsEmpty.negate(),
-						IsSessionsWindowContext.negate()
+						ChatContextKeys.chatSessionIsEmpty.negate()
 					),
 					group: 'navigation',
 				},
@@ -669,10 +648,6 @@ export class ChatSessionPrimaryPickerAction extends Action2 {
 						ContextKeyExpr.and(
 							ChatContextKeys.chatSessionHasModels,
 							ChatContextKeys.chatSessionType.notEqualsTo(AgentSessionProviders.Cloud),
-							ContextKeyExpr.or(
-								IsSessionsWindowContext.negate(),
-								ChatContextKeys.chatSessionType.notEqualsTo(AgentSessionProviders.Background)
-							),
 							ContextKeyExpr.or(
 								ChatContextKeys.lockedToCodingAgent,
 								ContextKeyExpr.and(

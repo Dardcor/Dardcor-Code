@@ -15,7 +15,7 @@ A user adds `"systemWide": true` to a keybinding entry in **`keybindings.json`**
 ```jsonc
 {
   "key": "ctrl+cmd+a",
-  "command": "workbench.action.openAgentsWindow",
+  "command": "workbench.action.focusNextPart",
   "systemWide": true
 }
 ```
@@ -130,10 +130,7 @@ registrations. Wired up in `src/vs/code/electron-main/app.ts` with the real Elec
   **current** registry at fire time, so command/args are never captured from a stale snapshot.
 - `onTrigger(accelerator)` — resolves the target window: the focused window if it owns the
   accelerator, otherwise the deterministic winner (lowest window id) among alive owners. Sends
-  `vscode:runAction` via `target.sendWhenReady(...)`. It deliberately does **not** force-focus the
-  routing window — a system-wide keybinding fires while VS Code is typically unfocused, and pulling
-  the routing window forward would flicker when the command opens/reveals a *different* window
-  (e.g. `workbench.action.openAgentsWindow`). This matches every other `vscode:runAction` sender.
+  `vscode:runAction` via `target.sendWhenReady(...)`. It deliberately does **not** force-focus the routing window. The command decides what to surface and focus, avoiding focus flicker and matching the other `vscode:runAction` senders.
 - Lifecycle: on `IWindowsMainService.onDidDestroyWindow` it drops the window's entry and reconciles;
   on `ILifecycleMainService.onWillShutdown` and on dispose it unregisters everything.
 

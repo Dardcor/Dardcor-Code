@@ -12,9 +12,9 @@ import * as performance from './dc/base/common/performance.js';
 import { INLSConfiguration } from './dc/nls.js';
 
 // Prepare globals that are needed for running
-globalThis._VSCODE_PRODUCT_JSON = { ...product };
-globalThis._VSCODE_PACKAGE_JSON = { ...pkg };
-globalThis._VSCODE_FILE_ROOT = import.meta.dirname;
+globalThis._DCCODE_PRODUCT_JSON = globalThis._VSCODE_PRODUCT_JSON = { ...product };
+globalThis._DCCODE_PACKAGE_JSON = globalThis._VSCODE_PACKAGE_JSON = { ...pkg };
+globalThis._DCCODE_FILE_ROOT = globalThis._VSCODE_FILE_ROOT = import.meta.dirname;
 
 // Install a hook to ESM module resolution that
 // 1) maps 'fs' to 'original-fs' (the ASAR-unaware Node.js `fs`), and
@@ -226,15 +226,12 @@ function enableASARSupport(): void {
 		return nextResolve(specifier, context);
 	}`;
 
-	// Opt-in resolution tracing, off by default. Set VSCODE_ASAR_TRACE to enable:
-	//   VSCODE_ASAR_TRACE=1            -> trace to stderr (also '"true"', '"on"', '"stderr"')
-	//   VSCODE_ASAR_TRACE=/path/x.log  -> append the trace to that file
-	const traceSink = process.env['VSCODE_ASAR_TRACE'] || undefined;
+	const traceSink = process.env['DCCODE_ASAR_TRACE'] || process.env['VSCODE_ASAR_TRACE'] || undefined;
 	// Unlike process.resourcesPath, import.meta.dirname reflects Node's junction-resolved module path.
 	const appRoot = dirname(import.meta.dirname);
 
 	register(`data:text/javascript;base64,${Buffer.from(jsCode).toString('base64')}`, import.meta.url, {
-		data: process.env['VSCODE_DEV'] ? {} : {
+		data: (process.env['DCCODE_DEV'] || process.env['VSCODE_DEV']) ? {} : {
 			resourcesPath: appRoot,
 			asarPath: join(appRoot, 'node_modules.asar'),
 			traceSink,
@@ -262,30 +259,40 @@ async function doSetupNLS(): Promise<INLSConfiguration | undefined> {
 	let nlsConfig: INLSConfiguration | undefined = undefined;
 
 	let messagesFile: string | undefined;
-	if (process.env['VSCODE_NLS_CONFIG']) {
+	const nlsEnv = process.env['DCCODE_NLS_CONFIG'] || process.env['VSCODE_NLS_CONFIG'];
+	if (nlsEnv) {
 		try {
-			nlsConfig = JSON.parse(process.env['VSCODE_NLS_CONFIG']);
+			nlsConfig = JSON.parse(nlsEnv);
 			if (nlsConfig?.languagePack?.messagesFile) {
 				messagesFile = nlsConfig.languagePack.messagesFile;
 			} else if (nlsConfig?.defaultMessagesFile) {
 				messagesFile = nlsConfig.defaultMessagesFile;
 			}
 
-			globalThis._VSCODE_NLS_LANGUAGE = nlsConfig?.resolvedLanguage;
+			globalThis._DCCODE_NLS_LANGUAGE = globalThis._VSCODE_NLS_LANGUAGE = nlsConfig?.resolvedLanguage;
 		} catch (e) {
-			console.error(`Error reading VSCODE_NLS_CONFIG from environment: ${e}`);
+			console.error(`Error reading NLS config from environment: ${e}`);
+		}
+	}
+
+	const isDev = process.env['DCCODE_DEV'] || process.env['VSCODE_DEV'];
+	if (!messagesFile && !isDev) {
+		const candidate = join(import.meta.dirname, 'nls.messages.json');
+		if (fs.existsSync(candidate)) {
+			messagesFile = candidate;
 		}
 	}
 
 	if (
-		process.env['VSCODE_DEV'] ||	// no NLS support in dev mode
-		!messagesFile					// no NLS messages file
+		isDev ||
+		!messagesFile
 	) {
 		return undefined;
 	}
 
 	try {
-		globalThis._VSCODE_NLS_MESSAGES = JSON.parse((await fs.promises.readFile(messagesFile)).toString());
+		const messages = JSON.parse((await fs.promises.readFile(messagesFile)).toString());
+		globalThis._DCCODE_NLS_MESSAGES = globalThis._VSCODE_NLS_MESSAGES = messages;
 	} catch (error) {
 		console.error(`Error reading NLS messages file ${messagesFile}: ${error}`);
 
@@ -301,7 +308,8 @@ async function doSetupNLS(): Promise<INLSConfiguration | undefined> {
 		// Fallback to the default message file to ensure english translation at least
 		if (nlsConfig?.defaultMessagesFile && nlsConfig.defaultMessagesFile !== messagesFile) {
 			try {
-				globalThis._VSCODE_NLS_MESSAGES = JSON.parse((await fs.promises.readFile(nlsConfig.defaultMessagesFile)).toString());
+				const defaultMessages = JSON.parse((await fs.promises.readFile(nlsConfig.defaultMessagesFile)).toString());
+				globalThis._DCCODE_NLS_MESSAGES = globalThis._VSCODE_NLS_MESSAGES = defaultMessages;
 			} catch (error) {
 				console.error(`Error reading default NLS messages file ${nlsConfig.defaultMessagesFile}: ${error}`);
 			}

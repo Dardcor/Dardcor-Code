@@ -11,7 +11,7 @@ export default function content(accessor: ServicesAccessor) {
 	const isServerless = platform.isWeb && !accessor.get(IWorkbenchEnvironmentService).remoteAuthority;
 	return `
 ## Interactive Editor Playground
-The core editor in Dardcor Code is packed with features.  This page highlights a number of them and lets you interactively try them out through the use of a number of embedded editors.  For full details on the editor features for Dardcor Code and more head over to our [documentation](https://code.visualstudio.com/docs).
+The core editor in Dardcor Code is packed with features.  This page highlights a number of them and lets you interactively try them out through the use of a number of embedded editors.  For full details on the editor features for Dardcor Code and more head over to our [documentation](https://dardcor-code.web.id/docs).
 
 * [Multi-cursor Editing](#multi-cursor-editing) - block selection, select all occurrences, add additional cursors and more.
 * [IntelliSense](#intellisense) - get code assistance and parameter suggestions for your code and external modules.

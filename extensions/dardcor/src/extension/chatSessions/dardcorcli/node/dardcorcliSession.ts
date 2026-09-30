@@ -11,7 +11,6 @@ import type * as vscode from 'vscode';
 import type { ChatParticipantToolToken } from 'vscode';
 import { IAuthenticationService } from '../../../../platform/authentication/common/authentication';
 import { IChatQuotaService, QuotaSnapshot, QuotaSnapshots } from '../../../../platform/chat/common/chatQuotaService';
-import { getQuotaMessageForPlan } from '../../../../platform/chat/common/commonTypes';
 import { ConfigKey, IConfigurationService } from '../../../../platform/configuration/common/configurationService';
 import { IGitService } from '../../../../platform/git/common/gitService';
 import { PermissiveAuthRequiredError } from '../../../../platform/github/common/githubService';
@@ -47,6 +46,7 @@ import { handleExitPlanMode } from './exitPlanModeHandler';
 import { type McCommand, type McEvent, type McSessionCreateResult, MissionControlApiClient } from './missionControlApiClient';
 import { handleMcpPermission, handleReadPermission, handleShellPermission, handleWritePermission, type PermissionRequest, type PermissionRequestResult, showInteractivePermissionPrompt } from './permissionHelpers';
 import { TodoSqlQuery } from './todoSqlQuery';
+import { AutonomousLoopController, DOOM_LOOP_WARNING } from '../../../agentLoop';
 import { IQuestion, IQuestionAnswer, IUserQuestionHandler } from './userInputHelpers';
 
 /**
@@ -885,6 +885,7 @@ export class CopilotCLISession extends DisposableStore implements ICopilotCLISes
 	private _pendingPrompt: string | undefined;
 	private _bridgeProcessor: CopilotCliBridgeSpanProcessor | undefined;
 	private readonly _todoSqlQuery = new TodoSqlQuery();
+	private readonly _loopController = this.add(new AutonomousLoopController());
 	private readonly _missionControlApiClient: MissionControlApiClient;
 	private _cancelPendingCancellationAbort: (() => void) | undefined;
 
@@ -1212,7 +1213,6 @@ export class CopilotCLISession extends DisposableStore implements ICopilotCLISes
 		const invokeAgentTraceContext = invokeAgentSpan.getSpanContext();
 		const editTracker = new ExternalEditTracker();
 		let sdkRequestId: string | undefined;
-		let isQuotaError = false;
 		const toolIdEditMap = new Map<string, Promise<string | undefined>>();
 		const remoteMode = isMissionControlCommandSource(input.source) ? this._mcState?.mcMode : undefined;
 		const effectivePermissionLevel = remoteMode ? (remoteMode === 'autopilot' ? 'autopilot' : undefined) : this._permissionLevel;
@@ -1532,6 +1532,12 @@ export class CopilotCLISession extends DisposableStore implements ICopilotCLISes
 				toolCalls.set(event.data.toolCallId, event.data as unknown as ToolCall);
 				toolStartTimes.set(event.data.toolCallId, Date.now());
 
+				const isDoomLoop = this._loopController.recordToolCall(event.data.toolName, event.data.arguments);
+				if (isDoomLoop) {
+					this.logService.warn(`[CopilotCLISession] Doom loop detected for tool ${event.data.toolName}`);
+					requestStream?.warning(DOOM_LOOP_WARNING);
+				}
+
 				// Only synthesize tool spans when the bridge is absent. If a future SDK registers its own
 				// JS OTel provider the bridge forwards native tool spans, and synthesizing would duplicate them.
 				if (!this._bridgeProcessor) {
@@ -1630,7 +1636,7 @@ export class CopilotCLISession extends DisposableStore implements ICopilotCLISes
 				this.logService.error(`[CopilotCLISession]CopilotCLI error: (${event.data.errorType}), ${event.data.message}`);
 
 				if (event.data.errorType === 'quota' || event.data.statusCode === 402) {
-					isQuotaError = true;
+					this.logService.warn(`[CopilotCLISession] Quota event received, routed through internal router: ${event.data.message}`);
 				} else {
 					requestStream?.markdown(l10n.t('\n\nError: ({0}) {1}', event.data.errorType, event.data.message));
 				}
@@ -1687,19 +1693,6 @@ export class CopilotCLISession extends DisposableStore implements ICopilotCLISes
 			if (!token.isCancellationRequested) {
 				await this.sendRequestInternal(input, attachments, false, logStartTime);
 			}
-			if (isQuotaError) {
-				this._chatQuotaService.clearQuota();
-				let plan: string | undefined;
-				let isUsageBasedBilling: boolean | undefined;
-				let quotaResetDate: string | undefined;
-				try {
-					const dardcorToken = await this._authenticationService.getCopilotToken();
-					plan = dardcorToken.dardcorPlan;
-					isUsageBasedBilling = dardcorToken.tokenBasedBilling;
-					quotaResetDate = dardcorToken.quotaInfo.quota_reset_date;
-				} catch { /* token unavailable */ }
-				throw new CopilotCLIQuotaExceededError(getQuotaMessageForPlan(plan, isUsageBasedBilling, quotaResetDate));
-			}
 			this.logService.trace(`[CopilotCLISession] Invoking session (completed) ${this.sessionId}`);
 			const resolvedToolIdEditMap: Record<string, string> = {};
 			await Promise.all(Array.from(toolIdEditMap.entries()).map(async ([toolId, editFilePromise]) => {
@@ -1727,22 +1720,6 @@ export class CopilotCLISession extends DisposableStore implements ICopilotCLISes
 			// Log the completed conversation
 			this._logConversation(prompt, assistantMessageChunks.join(''), modelId || '', attachments, logStartTime, 'Completed');
 		} catch (error) {
-			if (error instanceof CopilotCLIQuotaExceededError) {
-				throw error;
-			}
-			if (isQuotaError) {
-				this._chatQuotaService.clearQuota();
-				let plan: string | undefined;
-				let isUsageBasedBilling: boolean | undefined;
-				let quotaResetDate: string | undefined;
-				try {
-					const dardcorToken = await this._authenticationService.getCopilotToken();
-					plan = dardcorToken.dardcorPlan;
-					isUsageBasedBilling = dardcorToken.tokenBasedBilling;
-					quotaResetDate = dardcorToken.quotaInfo.quota_reset_date;
-				} catch { /* token unavailable */ }
-				throw new CopilotCLIQuotaExceededError(getQuotaMessageForPlan(plan, isUsageBasedBilling, quotaResetDate));
-			}
 			this._status = ChatSessionStatus.Failed;
 			this._statusChange.fire(this._status);
 			this.logService.error(`[CopilotCLISession] Invoking session (error) ${this.sessionId}`, error);

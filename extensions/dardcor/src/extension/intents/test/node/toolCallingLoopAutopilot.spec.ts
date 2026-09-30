@@ -444,15 +444,24 @@ describe('ToolCallingLoop autopilot', () => {
 			expect(result).toHaveLength(1);
 		});
 
-		it('should not add task_complete in non-autopilot mode', () => {
+		it('should add task_complete in autoApprove mode', () => {
 			registerTaskCompleteTool();
 			const loop = createLoop('autoApprove');
+			const tools: LanguageModelToolInformation[] = [];
+			const result = loop.testEnsureAutopilotTools(tools);
+			expect(result).toHaveLength(1);
+			expect(result.some(t => t.name === 'task_complete')).toBe(true);
+		});
+
+		it('should not add task_complete in default mode', () => {
+			registerTaskCompleteTool();
+			const loop = createLoop('default');
 			const tools: LanguageModelToolInformation[] = [];
 			const result = loop.testEnsureAutopilotTools(tools);
 			expect(result).toHaveLength(0);
 		});
 
-		it('should return tools unchanged when not in autopilot mode', () => {
+		it('should return tools unchanged when not in autonomous mode', () => {
 			const loop = createLoop(undefined);
 			const tools: LanguageModelToolInformation[] = [
 				{ name: 'read_file', description: '', inputSchema: undefined, tags: [], source: undefined },

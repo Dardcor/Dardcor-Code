@@ -15,7 +15,7 @@ import { asJson, IRequestService } from '../../request/common/request.js';
 import { IApplicationStorageMainService } from '../../storage/electron-main/storageMainService.js';
 import { ITelemetryService } from '../../telemetry/common/telemetry.js';
 import { AvailableForDownload, IUpdate, State, StateType, UpdateType } from '../common/update.js';
-import { AbstractUpdateService, createUpdateURL, IUpdateURLOptions } from './abstractUpdateService.js';
+import { AbstractUpdateService, createUpdateURL, isVersionNewer, IUpdateURLOptions } from './abstractUpdateService.js';
 
 export class LinuxUpdateService extends AbstractUpdateService {
 
@@ -45,15 +45,38 @@ export class LinuxUpdateService extends AbstractUpdateService {
 
 		const internalOrg = this.getInternalOrg();
 		const background = !explicit && !internalOrg;
-		const url = this.buildUpdateFeedUrl(this.quality, this.productService.commit!, { background, internalOrg });
+		const commitOrVersion = this.productService.commit ?? this.productService.dardcorVersion ?? this.productService.version;
+		const url = this.buildUpdateFeedUrl(this.quality, commitOrVersion!, { background, internalOrg });
 		this.setState(State.CheckingForUpdates(explicit));
 
 		this.requestService.request({ url, callSite: 'updateService.linux.checkForUpdates' }, CancellationToken.None)
-			.then<IUpdate | null>(asJson)
-			.then(update => {
+			.then<any>(asJson)
+			.then(rawPayload => {
 				// If updates were disabled mid-check, ignore the result so we don't leave the Disabled state.
 				if (this.state.type !== StateType.CheckingForUpdates) {
 					return;
+				}
+
+				let update: IUpdate | null = null;
+				if (rawPayload) {
+					if (rawPayload.platforms) {
+						const platformKey = `linux-${process.arch}`;
+						const platformEntry = rawPayload.platforms[platformKey];
+						if (platformEntry) {
+							const targetVer = platformEntry.productVersion ?? platformEntry.version ?? rawPayload.version;
+							const currentVer = this.productService.dardcorVersion ?? this.productService.version;
+							if (isVersionNewer(targetVer, currentVer)) {
+								update = {
+									url: platformEntry.url,
+									version: platformEntry.version ?? targetVer,
+									productVersion: targetVer,
+									sha256hash: platformEntry.sha256hash ?? platformEntry.hash
+								};
+							}
+						}
+					} else if (rawPayload.url && (rawPayload.version || rawPayload.productVersion)) {
+						update = rawPayload as IUpdate;
+					}
 				}
 
 				if (!update || !update.url || !update.version || !update.productVersion) {

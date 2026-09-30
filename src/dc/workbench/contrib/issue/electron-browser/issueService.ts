@@ -18,7 +18,6 @@ import { IIssueFormService, IssueReporterData, IssueReporterExtensionData, Issue
 import { IWorkbenchAssignmentService } from '../../../services/assignment/common/assignmentService.js';
 import { IAuthenticationService } from '../../../services/authentication/common/authentication.js';
 import { IWorkbenchExtensionEnablementService } from '../../../services/extensionManagement/common/extensionManagement.js';
-import { IWorkbenchEnvironmentService } from '../../../services/environment/common/environmentService.js';
 import { IIntegrityService } from '../../../services/integrity/common/integrity.js';
 
 export class NativeIssueService implements IWorkbenchIssueService {
@@ -33,7 +32,6 @@ export class NativeIssueService implements IWorkbenchIssueService {
 		@IWorkbenchAssignmentService private readonly experimentService: IWorkbenchAssignmentService,
 		@IAuthenticationService private readonly authenticationService: IAuthenticationService,
 		@IIntegrityService private readonly integrityService: IIntegrityService,
-		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 	) { }
 
@@ -60,9 +58,7 @@ export class NativeIssueService implements IWorkbenchIssueService {
 			whenExtensionsLoaded: extensionsLoaded.p,
 			whenDataComplete: dataComplete.p,
 			restrictedMode: !this.workspaceTrustManagementService.isWorkspaceTrusted(),
-			isInstallationPure: true,
-			isSessionsWindow: this.environmentService.isSessionsWindow,
-			githubAccessToken: '',
+			isInstallationPure: true,			githubAccessToken: '',
 		}, dataOverrides);
 
 		const openPromise = this.issueFormService.openReporter(issueReporterData);
@@ -137,9 +133,7 @@ export class NativeIssueService implements IWorkbenchIssueService {
 			enabledExtensions: extensionData,
 			experiments: experiments?.join('\n'),
 			restrictedMode: !this.workspaceTrustManagementService.isWorkspaceTrusted(),
-			isInstallationPure,
-			isSessionsWindow: this.environmentService.isSessionsWindow,
-			githubAccessToken,
+			isInstallationPure,			githubAccessToken,
 		}, dataOverrides);
 
 		return this.issueFormService.openReporter(issueReporterData);

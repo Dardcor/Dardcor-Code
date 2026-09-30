@@ -48,10 +48,10 @@ export function hasSignedInCodexChatGPTAccount(account: ICodexAccountInfo, visib
 	return visible && account.status === 'signedIn';
 }
 
-export function shouldShowCodexAccount(configurationService: ICodexAccountVisibilityConfiguration, isSessionsWindow: boolean): boolean {
+export function shouldShowCodexAccount(configurationService: ICodexAccountVisibilityConfiguration): boolean {
 	return configurationService.getValue<boolean>(ChatAIDisabledSettingId) !== true
 		&& configurationService.getValue<boolean>(AgentHostCodexAgentEnabledSettingId) === true
-		&& (isSessionsWindow || configurationService.getValue<boolean>(CodexPreferAgentHostEditorSettingId) === true);
+		&& configurationService.getValue<boolean>(CodexPreferAgentHostEditorSettingId) === true;
 }
 
 export function createCodexAccountMenuActions(service: ICodexAccountService, visible = true): IAction[] {

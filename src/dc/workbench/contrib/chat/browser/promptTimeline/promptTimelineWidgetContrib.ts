@@ -9,11 +9,10 @@ import { Disposable, DisposableStore, IDisposable, toDisposable } from '../../..
 import { autorun } from '../../../../../base/common/observable.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
-import { IWorkbenchEnvironmentService } from '../../../../services/environment/common/environmentService.js';
 import { IChatWidget } from '../chat.js';
 import { IChatWidgetContrib, ChatWidget } from '../widget/chatWidget.js';
 import { ChatAgentLocation, ChatConfiguration } from '../../common/constants.js';
-import { MIN_RAIL_PROMPTS, PromptTimelineRailStyle, PROMPT_TIMELINE_CONTRIB_ID, PROMPT_TIMELINE_DISPLAY_SETTING, PROMPT_TIMELINE_STICKY_SCROLL_SETTING } from '../../common/promptTimeline.js';
+import { MIN_RAIL_PROMPTS, PromptTimelineRailStyle, PROMPT_TIMELINE_CONTRIB_ID, PROMPT_TIMELINE_STICKY_SCROLL_SETTING } from '../../common/promptTimeline.js';
 import { PromptTimelineModel } from './promptTimelineModel.js';
 import { PromptTimelineGutterRail } from './promptTimelineGutterRail.js';
 import { IPromptTimelineRail } from './promptTimelineRail.js';
@@ -71,7 +70,6 @@ export class PromptTimelineWidgetContrib extends Disposable implements IChatWidg
 		private readonly widget: IChatWidget,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
-		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService,
 	) {
 		super();
 
@@ -80,8 +78,7 @@ export class PromptTimelineWidgetContrib extends Disposable implements IChatWidg
 		}
 
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
-			if (e.affectsConfiguration(PROMPT_TIMELINE_DISPLAY_SETTING)
-				|| e.affectsConfiguration(PROMPT_TIMELINE_STICKY_SCROLL_SETTING)
+			if (e.affectsConfiguration(PROMPT_TIMELINE_STICKY_SCROLL_SETTING)
 				|| e.affectsConfiguration(ChatConfiguration.ExperimentalStickyScrollEnabled)) {
 				this._update();
 			}
@@ -92,14 +89,9 @@ export class PromptTimelineWidgetContrib extends Disposable implements IChatWidg
 	/** (Re)builds the timeline to match the current settings, or tears it down if no surface is enabled. */
 	private _update(): void {
 		this._enablement.clear();
-		// The rail's layout (and the content reservation it needs) is built for the Agents window's
-		// centered session view, so it stays there; the sticky header works in either window.
-		const railStyle = this.environmentService.isSessionsWindow
-			? this.configurationService.getValue<PromptTimelineRailStyle>(PROMPT_TIMELINE_DISPLAY_SETTING)
-			: 'off';
 		const stickyEnabled = isStickyPromptHeaderShown(this.widget, this.configurationService);
-		if (railStyle !== 'off' || stickyEnabled) {
-			this._createFeature(railStyle, stickyEnabled);
+		if (stickyEnabled) {
+			this._createFeature('off', stickyEnabled);
 		}
 	}
 

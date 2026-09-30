@@ -20,7 +20,6 @@ import { Iterable } from '../../../../../base/common/iterator.js';
 import { Disposable, DisposableStore, IDisposable, MutableDisposable, thenIfNotDisposed, toDisposable } from '../../../../../base/common/lifecycle.js';
 import { ResourceSet } from '../../../../../base/common/map.js';
 import { Schemas } from '../../../../../base/common/network.js';
-import { IsSessionsWindowContext } from '../../../../common/contextkeys.js';
 import { filter } from '../../../../../base/common/objects.js';
 import { autorun, derived, IObservable, observableFromEvent, observableValue } from '../../../../../base/common/observable.js';
 import { extUri, isEqual } from '../../../../../base/common/resources.js';
@@ -112,12 +111,6 @@ import { ChatContentMarkdownRenderer } from './chatContentMarkdownRenderer.js';
 
 const $ = dom.$;
 
-/**
- * Total horizontal padding of a chat item in the agents window (`.interactive-item-container`,
- * `padding: 0 32px` in sessions `style.css`). Reserved when laying out embedded editors so code
- * blocks match the rendered content width. See {@link IChatListItemRendererOptions.contentHorizontalPadding}.
- */
-const SESSIONS_CHAT_ITEM_HORIZONTAL_PADDING = 64;
 
 export interface IChatWidgetStyles extends IChatInputStyles {
 	readonly inputEditorBackground: string;
@@ -913,7 +906,6 @@ export class ChatWidget extends Disposable implements IChatWidget {
 			agentHostProviderId,
 			decision,
 			this._folderPickerDecisionSessionResource,
-			!!this.viewOptions.isSessionsWindow,
 			(this.viewModel?.model.getRequests().length ?? 0) === 0,
 			sessionResource ? this._agentHostNewSessionFolderService.getFolder(sessionResource) : undefined,
 			this._uriIdentityService.extUri,
@@ -1144,7 +1136,6 @@ export class ChatWidget extends Disposable implements IChatWidget {
 		this.renderWelcomeViewContentIfNeeded();
 		this.createList(this.listContainer, {
 			editable: !isInlineChat(this) && !isQuickChat(this),
-			contentHorizontalPadding: this.viewOptions.isSessionsWindow ? SESSIONS_CHAT_ITEM_HORIZONTAL_PADDING : undefined,
 			...this.viewOptions.rendererOptions,
 			renderStyle
 		});
@@ -1976,9 +1967,7 @@ export class ChatWidget extends Disposable implements IChatWidget {
 	}
 
 	private async archiveLocalParentSession(sessionResource: URI): Promise<void> {
-		// In the regular workbench, only archive local chat sessions.
-		// In the sessions window, allow archiving any session type after delegation.
-		if (getChatSessionType(sessionResource) !== localChatSessionType && !IsSessionsWindowContext.getValue(this.contextKeyService)) {
+		if (getChatSessionType(sessionResource) !== localChatSessionType) {
 			return;
 		}
 
@@ -2476,7 +2465,6 @@ export class ChatWidget extends Disposable implements IChatWidget {
 			defaultMode: this.viewOptions.defaultMode,
 			sessionTypePickerDelegate: this.viewOptions.sessionTypePickerDelegate,
 			workspacePickerDelegate: this.viewOptions.workspacePickerDelegate,
-			isSessionsWindow: this.viewOptions.isSessionsWindow,
 		};
 
 		if (this.viewModel?.editing) {

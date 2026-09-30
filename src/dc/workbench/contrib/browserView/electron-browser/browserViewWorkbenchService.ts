@@ -22,7 +22,6 @@ import { IEditorGroup, IEditorGroupsService, preferredSideBySideGroupDirection }
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { ContextKeyExpr, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { ChatContextKeys } from '../../chat/common/actions/chatContextKeys.js';
-import { IsSessionsWindowContext } from '../../../common/contextkeys.js';
 import { ChatConfiguration } from '../../chat/common/constants.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
 import { contrastBorder, descriptionForeground, focusBorder } from '../../../../platform/theme/common/colors/baseColors.js';
@@ -37,7 +36,6 @@ import { URI } from '../../../../base/common/uri.js';
 import { isEqual } from '../../../../base/common/resources.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { getCopilotRootPaths } from '../../../../platform/agentHost/common/copilotHome.js';
-import { localChatSessionType } from '../../chat/common/chatSessionsService.js';
 import { INativeWorkbenchEnvironmentService } from '../../../services/environment/electron-browser/environmentService.js';
 import { ITunnelProxyInfo } from '../../../../platform/tunnel/common/tunnelProxy.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
@@ -96,14 +94,6 @@ export class BrowserViewWorkbenchService extends Disposable implements IBrowserV
 		ChatContextKeys.enabled,
 		ContextKeyExpr.has(`config.${ChatConfiguration.AgentEnabled}`),
 		ContextKeyExpr.has(`config.workbench.browser.enableChatTools`),
-		// If we're in Sessions Window, we require some additional conditions.
-		ContextKeyExpr.or(
-			IsSessionsWindowContext.negate(),
-			ContextKeyExpr.or(
-				ContextKeyExpr.equals('sessionType', localChatSessionType),
-				ContextKeyExpr.equals('sessions.isAgentHostSession', true),
-			),
-		),
 	)!;
 
 	private _isSharingAvailable: boolean = false;

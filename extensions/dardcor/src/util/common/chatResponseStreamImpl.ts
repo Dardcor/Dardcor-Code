@@ -243,4 +243,8 @@ export class ChatResponseStreamImpl implements FinalizableChatResponseStream {
 			this._usage(usage);
 		}
 	}
+
+	voiceProgress(_id: any, _value: string): void {
+		// no-op
+	}
 }

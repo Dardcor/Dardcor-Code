@@ -330,7 +330,7 @@ Reference tests:
 ## Related: one policy governing many settings (`policyReference`)
 
 A single enterprise policy can lock **more than one setting** — e.g. gate an agent in
-both the editor window and the Agents window. This is the `policyReference` mechanism
+related Editor settings from separate modules. This is the `policyReference` mechanism
 (`src/vs/base/common/policy.ts` → `IPolicyReference`).
 
 - The **owner** setting declares the full `policy: { name, … }` (type, metadata, runtime
@@ -367,8 +367,7 @@ Rules & internals:
   (sorted; omitted when a policy governs only its owner). The exporter only captures
   references that are **registered/loaded at export time**, so the checked-in
   `policyData.jsonc` can list fewer references than the source declares — e.g.
-  `Claude3PIntegration` lists only `chat.agentHost.claudeAgent.enabled`, not the
-  `sessions.chat.claudeAgent.enabled` reference declared in the sessions contribution.
+  `Claude3PIntegration` lists only the setting modules loaded by the export entrypoint.
   At runtime, the **Developer: Policy Diagnostics** report (`developerActions.ts`) lists
   every registered setting each policy governs, owner + references.
 

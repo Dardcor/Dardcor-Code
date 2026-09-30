@@ -5,7 +5,6 @@
 
 import { IAction } from '../../../../../../base/common/actions.js';
 import { Codicon } from '../../../../../../base/common/codicons.js';
-import { Iterable } from '../../../../../../base/common/iterator.js';
 import { URI } from '../../../../../../base/common/uri.js';
 import { localize } from '../../../../../../nls.js';
 import { IActionWidgetService } from '../../../../../../platform/actionWidget/browser/actionWidget.js';
@@ -29,7 +28,6 @@ import { ISessionTypePickerDelegate } from '../../chat.js';
 import { IChatInputPickerOptions } from './chatInputPickerActionItem.js';
 import { IChatInputNotificationService } from './chatInputNotificationService.js';
 import { ISessionTypeItem, SessionTypePickerActionItem } from './sessionTargetPickerActionItem.js';
-import { IGitService } from '../../../../git/common/gitService.js';
 
 /**
  * Action view item for delegating to a remote session (Background or Cloud).
@@ -56,7 +54,6 @@ export class DelegationSessionPickerActionItem extends SessionTypePickerActionIt
 		@IWorkspaceContextService workspaceContextService: IWorkspaceContextService,
 		@IAgentHostEnablementService agentHostEnablementService: IAgentHostEnablementService,
 		@IChatInputNotificationService chatInputNotificationService: IChatInputNotificationService,
-		@IGitService private readonly gitService: IGitService,
 	) {
 		super(action, chatSessionPosition, delegate, pickerOptions, actionWidgetService, keybindingService, contextKeyService, chatSessionsService, commandService, openerService, telemetryService, chatEntitlementService, languageModelsService, configurationService, storageService, workspaceContextService, agentHostEnablementService, chatInputNotificationService);
 	}
@@ -82,21 +79,10 @@ export class DelegationSessionPickerActionItem extends SessionTypePickerActionIt
 		const allContributions = this.chatSessionsService.getAllChatSessionContributions();
 		const contribution = allContributions.find(contribution => getAgentSessionProvider(contribution.type) === type || contribution.type === type);
 
-		// Delegation is allowed:
-		// - in core VS Code: from local sessions, plus from any agent host session;
-		// - in the sessions window: from background sessions, plus from any agent
-		//   host session (local `agent-host-*` or remote `remote-*`).
+		// Delegation is allowed from local sessions, plus from any agent host session.
 		const activeProvider = this.delegate.getActiveSessionProvider();
 		const isAgentHostSource = activeProvider !== undefined && isAgentHostTarget(activeProvider);
-		if (!this._isSessionsWindow && activeProvider !== AgentSessionProviders.Local && !isAgentHostSource) {
-			return false;
-		}
-		if (this._isSessionsWindow && activeProvider !== AgentSessionProviders.Background && !isAgentHostSource) {
-			return false;
-		}
-
-		// In the sessions window, cloud delegation requires a git repository
-		if (this._isSessionsWindow && type === AgentSessionProviders.Cloud && !this._hasGitRepository()) {
+		if (activeProvider !== AgentSessionProviders.Local && !isAgentHostSource) {
 			return false;
 		}
 
@@ -107,25 +93,9 @@ export class DelegationSessionPickerActionItem extends SessionTypePickerActionIt
 		return this._getSelectedSessionType() !== type; // Always allow switching back to active session
 	}
 
-	private _hasGitRepository(): boolean {
-		if (this.delegate.hasGitRepository) {
-			return this.delegate.hasGitRepository();
-		}
-		return !Iterable.isEmpty(this.gitService.repositories);
-	}
-
 	protected override _isVisible(type: AgentSessionTarget): boolean {
-		// In the sessions window, never offer the plain Local (in-place) target;
-		// agent host and remote targets remain available via getAgentCanContinueIn.
-		if (this._isSessionsWindow && type === AgentSessionProviders.Local) {
-			return false;
-		}
-
 		if (this.delegate.getActiveSessionProvider() === type) {
 			return true; // Always show active session type
-		}
-		if (this._isSessionsWindow && type === AgentSessionProviders.Background && this.chatSessionsService.getChatSessionContribution(AgentSessionProviders.AgentHostCopilot)) {
-			return false;
 		}
 
 		// Apply the same visibility guards as the new-session picker.
@@ -162,9 +132,6 @@ export class DelegationSessionPickerActionItem extends SessionTypePickerActionIt
 	}
 
 	protected override _getAdditionalActions(): IActionWidgetDropdownAction[] {
-		if (this._isSessionsWindow) {
-			return [];
-		}
 		return [{
 			id: 'newChatSession',
 			class: undefined,

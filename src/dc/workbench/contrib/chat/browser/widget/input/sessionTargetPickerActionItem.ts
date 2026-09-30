@@ -27,7 +27,6 @@ import { getCompactCodicon } from '../../chatIcons.js';
 import { IWorkspaceContextService } from '../../../../../../platform/workspace/common/workspace.js';
 import { IAgentHostEnablementService } from '../../../../../../platform/agentHost/common/agentHostEnablementService.js';
 import { AgentHostAllowSignedOutWhenUsableSettingId } from '../../../../../../platform/agentHost/common/agentService.js';
-import { IsSessionsWindowContext } from '../../../../../common/contextkeys.js';
 import { IChatEntitlementService } from '../../../../../services/chat/common/chatEntitlementService.js';
 import { IChatSessionsService } from '../../../common/chatSessionsService.js';
 import { ILanguageModelsService } from '../../../common/languageModels.js';
@@ -111,7 +110,6 @@ export function getConfiguredSessionTypePickerAvailability(
  */
 export class SessionTypePickerActionItem extends ChatInputPickerActionViewItem {
 	private _sessionTypeItems: ISessionTypeItem[] = [];
-	protected readonly _isSessionsWindow: boolean;
 
 	constructor(
 		action: MenuItemAction,
@@ -180,8 +178,6 @@ export class SessionTypePickerActionItem extends ChatInputPickerActionViewItem {
 
 		super(action, sessionTargetPickerOptions, pickerOptions, actionWidgetService, keybindingService, contextKeyService, telemetryService);
 
-		this._isSessionsWindow = IsSessionsWindowContext.getValue(contextKeyService) === true;
-
 		if (this.delegate.onDidChangeActiveSessionProvider) {
 			this._register(this.delegate.onDidChangeActiveSessionProvider(() => {
 				if (this.element) {
@@ -221,9 +217,7 @@ export class SessionTypePickerActionItem extends ChatInputPickerActionViewItem {
 	}
 
 	protected _run(sessionTypeItem: ISessionTypeItem): void {
-		if (!this._isSessionsWindow) {
-			recordUserSelectedSessionType(this.storageService, this.configurationService, this.chatSessionsService, this.workspaceContextService.getWorkspace(), sessionTypeItem.type, this.agentHostEnablementService.enabled.get());
-		}
+		recordUserSelectedSessionType(this.storageService, this.configurationService, this.chatSessionsService, this.workspaceContextService.getWorkspace(), sessionTypeItem.type, this.agentHostEnablementService.enabled.get());
 
 		if (this.delegate.setActiveSessionProvider) {
 			// Use provided setter (for welcome view)

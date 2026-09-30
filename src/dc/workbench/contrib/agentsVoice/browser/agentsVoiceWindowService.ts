@@ -155,7 +155,7 @@ export class AgentsVoiceWindowService extends Disposable implements IAgentsVoice
 		// no popout button). Sessions are collapsed by default; the user can
 		// expand them via the chevron.
 		const widget = new AgentsVoiceWidget(auxiliaryWindow.container, {
-			copilotIconSrc: FileAccess.asBrowserUri('vs/sessions/browser/media/sessions-icon.svg').toString(true),
+			copilotIconSrc: FileAccess.asBrowserUri('vs/workbench/contrib/agentsVoice/browser/media/sessions-icon.svg').toString(true),
 			hideDisconnect: this.configurationService.getValue<boolean>('agents.voice.handsFree') === true,
 			connect: () => {
 				// Connecting from any surface marks onboarding as completed so

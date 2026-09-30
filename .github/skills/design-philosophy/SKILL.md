@@ -258,8 +258,7 @@ move in a review. Reach for them *after* you've named the feeling and the
 principle, never instead of it.
 
 The size tokens live in
-[`baseSizes.ts`](../../../src/vs/platform/theme/common/sizes/baseSizes.ts) and the
-font ramp in [`sizes.ts`](../../../src/vs/sessions/common/sizes.ts); the full
+[`baseSizes.ts`](../../../src/dc/platform/theme/common/sizes/baseSizes.ts); the full
 reference is in
 [design-tokens.instructions.md](../../instructions/design-tokens.instructions.md).
 

@@ -28,8 +28,7 @@ export class IssueReporterEditorInput extends EditorInput {
 
 	/**
 	 * Captured screenshots/recordings mirrored from the wizard so they survive the
-	 * editor moving between the main editor area and a modal editor part in the
-	 * Agents Window (which rebuilds the wizard).
+	 * editor moving between parts that rebuild the wizard.
 	 */
 	savedScreenshots: readonly IScreenshot[] | undefined;
 	savedRecordings: readonly { filePath: string; durationMs: number; thumbnailDataUrl?: string }[] | undefined;

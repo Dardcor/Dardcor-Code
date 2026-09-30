@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import content from './vs_code_editor_walkthrough.js';
+import content from './dardcor_code_editor_walkthrough.js';
 import { localize, localize2 } from '../../../../../nls.js';
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
 import { IInstantiationService, ServicesAccessor } from '../../../../../platform/instantiation/common/instantiation.js';
@@ -16,15 +16,16 @@ import { Categories } from '../../../../../platform/action/common/actionCommonCa
 import { walkThroughContentRegistry } from '../../common/walkThroughContentProvider.js';
 
 walkThroughContentRegistry.registerProvider('vs/workbench/contrib/welcomeWalkthrough/browser/editor/vs_code_editor_walkthrough', content);
+walkThroughContentRegistry.registerProvider('vs/workbench/contrib/welcomeWalkthrough/browser/editor/dardcor_code_editor_walkthrough', content);
 
 const typeId = 'workbench.editors.walkThroughInput';
 const inputOptions: WalkThroughInputOptions = {
 	typeId,
 	name: localize('editorWalkThrough.title', "Editor Playground"),
-	resource: FileAccess.asBrowserUri('vs/workbench/contrib/welcomeWalkthrough/browser/editor/vs_code_editor_walkthrough.md')
+	resource: FileAccess.asBrowserUri('vs/workbench/contrib/welcomeWalkthrough/browser/editor/dardcor_code_editor_walkthrough.md')
 		.with({
 			scheme: Schemas.walkThrough,
-			query: JSON.stringify({ moduleId: 'vs/workbench/contrib/welcomeWalkthrough/browser/editor/vs_code_editor_walkthrough' })
+			query: JSON.stringify({ moduleId: 'vs/workbench/contrib/welcomeWalkthrough/browser/editor/dardcor_code_editor_walkthrough' })
 		}),
 	telemetryFrom: 'walkThrough'
 };

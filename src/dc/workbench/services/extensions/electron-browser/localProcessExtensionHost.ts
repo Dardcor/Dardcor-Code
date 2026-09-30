@@ -303,11 +303,10 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 		// the extension host's own log service, which lives in the dying process.
 		// Capturing the raw output from the (surviving) renderer keeps such
 		// crashes diagnosable from the logs. Gated to smoke tests
-		// (`--enable-smoke-test-driver`) so it does not affect regular sessions.
 		if (this._environmentService.args['enable-smoke-test-driver']) {
 			this._register(onStdout.event(line => this._logService.info(`[Extension Host (stdout)] ${line.replace(/\r?\n$/, '')}`)));
-			this._register(onStderr.event(line => this._logService.error(`[Extension Host (stderr)] ${line.replace(/\r?\n$/, '')}`)));
 		}
+		this._register(onStderr.event(line => this._logService.error(`[Extension Host (stderr)] ${line.replace(/\r?\n$/, '')}`)));
 
 		// Debounce all output, so we can render it in the Chrome console as a group
 		const onDebouncedOutput = Event.debounce<Output>(onOutput, (r, o) => {
@@ -532,7 +531,7 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 				isExtensionDevelopmentDebug: this._isExtensionDevDebug,
 				appRoot: this._environmentService.appRoot ? URI.file(this._environmentService.appRoot) : undefined,
 				appName: this._productService.nameLong,
-				appHost: (this._environmentService.isSessionsWindow ? this._productService.agentsTelemetryAppName : undefined) || this._productService.embedderIdentifier || 'desktop',
+				appHost: this._productService.embedderIdentifier || 'desktop',
 				appUriScheme: this._productService.urlProtocol,
 				isExtensionTelemetryLoggingOnly: isLoggingOnly(this._productService, this._environmentService),
 				isPortable: this._environmentService.isPortable,
@@ -541,8 +540,7 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 				extensionTestsLocationURI: this._environmentService.extensionTestsLocationURI,
 				globalStorageHome: this._userDataProfilesService.defaultProfile.globalStorageHome,
 				workspaceStorageHome: this._environmentService.workspaceStorageHome,
-				extensionLogLevel: this._defaultLogLevelsService.defaultLogLevels.extensions,
-				isSessionsWindow: this._environmentService.isSessionsWindow
+				extensionLogLevel: this._defaultLogLevelsService.defaultLogLevels.extensions
 			},
 			workspace: this._contextService.getWorkbenchState() === WorkbenchState.EMPTY ? undefined : {
 				configuration: workspace.configuration ?? undefined,

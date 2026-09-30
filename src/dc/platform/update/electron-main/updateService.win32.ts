@@ -34,7 +34,7 @@ import { asJson, IRequestService } from '../../request/common/request.js';
 import { IApplicationStorageMainService } from '../../storage/electron-main/storageMainService.js';
 import { ITelemetryService } from '../../telemetry/common/telemetry.js';
 import { AvailableForDownload, DisablementReason, IUpdate, State, StateType, UpdateType } from '../common/update.js';
-import { AbstractUpdateService, createUpdateURL, getUpdateRequestHeaders, IUpdateURLOptions, UpdateErrorClassification } from './abstractUpdateService.js';
+import { AbstractUpdateService, createUpdateURL, getUpdateRequestHeaders, isVersionNewer, IUpdateURLOptions, UpdateErrorClassification } from './abstractUpdateService.js';
 import { getWin32UpdateType } from './win32UpdateType.js';
 
 interface IAvailableUpdate {
@@ -226,7 +226,8 @@ export class Win32UpdateService extends AbstractUpdateService implements IRelaun
 
 		const internalOrg = this.getInternalOrg();
 		const background = !explicit && !internalOrg;
-		const url = this.buildUpdateFeedUrl(this.quality, pendingCommit ?? this.productService.commit!, { background, internalOrg });
+		const commitOrVersion = pendingCommit ?? this.productService.commit ?? this.productService.dardcorVersion ?? this.productService.version;
+		const url = this.buildUpdateFeedUrl(this.quality, commitOrVersion!, { background, internalOrg });
 
 		// Only set CheckingForUpdates if we're not already in Overwriting state
 		if (this.state.type !== StateType.Overwriting) {
@@ -240,12 +241,39 @@ export class Win32UpdateService extends AbstractUpdateService implements IRelaun
 
 		const headers = getUpdateRequestHeaders(this.productService.version);
 		const promise = this.requestService.request({ url, headers, callSite: 'updateService.win32.checkForUpdates' }, token)
-			.then<IUpdate | null>(asJson)
-			.then(update => {
+			.then<any>(asJson)
+			.then(rawPayload => {
 				const updateType = getUpdateType();
 
 				if (token.isCancellationRequested) {
 					return Promise.resolve(null);
+				}
+
+				let update: IUpdate | null = null;
+				if (rawPayload) {
+					if (rawPayload.platforms) {
+						let platformKey = `win32-${process.arch}`;
+						if (updateType === UpdateType.Archive) {
+							platformKey += '-archive';
+						} else if (this.productService.target === 'user') {
+							platformKey += '-user';
+						}
+						const platformEntry = rawPayload.platforms[platformKey] ?? rawPayload.platforms[`win32-${process.arch}`];
+						if (platformEntry) {
+							const targetVer = platformEntry.productVersion ?? platformEntry.version ?? rawPayload.version;
+							const currentVer = this.productService.dardcorVersion ?? this.productService.version;
+							if (isVersionNewer(targetVer, currentVer)) {
+								update = {
+									url: platformEntry.url,
+									version: platformEntry.version ?? targetVer,
+									productVersion: targetVer,
+									sha256hash: platformEntry.sha256hash ?? platformEntry.hash
+								};
+							}
+						}
+					} else if (rawPayload.url && (rawPayload.version || rawPayload.productVersion)) {
+						update = rawPayload as IUpdate;
+					}
 				}
 
 				if (!update || !update.url || !update.version || !update.productVersion) {

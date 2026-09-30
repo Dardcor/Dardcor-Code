@@ -16,7 +16,7 @@ import { InstantiationType, registerSingleton } from '../../../../platform/insta
 import { IAgentHostService } from '../../../../platform/agentHost/common/agentService.js';
 import { LocalAgentHostServiceClient } from '../../../../platform/agentHost/electron-browser/localAgentHostService.js';
 import { IAgentHostEnablementService } from '../../../../platform/agentHost/common/agentHostEnablementService.js';
-import { agentsWindowAgentHostClientInfo, editorWindowAgentHostClientInfo } from '../../../../platform/agentHost/common/agentHostClientInfo.js';
+import { editorWindowAgentHostClientInfo } from '../../../../platform/agentHost/common/agentHostClientInfo.js';
 import { CopilotCliVSCodeAssignmentContextKey } from '../../../../platform/agentHost/common/copilotCliConfig.js';
 import { ActionType } from '../../../../platform/agentHost/common/state/sessionActions.js';
 import { ROOT_STATE_URI } from '../../../../platform/agentHost/common/state/sessionState.js';
@@ -44,7 +44,7 @@ class WorkbenchAgentHostService {
 			? instantiationService.createInstance(EditorRemoteAgentHostServiceClient)
 			: instantiationService.createInstance(
 				LocalAgentHostServiceClient,
-				environmentService.isSessionsWindow ? agentsWindowAgentHostClientInfo : editorWindowAgentHostClientInfo,
+				editorWindowAgentHostClientInfo,
 			);
 		return inner as unknown as WorkbenchAgentHostService;
 	}

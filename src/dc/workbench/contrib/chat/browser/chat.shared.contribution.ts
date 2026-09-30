@@ -263,13 +263,6 @@ configurationRegistry.registerConfiguration({
 	title: nls.localize('interactiveSessionConfigurationTitle', "Chat"),
 	type: 'object',
 	properties: {
-		'chat.experimentalSessionsWindowOverride': {
-			type: 'boolean',
-			description: nls.localize('chat.experimentalSessionsWindowOverride', "When true, enables sessions-window-specific behavior for extensions."),
-			default: false,
-			tags: ['experimental'],
-			agentsWindow: { default: true },
-		},
 		'chat.omni.enabled': {
 			type: 'boolean',
 			markdownDescription: nls.localize('chat.omni.enabled', "Enables the floating chat input window and its entry points. Requests submitted from the window are scored against existing agent sessions and routed with an advisory badge."),
@@ -422,20 +415,17 @@ configurationRegistry.registerConfiguration({
 			experiment: {
 				mode: 'startup'
 			},
-			agentsWindow: { default: { 'panel': 'never' } },
 		},
 		'chat.implicitContext.suggestedContext': {
 			type: 'boolean',
 			markdownDescription: nls.localize('chat.implicitContext.suggestedContext', "Controls whether the new implicit context flow is shown. In Ask and Edit modes, the context will automatically be included. When using an agent, context will be suggested as an attachment. Selections are always included as context."),
 			default: true,
-			agentsWindow: { default: false },
 		},
 		'chat.implicitContext.includeActiveEditor': {
 			type: 'boolean',
 			markdownDescription: nls.localize('chat.implicitContext.includeActiveEditor', "When enabled, the active editor is automatically forwarded as context, even when it would otherwise only be suggested. Selections and explicitly attached files are always included regardless of this setting.\n\nNote: this setting currently only applies to Agent Host sessions (such as the Dardcor AI CLI)."),
 			default: true,
 			tags: ['experimental'],
-			agentsWindow: { default: false },
 		},
 		'chat.editing.autoAcceptDelay': {
 			type: 'number',
@@ -864,7 +854,6 @@ configurationRegistry.registerConfiguration({
 			type: 'boolean',
 			default: false,
 			description: nls.localize('chat.viewSessions.enabled', "Show chat agent sessions when chat is empty or to the side when chat view is wide enough."),
-			agentsWindow: { default: false },
 		},
 		[ChatConfiguration.ChatViewSessionsOrientation]: {
 			type: 'string',
@@ -892,19 +881,6 @@ configurationRegistry.registerConfiguration({
 			tags: ['experimental'],
 			experiment: { mode: 'startup' },
 			description: nls.localize('chat.experimental.sessionArchiveActionWording', "Controls the wording and icons used by actions that archive and unarchive chat sessions, as well as the label of the archived sessions section."),
-		},
-		[ChatConfiguration.AgentsHandoffTipMode]: {
-			type: 'string',
-			enum: ['hidden', 'default', 'custom'],
-			enumDescriptions: [
-				nls.localize('chat.agentsHandoffTip.mode.hidden', "Never show the handoff tip."),
-				nls.localize('chat.agentsHandoffTip.mode.default', "Show the handoff tip with the default description."),
-				nls.localize('chat.agentsHandoffTip.mode.custom', "Show the handoff tip with an alternate description."),
-			],
-			default: 'hidden',
-			tags: ['experimental'],
-			experiment: { mode: 'startup' },
-			description: nls.localize('chat.agentsHandoffTip.mode', "Controls the tip shown above the chat input offering to continue eligible agent sessions in the Agents Window."),
 		},
 		[CodexPreferAgentHostEditorSettingId]: {
 			type: 'boolean',
@@ -1580,7 +1556,7 @@ configurationRegistry.registerConfiguration({
 		},
 		[AgentHostAllowSignedOutWhenUsableSettingId]: {
 			type: 'boolean',
-			markdownDescription: nls.localize('chat.agentHost.allowSignedOutWhenUsable', "When enabled, the Agents window opens without forcing GitHub sign-in as long as at least one agent is usable without GitHub (for example Claude in native mode with your own Anthropic credentials). When disabled (the default), GitHub sign-in is required."),
+			markdownDescription: nls.localize('chat.agentHost.allowSignedOutWhenUsable', "When enabled, Chat can use agents that do not require GitHub sign-in without first signing in to GitHub (for example Claude in native mode with your own Anthropic credentials). When disabled (the default), GitHub sign-in is required."),
 			default: false,
 			scope: ConfigurationScope.APPLICATION,
 			tags: ['experimental', 'advanced'],
@@ -1989,7 +1965,6 @@ configurationRegistry.registerConfiguration({
 					'custom-hooks/hooks.json': true,
 				},
 			],
-			agentsWindow: { default: { '.claude/settings.local.json': false, '.claude/settings.json': false, '~/.claude/settings.json': false } },
 		},
 		[PromptsConfig.USE_CHAT_HOOKS]: {
 			type: 'boolean',
@@ -2142,11 +2117,6 @@ configurationRegistry.registerConfiguration({
 		[ChatConfiguration.TitleBarSignInEnabled]: {
 			type: 'boolean',
 			description: nls.localize('chat.titleBar.signIn.enabled', "Controls whether the Dardcor AI Sign In button is shown in the title bar when signed out. When disabled, the Sign In affordance falls back to the status bar."),
-			default: true,
-		},
-		[ChatConfiguration.TitleBarOpenInAgentsWindowEnabled]: {
-			type: 'boolean',
-			description: nls.localize('chat.titleBar.openInAgentsWindow.enabled', "Controls whether the Open in Agents Window button is shown in the title bar."),
 			default: true,
 		},
 		'chat.approvedAccountOrganizations': {
@@ -2571,7 +2541,6 @@ class ChatAgentSettingContribution extends Disposable implements IWorkbenchContr
 							markdownDescription: nls.localize('chat.agent.maxRequests', "The maximum number of requests to allow per-turn when using an agent. When the limit is reached, will ask to confirm to continue."),
 							default: value ?? 50,
 							order: 2,
-							agentsWindow: { default: 1000 },
 						},
 					}
 				};

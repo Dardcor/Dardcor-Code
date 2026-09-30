@@ -175,7 +175,7 @@ suite('keybindingIO', () => {
 
 	test('systemWide - write/export preserves the flag (roundtrip)', () => {
 		const resolvedKeybinding = createUSLayoutResolvedKeybinding(KeyMod.CtrlCmd | KeyMod.WinCtrl | KeyCode.KeyA, OperatingSystem.Macintosh)!;
-		const item = new ResolvedKeybindingItem(resolvedKeybinding, 'workbench.action.openAgentsWindow', undefined, undefined, false, null, false, /* systemWide */ true);
+		const item = new ResolvedKeybindingItem(resolvedKeybinding, 'workbench.action.focusNextPart', undefined, undefined, false, null, false, /* systemWide */ true);
 
 		const out = new OutputBuilder();
 		KeybindingIO.writeKeybindingItem(out, item);
@@ -184,6 +184,6 @@ suite('keybindingIO', () => {
 
 		const readBack = KeybindingIO.readUserKeybindingItem(<Object>JSON.parse(serialized));
 		assert.strictEqual(readBack.systemWide, true);
-		assert.strictEqual(readBack.command, 'workbench.action.openAgentsWindow');
+		assert.strictEqual(readBack.command, 'workbench.action.focusNextPart');
 	});
 });

@@ -212,6 +212,10 @@ function applyKiroHeadroomMessages(projection, compressedMessages, diagnostics) 
   return true;
 }
 
+// Circuit breaker state for unreachable compression proxy
+let headroomCircuitBreakerUntil = 0;
+const CIRCUIT_BREAKER_COOLDOWN_MS = 15 * 60 * 1000;
+
 // POST messages to Headroom /v1/compress; returns compressed messages + stats or null.
 async function callCompress(url, messages, model, timeoutMs, compressUserMessages, diagnostics) {
   const endpoint = buildCompressEndpoint(url);
@@ -227,7 +231,12 @@ async function callCompress(url, messages, model, timeoutMs, compressUserMessage
       signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (error) {
-    setDiagnostic(diagnostics, `request failed: ${describeFetchError(error)}`);
+    const desc = describeFetchError(error);
+    if (/ECONNREFUSED|ENOTFOUND|fetch failed/i.test(desc)) {
+      headroomCircuitBreakerUntil = Date.now() + CIRCUIT_BREAKER_COOLDOWN_MS;
+      diagnostics.silent = true;
+    }
+    setDiagnostic(diagnostics, `request failed: ${desc}`);
     return null;
   }
   if (!res.ok) {
@@ -249,6 +258,13 @@ export async function compressWithHeadroom(body, { enabled, url, model, format, 
   timeoutMs = normalizeTimeout(timeoutMs);
   if (!enabled) {
     setDiagnostic(diagnostics, "disabled");
+    return null;
+  }
+  if (Date.now() < headroomCircuitBreakerUntil) {
+    if (diagnostics) {
+      diagnostics.silent = true;
+      setDiagnostic(diagnostics, "compression proxy circuit breaker active (unreachable)");
+    }
     return null;
   }
   if (!url) {

@@ -104,8 +104,7 @@ import { CHAT_SETUP_ACTION_ID } from '../../../browser/actions/chatActions.js';
 import { type ContextKeyValue } from '../../../../../../platform/contextkey/common/contextkey.js';
 import { IAgentHostActiveClientService } from '../../../browser/agentSessions/agentHost/agentHostActiveClientService.js';
 import { IAgentHostProtectedResourcesService } from '../../../browser/agentSessions/agentHost/agentHostProtectedResourcesService.js';
-import { IAgentHostCustomizationService, NullAgentHostCustomizationService } from '../../../browser/agentSessions/agentHost/agentHostCustomizationService.js';
-import { IAgentHostMcpServer } from '../../../../../../sessions/common/agentHostSessionsProvider.js';
+import { IAgentHostCustomizationService, IAgentHostMcpServer, NullAgentHostCustomizationService } from '../../../browser/agentSessions/agentHost/agentHostCustomizationService.js';
 import { ILanguageModelToolsService, ToolDataSource } from '../../../common/tools/languageModelToolsService.js';
 import { IPromptsService } from '../../../common/promptSyntax/service/promptsService.js';
 import { IChatWidgetService } from '../../../browser/chat.js';
@@ -689,7 +688,7 @@ class MockWorkingCopyService extends mock<IWorkingCopyService>() {
 
 // ---- Helpers ----------------------------------------------------------------
 
-function createTestServices(disposables: DisposableStore, workingDirectoryResolver?: { resolve(sessionResource: URI): URI | undefined; isNewSession?: (sessionResource: URI) => boolean }, authServiceOverride?: Partial<IAuthenticationService>, languageModels?: ReadonlyMap<string, ILanguageModelChatMetadata>, provisionalServiceOverride?: Partial<IAgentHostUntitledProvisionalSessionService>, isSessionsWindow = false, languageModelToolsServiceOverride?: Partial<ILanguageModelToolsService>, configOverrides?: Record<string, unknown>, chatSessionsServiceOverride?: Partial<IChatSessionsService>, chatDebugServiceOverride?: Partial<IChatDebugService>, remoteAgentHostServiceOverride?: Partial<IRemoteAgentHostService>, customizationServiceOverride?: IAgentHostCustomizationService, agentHostTerminalServiceOverride?: Partial<IAgentHostTerminalService>, languageModelsServiceOverride?: Partial<ILanguageModelsService>, workspaceFolders: readonly URI[] = []) {
+function createTestServices(disposables: DisposableStore, workingDirectoryResolver?: { resolve(sessionResource: URI): URI | undefined; isNewSession?: (sessionResource: URI) => boolean }, authServiceOverride?: Partial<IAuthenticationService>, languageModels?: ReadonlyMap<string, ILanguageModelChatMetadata>, provisionalServiceOverride?: Partial<IAgentHostUntitledProvisionalSessionService>, languageModelToolsServiceOverride?: Partial<ILanguageModelToolsService>, configOverrides?: Record<string, unknown>, chatSessionsServiceOverride?: Partial<IChatSessionsService>, chatDebugServiceOverride?: Partial<IChatDebugService>, remoteAgentHostServiceOverride?: Partial<IRemoteAgentHostService>, customizationServiceOverride?: IAgentHostCustomizationService, agentHostTerminalServiceOverride?: Partial<IAgentHostTerminalService>, languageModelsServiceOverride?: Partial<ILanguageModelsService>, workspaceFolders: readonly URI[] = []) {
 	const instantiationService = disposables.add(new TestInstantiationService());
 
 	const agentHostService = new MockAgentHostService();
@@ -928,7 +927,7 @@ function createTestServices(disposables: DisposableStore, workingDirectoryResolv
 		register: () => toDisposable(() => { }),
 		reconcile: async () => { },
 	});
-	instantiationService.stub(IWorkbenchEnvironmentService, { isSessionsWindow } as Partial<IWorkbenchEnvironmentService>);
+	instantiationService.stub(IWorkbenchEnvironmentService, {} as IWorkbenchEnvironmentService);
 	instantiationService.stub(IWorkbenchAssignmentService, new NullWorkbenchAssignmentService());
 	instantiationService.stub(IChatInputNotificationService, {
 		_serviceBrand: undefined,
@@ -1033,7 +1032,7 @@ function createSessionListController(disposables: DisposableStore, instantiation
 }
 
 function createContribution(disposables: DisposableStore, opts?: { authServiceOverride?: Partial<IAuthenticationService>; workingDirectoryResolver?: { resolve(sessionResource: URI): URI | undefined; isNewSession?: (sessionResource: URI) => boolean }; languageModels?: ReadonlyMap<string, ILanguageModelChatMetadata>; provisionalServiceOverride?: Partial<IAgentHostUntitledProvisionalSessionService>; languageModelToolsServiceOverride?: Partial<ILanguageModelToolsService>; configOverrides?: Record<string, unknown>; provider?: string; chatSessionsServiceOverride?: Partial<IChatSessionsService>; chatDebugServiceOverride?: Partial<IChatDebugService>; remoteAgentHostServiceOverride?: Partial<IRemoteAgentHostService>; customizationServiceOverride?: IAgentHostCustomizationService; agentHostTerminalServiceOverride?: Partial<IAgentHostTerminalService>; languageModelsServiceOverride?: Partial<ILanguageModelsService>; workspaceFolders?: readonly URI[]; hideAutoExplainability?: boolean; pendingTreatment?: Promise<void> }) {
-	const { instantiationService, agentHostService, chatAgentService, chatWidgetService, chatService, openerService, trustController, modelService, workingCopyService } = createTestServices(disposables, opts?.workingDirectoryResolver, opts?.authServiceOverride, opts?.languageModels, opts?.provisionalServiceOverride, false, opts?.languageModelToolsServiceOverride, opts?.configOverrides, opts?.chatSessionsServiceOverride, opts?.chatDebugServiceOverride, opts?.remoteAgentHostServiceOverride, opts?.customizationServiceOverride, opts?.agentHostTerminalServiceOverride, opts?.languageModelsServiceOverride, opts?.workspaceFolders);
+	const { instantiationService, agentHostService, chatAgentService, chatWidgetService, chatService, openerService, trustController, modelService, workingCopyService } = createTestServices(disposables, opts?.workingDirectoryResolver, opts?.authServiceOverride, opts?.languageModels, opts?.provisionalServiceOverride, opts?.languageModelToolsServiceOverride, opts?.configOverrides, opts?.chatSessionsServiceOverride, opts?.chatDebugServiceOverride, opts?.remoteAgentHostServiceOverride, opts?.customizationServiceOverride, opts?.agentHostTerminalServiceOverride, opts?.languageModelsServiceOverride, opts?.workspaceFolders);
 
 	if (opts?.hideAutoExplainability || opts?.pendingTreatment) {
 		const pending = opts?.pendingTreatment;
@@ -1373,11 +1372,11 @@ suite('AgentHostChatContribution', () => {
 
 	suite('download progress', () => {
 
-		function createWithProgressRecorder(isSessionsWindow: boolean) {
+		function createWithProgressRecorder() {
 			// AI features must be enabled (AIDisabled === false) or the download
 			// progress handler suppresses the notification; the default config
 			// stub returns `true` for every key, so override just this one.
-			const services = createTestServices(disposables, undefined, undefined, undefined, undefined, isSessionsWindow, undefined, { [ChatAIDisabledSettingId]: false });
+			const services = createTestServices(disposables, undefined, undefined, undefined, undefined, undefined, { [ChatAIDisabledSettingId]: false });
 			const openedTitles: (string | undefined)[] = [];
 			services.instantiationService.stub(IProgressService, {
 				withProgress: <R,>(options: IProgressNotificationOptions, task: (progress: IProgress<IProgressStep>) => Promise<R>) => {
@@ -1389,20 +1388,12 @@ suite('AgentHostChatContribution', () => {
 			return { agentHostService: services.agentHostService, openedTitles };
 		}
 
-		test('editor window renders SDK download progress from root/progress notifications', () => {
-			const { agentHostService, openedTitles } = createWithProgressRecorder(false);
+		test('renders SDK download progress from root/progress notifications', () => {
+			const { agentHostService, openedTitles } = createWithProgressRecorder();
 
 			agentHostService.fireNotification({ type: 'root/progress', channel: 'ahp-root://root', progressToken: 'claude', progress: 0, total: 1000, message: 'Downloading Claude agent' });
 
 			assert.deepStrictEqual(openedTitles, ['Downloading Claude agent']);
-		});
-
-		test('sessions window does not render download progress via the chat contribution', () => {
-			const { agentHostService, openedTitles } = createWithProgressRecorder(true);
-
-			agentHostService.fireNotification({ type: 'root/progress', channel: 'ahp-root://root', progressToken: 'claude', progress: 0, total: 1000, message: 'Downloading Claude agent' });
-
-			assert.strictEqual(openedTitles.length, 0);
 		});
 	});
 
@@ -4003,16 +3994,14 @@ suite('AgentHostChatContribution', () => {
 			};
 
 			assert.deepStrictEqual({
-				multiRootEditor: evalWhen({ ...agentHost, workspaceFolderCount: 2, isSessionsWindow: false }),
-				singleFolder: evalWhen({ ...agentHost, workspaceFolderCount: 1, isSessionsWindow: false }),
-				sessionsWindow: evalWhen({ ...agentHost, workspaceFolderCount: 2, isSessionsWindow: true }),
-				nonAgentHost: evalWhen({ [ChatContextKeys.lockedCodingAgentId.key]: 'copilot', [ChatContextKeys.chatIsAgentHostSession.key]: false, workspaceFolderCount: 2, isSessionsWindow: false }),
-				noImmutablePrimary: evalWhen({ ...agentHost, [ChatContextKeys.chatAgentHostHasImmutablePrimaryWorkingDirectory.key]: false, workspaceFolderCount: 2, isSessionsWindow: false }),
-				notRevealed: evalWhen({ ...agentHost, [ChatContextKeys.chatAgentHostFolderPickerVisible.key]: false, workspaceFolderCount: 2, isSessionsWindow: false }),
+				multiRootEditor: evalWhen({ ...agentHost, workspaceFolderCount: 2 }),
+				singleFolder: evalWhen({ ...agentHost, workspaceFolderCount: 1 }),
+				nonAgentHost: evalWhen({ [ChatContextKeys.lockedCodingAgentId.key]: 'copilot', [ChatContextKeys.chatIsAgentHostSession.key]: false, workspaceFolderCount: 2 }),
+				noImmutablePrimary: evalWhen({ ...agentHost, [ChatContextKeys.chatAgentHostHasImmutablePrimaryWorkingDirectory.key]: false, workspaceFolderCount: 2 }),
+				notRevealed: evalWhen({ ...agentHost, [ChatContextKeys.chatAgentHostFolderPickerVisible.key]: false, workspaceFolderCount: 2 }),
 			}, {
 				multiRootEditor: true,
 				singleFolder: false,
-				sessionsWindow: false,
 				nonAgentHost: false,
 				noImmutablePrimary: false,
 				notRevealed: false,
@@ -10482,7 +10471,7 @@ suite('AgentHostChatContribution', () => {
 
 		test('Agent Host registrations follow enablement in both directions', () => {
 			const { instantiationService, agentHostService, chatSessionContributions } = createTestServices(
-				disposables, undefined, undefined, undefined, undefined, false, undefined, { [ChatAIDisabledSettingId]: false });
+				disposables, undefined, undefined, undefined, undefined, undefined, { [ChatAIDisabledSettingId]: false });
 			const enabled = observableValue('agentHostEnabled', true);
 			instantiationService.stub(IAgentHostEnablementService, { _serviceBrand: undefined, enabled, managedSandboxEnforced: constObservable(false) });
 			let progressStarts = 0;
@@ -10533,18 +10522,6 @@ suite('AgentHostChatContribution', () => {
 			});
 
 			assert.deepStrictEqual(chatSessionItemControllers.map(c => c.type), ['agent-host-copilot']);
-		});
-
-		test('session list contribution does not register item controller in sessions window', () => {
-			const { instantiationService, agentHostService, chatSessionItemControllers } = createTestServices(disposables, undefined, undefined, undefined, undefined, true);
-			disposables.add(instantiationService.createInstance(AgentHostSessionListContribution));
-
-			agentHostService.setRootState({
-				agents: [{ provider: 'copilot' as const, displayName: 'Agent Host - Copilot', description: 'test', models: [] }],
-				activeSessions: 0,
-			});
-
-			assert.deepStrictEqual(chatSessionItemControllers.map(c => c.type), []);
 		});
 
 		test('local agent contribution uses advertised display name', () => {

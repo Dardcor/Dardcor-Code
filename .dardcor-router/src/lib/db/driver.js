@@ -62,6 +62,9 @@ function detectAndScheduleSave(adapter, sql, params) {
           p.length <= 40 &&
           /^[a-zA-Z0-9_-]+$/.test(p) &&
           !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(p) &&
+          !p.startsWith("dsw-") &&
+          !p.startsWith("cgw-") &&
+          !p.startsWith("gmw-") &&
           p !== "oauth" &&
           p !== "apikey" &&
           p !== "access_token" &&

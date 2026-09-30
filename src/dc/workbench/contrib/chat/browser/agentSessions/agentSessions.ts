@@ -123,14 +123,10 @@ export { isAgentHostTarget };
  * a new agent host session. The conversation transcript travels as an
  * attachment so the target agent can pick up the work.
  *
- * Both VS Code (the main window) and the Agents window surface agent host
- * sessions, but they open sessions through different infrastructure. To avoid
- * registering a command per session type, agent host delegation is funneled
- * through this single command id. The Agents window registers a handler that
- * creates the target session via its session management service; in the main
- * window the chat action opens the session directly. The command id is
- * intentionally a plain string constant so the `vs/sessions` layer can register
- * a handler for it without importing chat browser internals.
+ * Agent host delegation is funneled through this command id so the chat action
+ * can open a target session without depending on a particular provider's
+ * session implementation. The command id remains a plain string constant to
+ * avoid importing chat browser internals into other workbench layers.
  */
 export const CHAT_DELEGATE_TO_AGENT_HOST_SESSION_COMMAND_ID = 'workbench.action.chat.delegateToAgentHostSession';
 

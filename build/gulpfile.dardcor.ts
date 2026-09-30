@@ -67,7 +67,6 @@ const vscodeResourceIncludes = [
 
 	// Workbench
 	'out-build/dc/code/electron-browser/workbench/workbench.html',
-	'out-build/dc/sessions/electron-browser/sessions.html',
 
 	// Electron Preload
 	'out-build/dc/base/parts/sandbox/electron-browser/preload.js',
@@ -102,13 +101,6 @@ const vscodeResourceIncludes = [
 
 	// Chat Pet
 	'out-build/dc/workbench/contrib/chat/browser/widget/media/chatPet/*.{gif,png}',
-
-	// Sessions
-	'out-build/dc/sessions/contrib/chat/browser/media/*.svg',
-	'out-build/dc/sessions/contrib/welcome/browser/media/*.svg',
-	'out-build/dc/sessions/contrib/welcome/browser/media/themePreviews/*.svg',
-	'out-build/dc/sessions/prompts/*.prompt.md',
-	'out-build/dc/sessions/skills/**/SKILL.md',
 
 	// Extensions
 	'out-build/dc/workbench/contrib/extensions/browser/media/{theme-icon.png,language-icon.svg}',
@@ -162,7 +154,7 @@ const bundleVSCodeTask = task.define('bundle-vscode', task.series(
 					...bootstrapEntryPoints
 				],
 				resources: vscodeResources,
-				skipTSBoilerplateRemoval: entryPoint => entryPoint === 'dc/code/electron-browser/workbench/workbench' || entryPoint === 'dc/sessions/electron-browser/sessions'
+				skipTSBoilerplateRemoval: entryPoint => entryPoint === 'dc/code/electron-browser/workbench/workbench'
 			}
 		}
 	)
@@ -173,12 +165,13 @@ const sourceMappingURLBase = `https://main.vscode-cdn.net/sourcemaps/${commit}`;
 const isCI = !!process.env['CI'] || !!process.env['BUILD_ARTIFACTSTAGINGDIRECTORY'] || !!process.env['GITHUB_WORKSPACE'];
 const useCdnSourceMapsForPackagingTasks = isCI;
 const stripSourceMapsInPackagingTasks = process.env['VSCODE_KEEP_SOURCEMAPS'] === 'true' ? false : true;
-const minifyVSCodeTask = task.define('minify-vscode', task.series(
+const minifyDardcorTask = task.define('minify-dardcor', task.series(
 	bundleVSCodeTask,
 	util.rimraf('out-dardcor-code-min'),
 	optimize.minifyTask('out-dardcor-code', `${sourceMappingURLBase}/core`)
 ));
-task.task(minifyVSCodeTask);
+task.task(minifyDardcorTask);
+task.task(task.define('minify-vscode', minifyDardcorTask));
 
 task.task(task.define('core-ci-old', task.series(
 	task.task('compile-build-with-mangling') as task.Task,
@@ -273,10 +266,6 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 			'dc/workbench/api/node/extensionHostProcess.js',
 			'dc/code/electron-browser/workbench/workbench.html',
 			'dc/code/electron-browser/workbench/workbench.js',
-			'dc/sessions/sessions.desktop.main.js',
-			'dc/sessions/sessions.desktop.main.css',
-			'dc/sessions/electron-browser/sessions.html',
-			'dc/sessions/electron-browser/sessions.js'
 		]);
 
 		const src = gulp.src(out + '/**', { cwd: root, base: root })
@@ -483,9 +472,13 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				.pipe(replace('@@APPNAME@@', product.applicationName))
 				.pipe(replace('@@NAME@@', product.nameShort))
 				.pipe(rename('bin/code'));
+			const dcShortcut = gulp.src('resources/darwin/bin/code.sh', { cwd: root, base: root, allowEmpty: true })
+				.pipe(replace('@@APPNAME@@', product.applicationName))
+				.pipe(replace('@@NAME@@', product.nameShort))
+				.pipe(rename('bin/dc'));
 			const policyDest = gulp.src('.build/policies/darwin/**', { cwd: root, base: path.join(root, '.build/policies/darwin'), allowEmpty: true })
 				.pipe(rename(f => f.dirname = `policies/${f.dirname}`));
-			all = es.merge(all, shortcut, policyDest);
+			all = es.merge(all, shortcut, dcShortcut, policyDest);
 		}
 
 		const electronConfig = {
@@ -514,9 +507,17 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				.pipe(replace('@@APPNAME@@', product.applicationName))
 				.pipe(rename(function (f) { f.basename = product.applicationName; })));
 
+			result = es.merge(result, gulp.src('resources/completions/bash/code', { cwd: root, base: root, allowEmpty: true })
+				.pipe(replace('@@APPNAME@@', product.applicationName))
+				.pipe(rename(function (f) { f.basename = 'dc'; })));
+
 			result = es.merge(result, gulp.src('resources/completions/zsh/_code', { cwd: root, base: root, allowEmpty: true })
 				.pipe(replace('@@APPNAME@@', product.applicationName))
 				.pipe(rename(function (f) { f.basename = '_' + product.applicationName; })));
+
+			result = es.merge(result, gulp.src('resources/completions/zsh/_code', { cwd: root, base: root, allowEmpty: true })
+				.pipe(replace('@@APPNAME@@', product.applicationName))
+				.pipe(rename(function (f) { f.basename = '_dc'; })));
 		}
 
 		if (platform === 'win32') {
@@ -528,6 +529,11 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 					.pipe(replace('@@VERSIONFOLDER@@', versionedResourcesFolder))
 					.pipe(rename(function (f) { f.basename = product.applicationName; })));
 
+				result = es.merge(result, gulp.src('resources/win32/versioned/bin/code.cmd', { cwd: root, base: path.join(root, 'resources/win32/versioned'), allowEmpty: true })
+					.pipe(replace('@@NAME@@', product.nameShort))
+					.pipe(replace('@@VERSIONFOLDER@@', versionedResourcesFolder))
+					.pipe(rename(function (f) { f.basename = 'dc'; })));
+
 				result = es.merge(result, gulp.src('resources/win32/versioned/bin/code.sh', { cwd: root, base: path.join(root, 'resources/win32/versioned'), allowEmpty: true })
 					.pipe(replace('@@NAME@@', product.nameShort))
 					.pipe(replace('@@PRODNAME@@', product.nameLong))
@@ -538,10 +544,25 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 					.pipe(replace('@@SERVERDATAFOLDER@@', product.serverDataFolderName || '.vscode-remote'))
 					.pipe(replace('@@QUALITY@@', quality!))
 					.pipe(rename(function (f) { f.basename = product.applicationName; f.extname = ''; })));
+
+				result = es.merge(result, gulp.src('resources/win32/versioned/bin/code.sh', { cwd: root, base: path.join(root, 'resources/win32/versioned'), allowEmpty: true })
+					.pipe(replace('@@NAME@@', product.nameShort))
+					.pipe(replace('@@PRODNAME@@', product.nameLong))
+					.pipe(replace('@@VERSION@@', version))
+					.pipe(replace('@@COMMIT@@', String(commit)))
+					.pipe(replace('@@APPNAME@@', product.applicationName))
+					.pipe(replace('@@VERSIONFOLDER@@', versionedResourcesFolder))
+					.pipe(replace('@@SERVERDATAFOLDER@@', product.serverDataFolderName || '.vscode-remote'))
+					.pipe(replace('@@QUALITY@@', quality!))
+					.pipe(rename(function (f) { f.basename = 'dc'; f.extname = ''; })));
 			} else {
 				result = es.merge(result, gulp.src('resources/win32/bin/code.cmd', { cwd: root, base: path.join(root, 'resources/win32'), allowEmpty: true })
 					.pipe(replace('@@NAME@@', product.nameShort))
 					.pipe(rename(function (f) { f.basename = product.applicationName; })));
+
+				result = es.merge(result, gulp.src('resources/win32/bin/code.cmd', { cwd: root, base: path.join(root, 'resources/win32'), allowEmpty: true })
+					.pipe(replace('@@NAME@@', product.nameShort))
+					.pipe(rename(function (f) { f.basename = 'dc'; })));
 
 				result = es.merge(result, gulp.src('resources/win32/bin/code.sh', { cwd: root, base: path.join(root, 'resources/win32'), allowEmpty: true })
 					.pipe(replace('@@NAME@@', product.nameShort))
@@ -552,6 +573,16 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 					.pipe(replace('@@SERVERDATAFOLDER@@', product.serverDataFolderName || '.vscode-remote'))
 					.pipe(replace('@@QUALITY@@', String(quality)))
 					.pipe(rename(function (f) { f.basename = product.applicationName; f.extname = ''; })));
+
+				result = es.merge(result, gulp.src('resources/win32/bin/code.sh', { cwd: root, base: path.join(root, 'resources/win32'), allowEmpty: true })
+					.pipe(replace('@@NAME@@', product.nameShort))
+					.pipe(replace('@@PRODNAME@@', product.nameLong))
+					.pipe(replace('@@VERSION@@', version))
+					.pipe(replace('@@COMMIT@@', String(commit)))
+					.pipe(replace('@@APPNAME@@', product.applicationName))
+					.pipe(replace('@@SERVERDATAFOLDER@@', product.serverDataFolderName || '.vscode-remote'))
+					.pipe(replace('@@QUALITY@@', String(quality)))
+					.pipe(rename(function (f) { f.basename = 'dc'; f.extname = ''; })));
 			}
 
 			result = es.merge(result, gulp.src('resources/win32/VisualElementsManifest.xml', { cwd: root, base: path.join(root, 'resources/win32'), allowEmpty: true })
@@ -582,6 +613,11 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				.pipe(replace('@@PRODNAME@@', product.nameLong))
 				.pipe(replace('@@APPNAME@@', product.applicationName))
 				.pipe(rename('bin/' + product.applicationName)));
+
+			result = es.merge(result, gulp.src('resources/linux/bin/code.sh', { cwd: root, base: root, allowEmpty: true })
+				.pipe(replace('@@PRODNAME@@', product.nameLong))
+				.pipe(replace('@@APPNAME@@', product.applicationName))
+				.pipe(rename('bin/dc')));
 		}
 
 		result = inlineMeta(result, {

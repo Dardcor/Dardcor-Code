@@ -1913,17 +1913,6 @@ export default defineConfig(
 					]
 				},
 				{
-					'target': 'src/dc/sessions/electron-browser/sessions.ts',
-					'layer': 'electron-browser',
-					'restrictions': [
-						'dc/base/~',
-						'dc/base/parts/*/~',
-						'dc/platform/*/~',
-						'dc/sessions/~',
-						'dc/sessions/sessions.desktop.main.js'
-					]
-				},
-				{
 					'target': 'src/dc/server/~',
 					'restrictions': [
 						'dc/base/~',
@@ -2056,104 +2045,6 @@ export default defineConfig(
 						'dc/nls.js',
 						'src/*.js',
 						'*' // node.js
-					]
-				},
-				{
-					'target': 'src/dc/sessions/sessions.common.main.ts',
-					'layer': 'browser',
-					'restrictions': [
-						'dc/base/~',
-						'dc/base/parts/*/~',
-						'dc/platform/*/~',
-						'dc/editor/~',
-						'dc/editor/contrib/*/~',
-						'dc/editor/editor.all.js',
-						'dc/sessions/~',
-						'dc/sessions/services/*/~',
-						'dc/sessions/contrib/*/~',
-						'dc/sessions/contrib/providers/*/~',
-						'dc/workbench/~',
-						'dc/workbench/api/~',
-						'dc/workbench/services/*/~',
-						'dc/workbench/contrib/*/~',
-						'dc/workbench/contrib/terminal/terminal.all.js',
-					]
-				},
-				{
-					'target': 'src/dc/sessions/sessions.desktop.main.ts',
-					'layer': 'electron-browser',
-					'restrictions': [
-						'dc/base/*/~',
-						'dc/base/parts/*/~',
-						'dc/platform/*/~',
-						'dc/editor/~',
-						'dc/editor/contrib/*/~',
-						'dc/editor/editor.all.js',
-						'dc/sessions/~',
-						'dc/sessions/services/*/~',
-						'dc/sessions/contrib/*/~',
-						'dc/sessions/contrib/providers/*/~',
-						'dc/workbench/~',
-						'dc/workbench/api/~',
-						'dc/workbench/services/*/~',
-						'dc/workbench/contrib/*/~',
-						'dc/sessions/sessions.common.main.js'
-					]
-				},
-				{
-					'target': 'src/dc/sessions/sessions.web.main.ts',
-					'layer': 'browser',
-					'restrictions': [
-						'dc/base/~',
-						'dc/base/parts/*/~',
-						'dc/platform/*/~',
-						'dc/editor/~',
-						'dc/editor/contrib/*/~',
-						'dc/editor/editor.all.js',
-						'dc/sessions/~',
-						'dc/sessions/services/*/~',
-						'dc/sessions/contrib/*/~',
-						'dc/sessions/contrib/providers/*/~',
-						'dc/workbench/~',
-						'dc/workbench/api/~',
-						'dc/workbench/services/*/~',
-						'dc/workbench/contrib/*/~',
-						'dc/sessions/sessions.common.main.js'
-					]
-				},
-				{
-					'target': 'src/dc/sessions/sessions.web.main.internal.ts',
-					'layer': 'browser',
-					'restrictions': [
-						'dc/base/~',
-						'dc/base/parts/*/~',
-						'dc/platform/*/~',
-						'dc/sessions/~',
-						'dc/sessions/contrib/*/~',
-						'dc/sessions/contrib/providers/*/~',
-						'dc/workbench/~',
-						'dc/workbench/browser/**',
-						'dc/workbench/services/*/~',
-						'dc/workbench/contrib/*/~',
-						'dc/sessions/sessions.web.main.js'
-					]
-				},
-				{
-					'target': 'src/dc/sessions/test/sessions.web.test.internal.ts',
-					'layer': 'browser',
-					'restrictions': [
-						'dc/base/~',
-						'dc/base/parts/*/~',
-						'dc/platform/*/~',
-						'dc/sessions/~',
-						'dc/sessions/test/**',
-						'dc/sessions/contrib/*/~',
-						'dc/sessions/contrib/providers/*/~',
-						'dc/workbench/~',
-						'dc/workbench/browser/**',
-						'dc/workbench/services/*/~',
-						'dc/workbench/contrib/*/~',
-						'dc/sessions/sessions.web.main.js'
 					]
 				},
 				{

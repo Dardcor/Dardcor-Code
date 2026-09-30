@@ -66,12 +66,13 @@
 		"download-builtin-extensions-cg": "node build/lib/builtInExtensionsCG.ts",
 		"monaco-compile-check": "tsc --project src/tsconfig.monaco.json --noEmit",
 		"tsec-compile-check": "node --max-old-space-size=8192 node_modules/tsec/bin/tsec -p src/tsconfig.tsec.json",
-		"vscode-dts-compile-check": "tsc --project src/tsconfig.vscode-dts.json && tsc --project src/tsconfig.vscode-proposed-dts.json",
+		"dardcor-dts-compile-check": "tsc --project src/tsconfig.dardcor-dts.json && tsc --project src/tsconfig.dardcor-proposed-dts.json",
+		"vscode-dts-compile-check": "npm run dardcor-dts-compile-check",
 		"valid-layers-check": "node build/checker/layersChecker.ts && node build/checker/layersTypeCheck.ts",
 		"define-class-fields-check": "node build/lib/propertyInitOrderChecker.ts && tsc --project src/tsconfig.defineClassFields.json",
 		"update-distro": "node build/npm/update-distro.ts",
 		"export-policy-data": "node build/lib/policies/exportPolicyData.ts",
-		"web": "echo 'npm run web' is replaced by './scripts/code-server' or './scripts/code-web'",
+		"web": "echo 'npm run web' is replaced by './scripts/dardcor-server' or './scripts/dardcor-web'",
 		"compile-cli": "npm run gulp compile-cli",
 		"compile-web": "npm run gulp compile-web",
 		"serve-out-rspack": "cd build/rspack && npx rspack serve --config rspack.serve-out.config.mts",
@@ -83,9 +84,12 @@
 		"playwright-install": "npm exec playwright install",
 		"compile-build": "npm run gulp compile-build-with-mangling",
 		"compile-extensions-build": "npm run gulp compile-extensions-build",
-		"minify-vscode": "npm run gulp minify-vscode",
-		"minify-vscode-reh": "npm run gulp minify-vscode-reh",
-		"minify-vscode-reh-web": "npm run gulp minify-vscode-reh-web",
+		"minify-dardcor": "npm run gulp minify-vscode",
+		"minify-dardcor-reh": "npm run gulp minify-vscode-reh",
+		"minify-dardcor-reh-web": "npm run gulp minify-vscode-reh-web",
+		"minify-vscode": "npm run minify-dardcor",
+		"minify-vscode-reh": "npm run minify-dardcor-reh",
+		"minify-vscode-reh-web": "npm run minify-dardcor-reh-web",
 		"hygiene": "npm run gulp hygiene",
 		"core-ci": "npm run gulp core-ci",
 		"extensions-ci": "npm run gulp extensions-ci",
@@ -287,10 +291,10 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/microsoft/vscode.git"
+		"url": "https://github.com/dardcor/dardcor-code.git"
 	},
 	"bugs": {
-		"url": "https://github.com/microsoft/vscode/issues"
+		"url": "https://github.com/dardcor/dardcor-code/issues"
 	},
 	"optionalDependencies": {
 		"windows-foreground-love": "0.6.1"

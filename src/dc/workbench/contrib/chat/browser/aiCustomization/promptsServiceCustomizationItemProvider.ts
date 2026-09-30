@@ -12,7 +12,7 @@ import { basename, dirname } from '../../../../../base/common/resources.js';
 import { localize } from '../../../../../nls.js';
 import { ExtensionIdentifier } from '../../../../../platform/extensions/common/extensions.js';
 import { IProductService } from '../../../../../platform/product/common/productService.js';
-import { IAICustomizationWorkspaceService, AICustomizationSources } from '../../common/aiCustomizationWorkspaceService.js';
+import { AICustomizationSources } from '../../common/aiCustomizationWorkspaceService.js';
 import { HookType, HOOK_METADATA } from '../../common/promptSyntax/hookTypes.js';
 import { formatHookCommandLabel } from '../../common/promptSyntax/hookSchema.js';
 import { PromptsType, getSourceDescription } from '../../common/promptSyntax/promptTypes.js';
@@ -32,7 +32,6 @@ export class PromptsServiceCustomizationItemProvider implements ICustomizationIt
 
 	constructor(
 		@IPromptsService private readonly promptsService: IPromptsService,
-		@IAICustomizationWorkspaceService private readonly workspaceService: IAICustomizationWorkspaceService,
 		@IProductService private readonly productService: IProductService,
 	) {
 		this.onDidChange = Event.any(
@@ -200,8 +199,8 @@ export class PromptsServiceCustomizationItemProvider implements ICustomizationIt
 			});
 		}
 
-		// Agent-embedded hooks (not in sessions window).
-		const agents = !this.workspaceService.isSessionsWindow ? await this.promptsService.getCustomAgents(CancellationToken.None) : [];
+		// Agent-embedded hooks.
+		const agents = await this.promptsService.getCustomAgents(CancellationToken.None);
 		for (const agent of agents) {
 			if (!agent.hooks || !agent.enabled) {
 				continue;

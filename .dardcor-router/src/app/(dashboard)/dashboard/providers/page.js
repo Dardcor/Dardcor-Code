@@ -27,7 +27,7 @@ import ModelAvailabilityBadge from "./components/ModelAvailabilityBadge";
 import AddCompatibleModal from "./components/AddCompatibleModal";
 import { STATUS_FILTER_OPTIONS, matchesStatusFilter } from "./utils";
 
-function getStatusDisplay(connected, error, errorCode) {
+function getStatusDisplay(connected, error, errorCode, total = 0) {
   const parts = [];
   if (connected > 0) {
     parts.push(
@@ -47,6 +47,13 @@ function getStatusDisplay(connected, error, errorCode) {
     );
   }
   if (parts.length === 0) {
+    if (total > 0) {
+      return (
+        <Badge key="added" variant="default" size="sm" dot>
+          {total} Added
+        </Badge>
+      );
+    }
     return <span className="text-text-muted">No connections</span>;
   }
   return parts;
@@ -124,13 +131,13 @@ export default function ProvidersPage() {
     return name.toLowerCase().includes(searchQuery.trim().toLowerCase());
   };
 
-  const sortByPriority = (entries, authType) =>
+  const sortByPriority = (entries) =>
     [...entries].sort(([ka, a], [kb, b]) => {
       const pa = a.priority ?? 999;
       const pb = b.priority ?? 999;
       if (pa !== pb) return pa - pb;
-      const sa = getProviderStats(ka, authType);
-      const sb = getProviderStats(kb, authType);
+      const sa = getProviderStats(ka, dualAuthTypes(a, ka));
+      const sb = getProviderStats(kb, dualAuthTypes(b, kb));
       const ca = sa.connected > 0 ? 1 : 0;
       const cb = sb.connected > 0 ? 1 : 0;
       if (ca !== cb) return cb - ca;
@@ -232,9 +239,25 @@ export default function ProvidersPage() {
   };
 
   const getProviderStats = (providerId, authType) => {
-    const authTypes = Array.isArray(authType) ? authType : [authType];
+    let allowedAuthTypes = null;
+    if (authType) {
+      const list = Array.isArray(authType) ? authType : [authType];
+      const set = new Set(list);
+      if (set.has("oauth")) {
+        set.add("access_token");
+        set.add("cookie");
+      }
+      if (set.has("apikey") || set.has("api_key")) {
+        set.add("apikey");
+        set.add("api_key");
+      }
+      allowedAuthTypes = Array.from(set);
+    }
+
     const providerConnections = connections.filter(
-      (c) => c.provider === providerId && authTypes.includes(c.authType),
+      (c) =>
+        c.provider === providerId &&
+        (!allowedAuthTypes || allowedAuthTypes.includes(c.authType)),
     );
 
     const getEffectiveStatus = (conn) => {
@@ -278,12 +301,19 @@ export default function ProvidersPage() {
   const matchStatus = (stats, isNoAuth) =>
     matchesStatusFilter(statusFilter, stats, isNoAuth);
 
-  // Toggle all connections for a provider on/off. authType may be a single
-  // string or an array (kiro counts oauth + api_key/apikey together).
   const handleToggleProvider = async (providerId, authType, newActive) => {
-    const authTypes = Array.isArray(authType) ? authType : [authType];
+    let authTypes = Array.isArray(authType) ? authType : [authType];
+    const set = new Set(authTypes);
+    if (set.has("oauth")) {
+      set.add("access_token");
+      set.add("cookie");
+    }
+    if (set.has("apikey") || set.has("api_key")) {
+      set.add("apikey");
+      set.add("api_key");
+    }
     const matches = (c) =>
-      c.provider === providerId && authTypes.includes(c.authType);
+      c.provider === providerId && set.has(c.authType);
     const providerConns = connections.filter(matches);
     setConnections((prev) =>
       prev.map((c) => (matches(c) ? { ...c, isActive: newActive } : c)),
@@ -349,22 +379,22 @@ export default function ProvidersPage() {
       (p) => matchSearch(p.name) && matchStatus(getProviderStats(p.id, "apikey")),
     );
 
-  // Dual-auth providers (oauth + apikey) store API keys as authType "apikey"
-  // (and sometimes "api_key"). Card stats must count both so totals match detail.
-  // kiro has no authModes in registry but accepts both (headless uses "api_key").
   const dualAuthTypes = (info, key) => {
-    if (key === "kiro") return ["oauth", "apikey", "api_key"];
-    const modes = info?.authModes;
-    // Free-tier and API-key providers default to supporting apikey even when the
-    // registry entry omits authModes (e.g. cloudflare-ai, byteplus, ollama,
-    // vertex) — otherwise their apikey connections are invisible on the grid card.
-    if (!Array.isArray(modes)) {
-      return key in FREE_TIER_PROVIDERS || key in APIKEY_PROVIDERS
-        ? ["oauth", "apikey", "api_key"]
-        : "oauth";
+    const types = new Set(["oauth", "access_token", "cookie"]);
+    if (info?.authType) types.add(info.authType);
+    if (Array.isArray(info?.authModes)) {
+      info.authModes.forEach((m) => types.add(m));
     }
-    if (!modes.includes("apikey")) return "oauth";
-    return ["oauth", "apikey", "api_key"];
+    if (
+      key === "kiro" ||
+      key in FREE_TIER_PROVIDERS ||
+      key in APIKEY_PROVIDERS ||
+      (Array.isArray(info?.authModes) && info.authModes.includes("apikey"))
+    ) {
+      types.add("apikey");
+      types.add("api_key");
+    }
+    return Array.from(types);
   };
 
   const oauthEntries = sortByPriority(
@@ -374,7 +404,6 @@ export default function ProvidersPage() {
         matchSearch(info.name) &&
         matchStatus(getProviderStats(key, dualAuthTypes(info, key)), info.noAuth),
     ),
-    "oauth",
   );
   const freeEntries = Object.entries(FREE_PROVIDERS)
     .filter(
@@ -765,7 +794,7 @@ export default function ProvidersPage() {
 }
 
 function ProviderCard({ providerId, provider, stats, authType, onToggle, providerEnabled = false, onToggleStatus }) {
-  const { connected, error, errorCode, errorTime, allDisabled } = stats;
+  const { connected, error, errorCode, errorTime, allDisabled, total } = stats;
   const isNoAuth = !!provider.noAuth;
 
   const dotColors = {
@@ -831,7 +860,7 @@ function ProviderCard({ providerId, provider, stats, authType, onToggle, provide
                   <Badge variant="success" size="sm" dot>Ready</Badge>
                 ) : (
                   <>
-                    {getStatusDisplay(connected, error, errorCode)}
+                    {getStatusDisplay(connected, error, errorCode, total)}
                     {errorTime && (
                       <span className="text-text-muted">{errorTime}</span>
                     )}
@@ -894,7 +923,7 @@ function ApiKeyProviderCard({
   providerEnabled = false,
   onToggleStatus,
 }) {
-  const { connected, error, errorCode, errorTime, allDisabled } = stats;
+  const { connected, error, errorCode, errorTime, allDisabled, total } = stats;
   const isCompatible = providerId.startsWith(OPENAI_COMPATIBLE_PREFIX);
   const isAnthropicCompatible = providerId.startsWith(
     ANTHROPIC_COMPATIBLE_PREFIX,
@@ -970,7 +999,7 @@ function ApiKeyProviderCard({
                   </Badge>
                 ) : (
                   <>
-                    {getStatusDisplay(connected, error, errorCode)}
+                    {getStatusDisplay(connected, error, errorCode, total)}
                     {isCompatible && (
                       <Badge variant="default" size="sm">
                         {provider.apiType === "responses"

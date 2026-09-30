@@ -256,7 +256,7 @@ export function matchesBrowserViewAudience(candidate: IBrowserViewAudience, patt
 		&& (pattern.sessionId === undefined || pattern.sessionId === candidate.sessionId);
 }
 
-/** Identifies the workbench window and optional Agents Window session that host a browser view. */
+/** Identifies the workbench window and optional chat session that host a browser view. */
 export interface IBrowserViewHost {
 	readonly windowId: number;
 	readonly sessionId?: string;

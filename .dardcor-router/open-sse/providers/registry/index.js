@@ -123,6 +123,9 @@ import p119 from "./selfhosted-embedding.js";
 import p120 from "./fish-audio.js";
 import p121 from "./alitp-intl.js";
 import p122 from "./xquik.js";
+import pChatGPTWeb from "./chatgpt-web.js";
+import pDeepseekWeb from "./deepseek-web.js";
+import pGeminiWeb from "./gemini-web.js";
 export default [
   p0,
   p1,
@@ -246,4 +249,7 @@ export default [
   p120,
   p121,
   p122,
+  pChatGPTWeb,
+  pDeepseekWeb,
+  pGeminiWeb,
 ];

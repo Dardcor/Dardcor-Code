@@ -1241,7 +1241,7 @@ suite('ChatPetWidget', () => {
 			disabledAchievementIds: disabledChatPetAchievements.map(achievement => achievement.id),
 			disabledAccessoryIds: disabledChatPetAchievements.flatMap(achievement => achievement.accessories.map(accessory => accessory.id)),
 		}, {
-			count: 13,
+			count: 11,
 			achievementIds: [
 				ChatPetAchievementIds.RequestRevision,
 				ChatPetAchievementIds.FirstChatMessage,
@@ -1249,8 +1249,6 @@ suite('ChatPetWidget', () => {
 				ChatPetAchievementIds.ModelSwitch,
 				ChatPetAchievementIds.McpServerPresent,
 				ChatPetAchievementIds.CustomSkillPresent,
-				ChatPetAchievementIds.AgentsWindowOpened,
-				ChatPetAchievementIds.CreatePullRequest,
 				ChatPetAchievementIds.AgentEditKept,
 				ChatPetAchievementIds.AgentChangesReviewed,
 				ChatPetAchievementIds.ChatReferenceOpened,
@@ -1264,15 +1262,13 @@ suite('ChatPetWidget', () => {
 				ChatPetAccessoryIds.ConstructionHardHat,
 				ChatPetAccessoryIds.FirefighterHelmet,
 				ChatPetAccessoryIds.Crown,
-				ChatPetAccessoryIds.PropellerHat,
-				ChatPetAccessoryIds.DarkSailorHat,
 				ChatPetAccessoryIds.WhiteChefHat,
 				ChatPetAccessoryIds.BambooHat,
 				ChatPetAccessoryIds.StrawHat,
 				ChatPetAccessoryIds.PinkPartyHat,
 				ChatPetAccessoryIds.WizardHat,
 			],
-			uniqueAccessoryCount: 13,
+			uniqueAccessoryCount: 11,
 			atlasNames: [
 				'grand-top-hat-monocle',
 				'cowboy-hat',
@@ -1280,16 +1276,14 @@ suite('ChatPetWidget', () => {
 				'construction-hard-hat',
 				'firefighter-helmet',
 				'crown',
-				'propeller-hat',
-				'dark-sailor-hat',
 				'white-chef-hat',
 				'bamboo-hat',
 				'straw-hat',
 				'pink-party-hat',
 				'wizard-hat',
 			],
-			atlasCellSizes: Array(13).fill(96),
-			rewardCounts: Array(13).fill(1),
+			atlasCellSizes: Array(11).fill(96),
+			rewardCounts: Array(11).fill(1),
 			coversAntennae: true,
 			crownAccessoryId: 'crown',
 			disabledAchievementIds: [
@@ -1330,8 +1324,6 @@ suite('ChatPetWidget', () => {
 			ChatPetAchievementIds.ChatReferenceOpened,
 			ChatPetAchievementIds.UsefulOutputCopied,
 			ChatPetAchievementIds.AutopilotEnabled,
-			ChatPetAchievementIds.AgentsWindowOpened,
-			ChatPetAchievementIds.CreatePullRequest,
 			ChatPetAchievementIds.AgentEditKept,
 		];
 
@@ -1348,8 +1340,6 @@ suite('ChatPetWidget', () => {
 				{ title: 'Follow the Trail', reward: ChatPetAccessoryIds.StrawHat },
 				{ title: 'Copy That', reward: ChatPetAccessoryIds.PinkPartyHat },
 				{ title: 'Party Mode', reward: ChatPetAccessoryIds.WizardHat },
-				{ title: 'Mission Control', reward: ChatPetAccessoryIds.PropellerHat },
-				{ title: 'Ship it', reward: ChatPetAccessoryIds.DarkSailorHat },
 				{ title: 'Let it cook', reward: ChatPetAccessoryIds.WhiteChefHat },
 			],
 		});
@@ -1368,35 +1358,6 @@ suite('ChatPetWidget', () => {
 			description: 'You kept a change prepared by Chat.',
 			hint: 'Give a good idea time to come together.',
 			accessoryIds: [ChatPetAccessoryIds.WhiteChefHat],
-		});
-	});
-
-	test('rewards Create PR with the dark sailor hat and the Agents window with the propeller hat', () => {
-		const shipIt = getChatPetAchievement(ChatPetAchievementIds.CreatePullRequest);
-		const missionControl = getChatPetAchievement(ChatPetAchievementIds.AgentsWindowOpened);
-
-		assert.deepStrictEqual({
-			shipIt: {
-				title: shipIt.title,
-				description: shipIt.description,
-				hint: shipIt.hint,
-				accessoryIds: shipIt.accessories.map(accessory => accessory.id),
-			},
-			missionControl: {
-				title: missionControl.title,
-				accessoryIds: missionControl.accessories.map(accessory => accessory.id),
-			},
-		}, {
-			shipIt: {
-				title: 'Ship it',
-				description: 'You used Create PR in the Agents window.',
-				hint: 'When the changes are ready, send them on their way.',
-				accessoryIds: [ChatPetAccessoryIds.DarkSailorHat],
-			},
-			missionControl: {
-				title: 'Mission Control',
-				accessoryIds: [ChatPetAccessoryIds.PropellerHat],
-			},
 		});
 	});
 
@@ -1463,8 +1424,6 @@ suite('ChatPetWidget', () => {
 				ChatPetAccessoryIds.ConstructionHardHat,
 				ChatPetAccessoryIds.FirefighterHelmet,
 				ChatPetAccessoryIds.Crown,
-				ChatPetAccessoryIds.PropellerHat,
-				ChatPetAccessoryIds.DarkSailorHat,
 				ChatPetAccessoryIds.WhiteChefHat,
 				ChatPetAccessoryIds.BambooHat,
 				ChatPetAccessoryIds.StrawHat,
@@ -2018,7 +1977,7 @@ suite('ChatPetWidget', () => {
 	});
 
 	test('matches sprite sources without browser URL normalization', () => {
-		const source = 'vscode-file://vscode-app/Applications/Visual Studio Code - Insiders.app/pet.gif';
+		const source = 'dardcor-file://vscode-app/Applications/Dardcor Code.app/pet.gif';
 		const image = document.createElement('img');
 		image.src = source;
 

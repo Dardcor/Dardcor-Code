@@ -21,7 +21,7 @@ import { AgentHostClientConnectionKind } from '../common/agentHostTelemetry.js';
 import { ReconnectingRelayTransport } from '../common/relayTransport.js';
 import { AgentHostTransportFailureReason, NonReconnectableTransportError } from '../common/state/sessionTransport.js';
 import { AgentHostProtocolClient } from '../browser/agentHostProtocolClient.js';
-import { agentsWindowAgentHostClientInfo } from '../common/agentHostClientInfo.js';
+import { editorWindowAgentHostClientInfo } from '../common/agentHostClientInfo.js';
 import {
 	IWSLRemoteAgentHostService,
 	WSL_REMOTE_AGENT_HOST_CHANNEL,
@@ -103,7 +103,7 @@ export class WSLRelayClientFactory implements IWSLRelayClientFactory {
 				AgentHostClientConnectionKind.WSL,
 			);
 		};
-		return this._instantiationService.createInstance(AgentHostProtocolClient, address, transportFactory, { clientInfo: agentsWindowAgentHostClientInfo });
+		return this._instantiationService.createInstance(AgentHostProtocolClient, address, transportFactory, { clientInfo: editorWindowAgentHostClientInfo });
 	}
 }
 

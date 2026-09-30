@@ -12,7 +12,6 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/
 import { NullLogService } from '../../../../../../platform/log/common/log.js';
 import { InMemoryStorageService, StorageScope, StorageTarget } from '../../../../../../platform/storage/common/storage.js';
 import { IWorkspace, IWorkspaceContextService, WorkbenchState } from '../../../../../../platform/workspace/common/workspace.js';
-import { IWorkbenchEnvironmentService } from '../../../../../services/environment/common/environmentService.js';
 import { AgentHostWorkspaceSessionMembershipStore } from '../../../browser/agentSessions/agentHost/agentHostWorkspaceSessionMembershipStore.js';
 
 suite('AgentHostWorkspaceSessionMembershipStore', () => {
@@ -23,9 +22,8 @@ suite('AgentHostWorkspaceSessionMembershipStore', () => {
 			private readonly _now: () => number,
 			storageService: InMemoryStorageService,
 			workspaceContextService: IWorkspaceContextService,
-			isSessionsWindow = false,
 		) {
-			super(storageService, workspaceContextService, new NullLogService(), { isSessionsWindow } as Partial<IWorkbenchEnvironmentService> as IWorkbenchEnvironmentService);
+			super(storageService, workspaceContextService, new NullLogService());
 		}
 
 		protected override now(): number {
@@ -268,7 +266,7 @@ suite('AgentHostWorkspaceSessionMembershipStore', () => {
 		let writes = 0;
 		listenerStore.add(storageService.onDidChangeValue(StorageScope.WORKSPACE, undefined, listenerStore)(() => writes++));
 		workspaceService.folders = [c, d];
-		const sessionsWindowStore = new TestMembershipStore(() => 2 * 24 * 60 * 60 * 1000, storageService, workspaceService, true);
+		const sessionsWindowStore = new TestMembershipStore(() => 2 * 24 * 60 * 60 * 1000, storageService, workspaceService);
 		const sessionsWindowIncluded = sessionsWindowStore.shouldInclude(key, [a, b], false);
 		sessionsWindowStore.reconcileBackendSessions([key]);
 		sessionsWindowStore.markSeen(key);

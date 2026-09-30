@@ -6,11 +6,11 @@ import { UsageStats, RequestLogger, CardSkeleton, SegmentedControl } from "@/sha
 import RequestDetailsTab from "./components/RequestDetailsTab";
 
 const PERIODS = [
-  { value: "today", label: "Today" },
-  { value: "24h", label: "24h" },
   { value: "7d", label: "7D" },
   { value: "30d", label: "30D" },
-  { value: "60d", label: "60D" },
+  { value: "90d", label: "90D" },
+  { value: "180d", label: "180D" },
+  { value: "360d", label: "360D" },
 ];
 
 export default function UsagePage() {
@@ -25,7 +25,7 @@ function UsageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [period, setPeriod] = useState("today");
+  const [period, setPeriod] = useState("7d");
 
   const tabFromUrl = searchParams.get("tab");
   const activeTab = tabFromUrl && ["overview", "logs", "details"].includes(tabFromUrl)

@@ -29,7 +29,7 @@ suite('Browser Telemetry - common properties', function () {
 			};
 		};
 
-		const props = resolveWorkbenchCommonProperties(testStorageService, undefined!, { isSessionsWindow: false } as IWorkbenchEnvironmentService, false, resolveCommonTelemetryProperties);
+		const props = resolveWorkbenchCommonProperties(testStorageService, undefined!, {} as IWorkbenchEnvironmentService, false, resolveCommonTelemetryProperties);
 
 		assert.ok(hasKey(props, {
 			commitHash: true,
@@ -60,10 +60,10 @@ suite('Browser Telemetry - common properties', function () {
 			});
 		};
 
-		const props = resolveWorkbenchCommonProperties(testStorageService, undefined!, { isSessionsWindow: false } as IWorkbenchEnvironmentService, false, resolveCommonTelemetryProperties);
+		const props = resolveWorkbenchCommonProperties(testStorageService, undefined!, {} as IWorkbenchEnvironmentService, false, resolveCommonTelemetryProperties);
 		assert.strictEqual(props['userId'], 1);
 
-		const props2 = resolveWorkbenchCommonProperties(testStorageService, undefined!, { isSessionsWindow: false } as IWorkbenchEnvironmentService, false, resolveCommonTelemetryProperties);
+		const props2 = resolveWorkbenchCommonProperties(testStorageService, undefined!, {} as IWorkbenchEnvironmentService, false, resolveCommonTelemetryProperties);
 		assert.strictEqual(props2['userId'], 2);
 	});
 });

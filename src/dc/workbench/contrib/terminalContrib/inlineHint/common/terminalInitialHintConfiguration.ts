@@ -18,6 +18,5 @@ export const terminalInitialHintConfiguration: IStringDictionary<IConfigurationP
 		markdownDescription: localize('terminal.integrated.initialHint', "Controls if the first terminal without input will show a hint about available actions when it is focused. This will only show when {0} is disabled.", `\`#${TerminalSettingId.SendKeybindingsToShell}#\``),
 		type: 'boolean',
 		default: false,
-		agentsWindow: { default: false },
 	},
 };

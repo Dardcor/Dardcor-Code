@@ -57,6 +57,11 @@ export const getReadFileV2Description = (orig: vscode.LanguageModelToolInformati
 				description: 'Optional: the maximum number of lines to read. Only use this together with `offset` if the file is too large to read at once.',
 				type: 'number'
 			},
+			mode: {
+				description: 'Optional: set to "outline" to view only the structural outline of declarations instead of full file content.',
+				type: 'string',
+				enum: ['full', 'outline']
+			},
 		}
 	} satisfies ObjectJsonSchema,
 	fullReferenceName: orig.fullReferenceName
@@ -72,6 +77,7 @@ export interface IReadFileParamsV2 {
 	filePath: string;
 	offset?: number;
 	limit?: number;
+	mode?: 'full' | 'outline';
 }
 
 const MAX_LINES_PER_READ = 2000;
@@ -182,12 +188,13 @@ export class ReadFileTool implements ICopilotTool<ReadFileParams> {
 
 			void this.sendReadFileTelemetry('success', options, ranges, uri, documentSnapshot);
 			const useCodeFences = this.configurationService.getExperimentBasedConfig<boolean>(ConfigKey.TeamInternal.ReadFileCodeFences, this.experimentationService);
+			const mode = isParamsV2(options.input) ? options.input.mode : undefined;
 			return new LanguageModelToolResult([
 				new LanguageModelPromptTsxPart(
 					await renderPromptElementJSON(
 						this.instantiationService,
 						ReadFileResult,
-						{ uri, startLine: ranges.start, endLine: ranges.end, truncated: ranges.truncated, snapshot: documentSnapshot, languageModel: this._promptContext?.request?.model, useCodeFences },
+						{ uri, startLine: ranges.start, endLine: ranges.end, truncated: ranges.truncated, snapshot: documentSnapshot, languageModel: this._promptContext?.request?.model, useCodeFences, mode },
 						// If we are not called with tokenization options, have _some_ fake tokenizer
 						// otherwise we end up returning the entire document on every readFile.
 						options.tokenizationOptions ?? {
@@ -399,6 +406,20 @@ interface ReadFileResultProps extends BasePromptElementProps {
 	snapshot: TextDocumentSnapshot | NotebookDocumentSnapshot;
 	languageModel: vscode.LanguageModelChat | undefined;
 	useCodeFences: boolean;
+	mode?: 'full' | 'outline';
+}
+
+function extractFileSymbolOutline(text: string): string[] {
+	const lines = text.split('\n');
+	const outline: string[] = [];
+	for (let i = 0; i < lines.length && outline.length < 35; i++) {
+		const line = lines[i];
+		const match = line.match(/^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:function|class|interface|type|const|enum)\s+([A-Za-z0-9_]+)/);
+		if (match) {
+			outline.push(`  L${i + 1}: ${match[0].trim()}`);
+		}
+	}
+	return outline;
 }
 
 class ReadFileResult extends PromptElement<ReadFileResultProps> {
@@ -439,6 +460,30 @@ class ReadFileResult extends PromptElement<ReadFileResultProps> {
 
 		if (hadLongLines) {
 			contents += `\n[One or more long lines were truncated at ${MAX_LINE_LENGTH} characters]\n`;
+		}
+
+		if (this.props.mode === 'outline') {
+			const outline = extractFileSymbolOutline(documentText);
+			const outlineCode = `[Structural Outline: ${this.promptPathRepresentationService.getFilePath(this.props.uri)} (${documentSnapshot.lineCount} lines)]\n\n` +
+				(outline.length > 0 ? outline.join('\n') : 'No top-level class/function/interface declarations identified.');
+			return <CodeBlock
+				uri={this.props.uri}
+				code={outlineCode}
+				languageId={documentSnapshot.languageId}
+				shouldTrim={false}
+				includeFilepath={false}
+				references={[new PromptReference(this.props.uri, undefined, { isFromTool: true })]}
+				lineBasedPriority
+				fence={this.props.useCodeFences ? undefined : ''}
+			/>;
+		}
+
+		if (documentSnapshot.lineCount > 350 && this.props.startLine === 1) {
+			const outline = extractFileSymbolOutline(documentText);
+			if (outline.length > 0) {
+				contents = `// [Structural Telemetry: ${documentSnapshot.lineCount} lines, ${outline.length} primary declarations]\n// Top symbols: ` +
+					outline.slice(0, 8).map(s => s.trim()).join('; ') + '\n\n' + contents;
+			}
 		}
 
 		if (this.props.truncated) {

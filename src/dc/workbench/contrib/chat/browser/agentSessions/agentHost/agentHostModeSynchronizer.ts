@@ -12,7 +12,6 @@ import { agentHostAgentPickerStorageKey } from '../../../../../../platform/agent
 import { isUntitledChatSession } from '../../../common/model/chatUri.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../../../platform/storage/common/storage.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../../common/contributions.js';
-import { IWorkbenchEnvironmentService } from '../../../../../services/environment/common/environmentService.js';
 import { IChatWidget, IChatWidgetService } from '../../chat.js';
 import { ChatMode, IChatMode, IChatModes } from '../../../common/chatModes.js';
 import { ChatModeKind } from '../../../common/constants.js';
@@ -31,12 +30,8 @@ export class AgentHostModeSynchronizer extends Disposable implements IWorkbenchC
 		@IChatWidgetService private readonly _chatWidgetService: IChatWidgetService,
 		@IAgentHostUntitledProvisionalSessionService private readonly _provisionalSessionService: IAgentHostUntitledProvisionalSessionService,
 		@IStorageService private readonly _storageService: IStorageService,
-		@IWorkbenchEnvironmentService environmentService: IWorkbenchEnvironmentService,
 	) {
 		super();
-		if (environmentService.isSessionsWindow) {
-			return;
-		}
 
 		for (const widget of this._chatWidgetService.getAllWidgets()) {
 			this._attachWidget(widget);

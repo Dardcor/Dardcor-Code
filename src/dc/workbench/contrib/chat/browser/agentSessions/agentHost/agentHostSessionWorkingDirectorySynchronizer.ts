@@ -73,7 +73,6 @@ import { ILogService } from '../../../../../../platform/log/common/log.js';
 import { IUriIdentityService } from '../../../../../../platform/uriIdentity/common/uriIdentity.js';
 import { IWorkspaceContextService } from '../../../../../../platform/workspace/common/workspace.js';
 import { IWorkspaceTrustManagementService } from '../../../../../../platform/workspace/common/workspaceTrust.js';
-import { IWorkbenchEnvironmentService } from '../../../../../services/environment/common/environmentService.js';
 import { SessionConfigKey } from '../../../../../../platform/agentHost/common/sessionConfigKeys.js';
 import { computeDesiredWorkingDirectories, hasImmutablePrimaryWorkingDirectory } from './agentHostNewSessionFolderService.js';
 
@@ -141,7 +140,6 @@ export class AgentHostSessionWorkingDirectorySynchronizer extends Disposable imp
 	constructor(
 		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
 		@IWorkspaceTrustManagementService private readonly _workspaceTrustManagementService: IWorkspaceTrustManagementService,
-		@IWorkbenchEnvironmentService private readonly _environmentService: IWorkbenchEnvironmentService,
 		@IUriIdentityService private readonly _uriIdentityService: IUriIdentityService,
 		@ILogService private readonly _logService: ILogService,
 	) {
@@ -173,10 +171,6 @@ export class AgentHostSessionWorkingDirectorySynchronizer extends Disposable imp
 	 * (re-subscribe after a state error) replaces the previous registration.
 	 */
 	register(registration: IAgentHostWorkingDirectoryRegistration): IDisposable {
-		// The Agents window has no workspace folders to follow.
-		if (this._environmentService.isSessionsWindow) {
-			return Disposable.None;
-		}
 		const key = registration.session.toString();
 		this._registrations.get(key)?.store.dispose();
 

@@ -90,6 +90,7 @@ function deriveConnectionName(data, fallbackName) {
 }
 
 export async function getProviderConnections(filter = {}) {
+  if (typeof filter === "string") filter = { provider: filter };
   const db = await getAdapter();
   const where = [];
   const params = [];
@@ -165,8 +166,13 @@ export async function createProviderConnection(data) {
       });
     } else if (data.authType === "apikey" && data.name) {
       existing = all.find(c => c.authType === "apikey" && c.name === data.name);
+    } else if (data.authType === "access_token") {
+      existing = all.find(c => {
+        if (data.accessToken && c.accessToken && c.accessToken === data.accessToken) return true;
+        if (data.email && c.email && data.email !== "DeepSeek User" && data.email !== "ChatGPT User" && c.email === data.email) return true;
+        return false;
+      });
     }
-    // access_token: never dedup — user manages duplicates manually
 
     if (existing) {
       const normalized = resetHealthStateOnActivation(existing, data);

@@ -171,7 +171,6 @@ configurationRegistry.registerConfiguration({
 			type: 'boolean',
 			description: nls.localize('search.quickOpen.includeHistory', "Whether to include results from recently opened files in the file results for Quick Open."),
 			default: true,
-			agentsWindow: { default: false },
 		},
 		'search.quickOpen.history.filterSortOrder': {
 			type: 'string',

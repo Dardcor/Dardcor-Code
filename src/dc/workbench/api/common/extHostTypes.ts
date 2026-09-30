@@ -3668,6 +3668,7 @@ export class ChatDebugModelTurnEvent {
 	totalTokens?: number;
 	cost?: number;
 	copilotUsageNanoAiu?: number;
+	dardcorUsageNanoAiu?: number;
 	durationInMillis?: number;
 
 	constructor(created: Date) {

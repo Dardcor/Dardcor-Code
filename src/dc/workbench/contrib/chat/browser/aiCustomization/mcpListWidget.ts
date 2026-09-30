@@ -198,7 +198,6 @@ export class McpServerItemRenderer implements IListRenderer<IMcpServerItemEntry 
 	constructor(
 		private readonly _afterShowOutput: () => Promise<void>,
 		private readonly _renderManagementActions: (element: IMcpInstalledEntry, actions: HTMLElement, disposables: DisposableStore, updateTabbability: () => void) => void,
-		@IAICustomizationWorkspaceService private readonly workspaceService: IAICustomizationWorkspaceService,
 		@IAgentPluginService private readonly agentPluginService: IAgentPluginService,
 		@IHoverService private readonly hoverService: IHoverService,
 		@IAgentHostCustomizationService private readonly agentHostCustomizationService: IAgentHostCustomizationService,
@@ -310,8 +309,6 @@ export class McpServerItemRenderer implements IListRenderer<IMcpServerItemEntry 
 		}
 
 		if (element.activeSessionServer !== undefined) {
-			this.updateKnownServerStatus(templateData, element);
-		} else if (this.workspaceService.isSessionsWindow) {
 			this.updateKnownServerStatus(templateData, element);
 		} else {
 			templateData.elementDisposables.add(autorun(reader => {
@@ -681,7 +678,7 @@ function getMcpEntryLabel(element: IMcpServerItemEntry | IMcpSessionServerItemEn
 			: element.server.label;
 }
 
-function getMcpStatusKind(entry: IMcpServerItemEntry | IMcpSessionServerItemEntry | IMcpBuiltinItemEntry, isSessionsWindow: boolean): McpStatusKind | undefined {
+function getMcpStatusKind(entry: IMcpServerItemEntry | IMcpSessionServerItemEntry | IMcpBuiltinItemEntry): McpStatusKind | undefined {
 	if (entry.type === 'session-server-item') {
 		return getActiveSessionServerPresentation(entry.server).status;
 	}
@@ -691,15 +688,15 @@ function getMcpStatusKind(entry: IMcpServerItemEntry | IMcpSessionServerItemEntr
 	if (entry.localServer && isContributionDisabled(entry.localServer.enablement.get())) {
 		return 'disabled';
 	}
-	if (entry.type === 'server-item' && !isSessionsWindow) {
+	if (entry.type === 'server-item') {
 		return entry.localServer?.connectionState.get().state;
 	}
 	return undefined;
 }
 
-function getMcpEntryAriaLabel(element: IMcpInstalledEntry, isSessionsWindow: boolean): string {
+function getMcpEntryAriaLabel(element: IMcpInstalledEntry): string {
 	const label = getMcpEntryLabel(element);
-	const statusKind = getMcpStatusKind(element, isSessionsWindow);
+	const statusKind = getMcpStatusKind(element);
 	const disabledReason = statusKind === 'disabled' ? getMcpDisabledReason(element) : undefined;
 	const status = getMcpStatusPresentation(statusKind, disabledReason);
 	return status
@@ -1746,7 +1743,7 @@ export class McpListWidget extends Disposable {
 			} else if (entry.localServer && isContributionDisabled(entry.localServer.enablement.read(reader))) {
 				statusKind = 'disabled';
 				disabledReason = getMcpDisabledReason(entry);
-			} else if (entry.type === 'server-item' && !this.workspaceService.isSessionsWindow) {
+			} else if (entry.type === 'server-item') {
 				statusKind = entry.localServer?.connectionState.read(reader).state;
 			}
 			const status = getMcpStatusPresentation(statusKind, disabledReason);
@@ -1928,7 +1925,7 @@ export class McpListWidget extends Disposable {
 		const enabled = this.isInstalledEntryEnabled(entry);
 		row.classList.toggle('disabled', !enabled);
 
-		const primaryAction = this.addSurfaceActivation(row, getMcpEntryAriaLabel(entry, this.workspaceService.isSessionsWindow), () => this._onDidSelectServer.fire(createInstalledMcpServerDetailInput(entry)));
+		const primaryAction = this.addSurfaceActivation(row, getMcpEntryAriaLabel(entry), () => this._onDidSelectServer.fire(createInstalledMcpServerDetailInput(entry)));
 
 		const details = DOM.append(primaryAction, $('.plugin-list-item-details'));
 		const nameRow = DOM.append(details, $('.plugin-list-item-name-row'));
@@ -1962,9 +1959,9 @@ export class McpListWidget extends Disposable {
 				statusBadge,
 				primaryAction,
 				description,
-				getMcpStatusKind(entry, this.workspaceService.isSessionsWindow),
+				getMcpStatusKind(entry),
 				getMcpDisabledReason(entry),
-				getMcpEntryAriaLabel(entry, this.workspaceService.isSessionsWindow),
+				getMcpEntryAriaLabel(entry),
 				this.getInstalledEntryDescription(entry),
 			);
 		}));
@@ -1978,9 +1975,9 @@ export class McpListWidget extends Disposable {
 				statusBadge,
 				primaryAction,
 				description,
-				getMcpStatusKind(entry, this.workspaceService.isSessionsWindow),
+				getMcpStatusKind(entry),
 				getMcpDisabledReason(entry),
-				getMcpEntryAriaLabel(entry, this.workspaceService.isSessionsWindow),
+				getMcpEntryAriaLabel(entry),
 				this.getInstalledEntryDescription(entry),
 			);
 			signIn?.update();
@@ -2011,7 +2008,7 @@ export class McpListWidget extends Disposable {
 			}
 		});
 		const update = () => {
-			signInButton.element.style.display = getMcpStatusKind(getEntry(), this.workspaceService.isSessionsWindow) === McpServerStatus.AuthRequired ? '' : 'none';
+			signInButton.element.style.display = getMcpStatusKind(getEntry()) === McpServerStatus.AuthRequired ? '' : 'none';
 		};
 		update();
 		return { element: signInButton.element, update };

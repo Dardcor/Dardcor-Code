@@ -21,9 +21,8 @@ import { IFileService } from '../../../../../platform/files/common/files.js';
 import { createDecorator, ServicesAccessor } from '../../../../../platform/instantiation/common/instantiation.js';
 import { InstantiationType, registerSingleton } from '../../../../../platform/instantiation/common/extensions.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
-import { INotificationService, Severity } from '../../../../../platform/notification/common/notification.js';
+import { INotificationService } from '../../../../../platform/notification/common/notification.js';
 import { IV8InspectProfilingService, IV8Profile, Utils } from '../../../../../platform/profiling/common/profiling.js';
-import { IsSessionsWindowContext } from '../../../../common/contextkeys.js';
 import { IStatusbarEntryAccessor, IStatusbarService, StatusbarAlignment } from '../../../../services/statusbar/browser/statusbar.js';
 import { IEditorService, SIDE_GROUP } from '../../../../services/editor/common/editorService.js';
 import { IWorkbenchEnvironmentService } from '../../../../services/environment/common/environmentService.js';
@@ -60,7 +59,7 @@ class AgentHostProfileService extends Disposable implements IAgentHostProfileSer
 	constructor(
 		@IAgentHostService private readonly agentHostService: IAgentHostService,
 		@IV8InspectProfilingService private readonly profilingService: IV8InspectProfilingService,
-		@IContextKeyService private readonly contextKeyService: IContextKeyService,
+		@IContextKeyService contextKeyService: IContextKeyService,
 		@IStatusbarService private readonly statusbarService: IStatusbarService,
 		@IFileDialogService private readonly fileDialogService: IFileDialogService,
 		@IFileService private readonly fileService: IFileService,
@@ -130,21 +129,6 @@ class AgentHostProfileService extends Disposable implements IAgentHostProfileSer
 				command: StopAgentHostProfileAction.ID,
 				showProgress: true,
 			}, 'status.agentHostProfiler', StatusbarAlignment.RIGHT);
-			if (this.contextKeyService.contextMatchesRules(IsSessionsWindowContext)) {
-				const handle = this.notificationService.prompt(
-					Severity.Info,
-					localize('profileAgentHost.notification', "Profiling the local agent host process."),
-					[{
-						label: localize('profileAgentHost.stop', "Stop"),
-						run: () => void this.stopProfiling(),
-					}],
-					{
-						sticky: true,
-						onCancel: () => void this.stopProfiling(),
-					},
-				);
-				this.profilingNotification.value = toDisposable(() => handle.close());
-			}
 		} catch (error) {
 			const sessionId = this.sessionId;
 			this.sessionId = undefined;
@@ -200,11 +184,7 @@ class AgentHostProfileService extends Disposable implements IAgentHostProfileSer
 						override: 'jsProfileVisualizer.cpuprofile.table',
 					},
 				};
-				if (this.contextKeyService.contextMatchesRules(IsSessionsWindowContext)) {
-					await this.editorService.openEditor(editor);
-				} else {
-					await this.editorService.openEditor(editor, SIDE_GROUP);
-				}
+				await this.editorService.openEditor(editor, SIDE_GROUP);
 			}
 		} catch (error) {
 			this.notificationService.error(localize('profileAgentHost.saveFailed', "Failed to save or open the agent host profile: {0}", getErrorMessage(error)));
@@ -249,13 +229,8 @@ export class ProfileAgentHostAction extends Action2 {
 			f1: true,
 			icon: Codicon.circleFilled,
 			precondition: ContextKeyExpr.and(
-				ContextKeyExpr.or(
-					IsSessionsWindowContext,
-					ContextKeyExpr.and(
-						ChatContextKeys.enabled,
-						AGENT_HOST_ENABLED_CONTEXT_KEY,
-					),
-				),
+				ChatContextKeys.enabled,
+				AGENT_HOST_ENABLED_CONTEXT_KEY,
 				CONTEXT_AGENT_HOST_PROFILE_STATE.notEqualsTo(AgentHostProfileState.Starting),
 				CONTEXT_AGENT_HOST_PROFILE_STATE.notEqualsTo(AgentHostProfileState.Running),
 				CONTEXT_AGENT_HOST_PROFILE_STATE.notEqualsTo(AgentHostProfileState.Stopping),

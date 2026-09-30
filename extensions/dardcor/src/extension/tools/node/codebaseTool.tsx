@@ -5,7 +5,7 @@
 
 import * as l10n from '@vscode/l10n';
 import { PromptElement, PromptReference, TokenLimit } from '@vscode/prompt-tsx';
-import type * as vscode from 'vscode';
+import * as vscode from 'vscode';
 import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
@@ -19,7 +19,7 @@ import { StopWatch } from '../../../util/dardcor/base/common/stopwatch';
 import { URI } from '../../../util/dardcor/base/common/uri';
 import { generateUuid } from '../../../util/dardcor/base/common/uuid';
 import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
-import { ExtendedLanguageModelToolResult, LanguageModelPromptTsxPart, MarkdownString } from '../../../dardcorTypes';
+import { ExtendedLanguageModelToolResult, LanguageModelPromptTsxPart, LanguageModelTextPart, MarkdownString } from '../../../dardcorTypes';
 import { getUniqueReferences } from '../../prompt/common/conversation';
 import { IBuildPromptContext } from '../../prompt/common/intents';
 import { CodebaseToolCallingLoop } from '../../prompt/node/codebaseToolCalling';
@@ -89,11 +89,8 @@ export class CodebaseTool implements vscode.LanguageModelTool<ICodebaseToolParam
 		);
 		const durationMs = sw.elapsed();
 
-		// If workspace chunk search is not available, return an empty result with this info
 		if (!promptTsxResult) {
-			const result = new ExtendedLanguageModelToolResult([]);
-			result.toolResultMessage = new MarkdownString(l10n.t`Semantic workspace search is not currently available`);
-			return result;
+			return this.fallbackHybridSearch(query, options, token);
 		}
 
 		const result = new ExtendedLanguageModelToolResult([
@@ -190,6 +187,66 @@ export class CodebaseTool implements vscode.LanguageModelTool<ICodebaseToolParam
 		}
 
 		return (isAnonymous || agentEnabled) && noScopedDirectories;
+	}
+
+	private async fallbackHybridSearch(
+		query: string,
+		options: vscode.LanguageModelToolInvocationOptions<ICodebaseToolParams>,
+		token: CancellationToken
+	): Promise<ExtendedLanguageModelToolResult> {
+		const symbols: vscode.SymbolInformation[] = [];
+		try {
+			const rawSymbols = await vscode.commands.executeCommand<vscode.SymbolInformation[]>(
+				'vscode.executeWorkspaceSymbolProvider',
+				query
+			);
+			if (rawSymbols) {
+				symbols.push(...rawSymbols.slice(0, 16));
+			}
+		} catch { }
+
+		const snippets: string[] = [];
+		const references: PromptReference[] = [];
+
+		for (const sym of symbols) {
+			if (token.isCancellationRequested) {
+				break;
+			}
+			const relPath = vscode.workspace.asRelativePath(sym.location.uri);
+			const line = sym.location.range.start.line + 1;
+			references.push(new PromptReference(sym.location.uri));
+
+			let snippetText = `### Symbol: \`${sym.name}\` (${vscode.SymbolKind[sym.kind] || 'Symbol'})\nLocation: [${relPath}:${line}](${sym.location.uri.toString()})`;
+			try {
+				const doc = await vscode.workspace.openTextDocument(sym.location.uri);
+				const startLine = Math.max(0, sym.location.range.start.line - 2);
+				const endLine = Math.min(doc.lineCount - 1, sym.location.range.end.line + 8);
+				const codeBlock = doc.getText(new vscode.Range(startLine, 0, endLine, 1000));
+				snippetText += `\n\`\`\`\n${codeBlock}\n\`\`\``;
+			} catch { }
+
+			snippets.push(snippetText);
+		}
+
+		if (snippets.length === 0) {
+			const textResult = new ExtendedLanguageModelToolResult([
+				new LanguageModelTextPart(
+					`[Hybrid Lexical-Symbol Search Engine]\nSearched workspace for "${query}".\nNo exact symbol matches found. Try searching specific text using grep_search.`
+				)
+			]);
+			textResult.toolResultMessage = new MarkdownString(`Searched workspace for "${query}", 0 results (Hybrid Engine)`);
+			return textResult;
+		}
+
+		const contentText = `[Hybrid Lexical-Symbol Search Engine Results for "${query}"]\n\n` + snippets.join('\n\n');
+		const result = new ExtendedLanguageModelToolResult([
+			new LanguageModelTextPart(contentText)
+		]);
+		result.toolResultMessage = new MarkdownString(
+			`Searched workspace for "${query}", found ${symbols.length} symbol definitions (Hybrid Lexical-Symbol Engine)`
+		);
+		result.toolResultDetails = references.map(r => r.anchor).filter(r => isUri(r) || isLocation(r));
+		return result;
 	}
 }
 

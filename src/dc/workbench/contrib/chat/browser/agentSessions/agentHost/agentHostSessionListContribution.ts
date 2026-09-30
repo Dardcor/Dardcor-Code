@@ -11,7 +11,6 @@ import { type AgentInfo, type RootState } from '../../../../../../platform/agent
 import { IConfigurationService } from '../../../../../../platform/configuration/common/configuration.js';
 import { IInstantiationService } from '../../../../../../platform/instantiation/common/instantiation.js';
 import { IWorkbenchContribution } from '../../../../../common/contributions.js';
-import { IWorkbenchEnvironmentService } from '../../../../../services/environment/common/environmentService.js';
 import { IChatSessionsService } from '../../../common/chatSessionsService.js';
 import { IAgentHostSessionWorkingDirectoryResolver } from './agentHostSessionWorkingDirectoryResolver.js';
 import { AgentHostSessionListController } from './agentHostSessionListController.js';
@@ -23,7 +22,6 @@ export class AgentHostSessionListContribution extends Disposable implements IWor
 
 	private readonly _agentRegistrations = this._register(new DisposableMap<AgentProvider, DisposableStore>());
 
-	private readonly _isSessionsWindow: boolean;
 	private _initialized = false;
 	private _sessionListStore: AgentHostSessionListStore | undefined;
 
@@ -32,17 +30,11 @@ export class AgentHostSessionListContribution extends Disposable implements IWor
 		@IChatSessionsService private readonly _chatSessionsService: IChatSessionsService,
 		@IConfigurationService private readonly _configurationService: IConfigurationService,
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
-		@IWorkbenchEnvironmentService environmentService: IWorkbenchEnvironmentService,
 		@IAgentHostSessionWorkingDirectoryResolver private readonly _workingDirectoryResolver: IAgentHostSessionWorkingDirectoryResolver,
 		@IAgentHostEnablementService private readonly _agentHostEnablementService: IAgentHostEnablementService,
 	) {
 		super();
 
-		this._isSessionsWindow = environmentService.isSessionsWindow;
-
-		if (this._isSessionsWindow) {
-			return;
-		}
 		this._register(autorun(reader => {
 			if (this._agentHostEnablementService.enabled.read(reader)) {
 				const wasInitialized = this._initialized;
@@ -79,7 +71,7 @@ export class AgentHostSessionListContribution extends Disposable implements IWor
 		}
 
 		this._register(this._configurationService.onDidChangeConfiguration(e => {
-			if (!affectsAgentHostProviderPreference(e, this._isSessionsWindow)) {
+			if (!affectsAgentHostProviderPreference(e)) {
 				return;
 			}
 			const current = this._agentHostService.rootState.value;
@@ -90,7 +82,7 @@ export class AgentHostSessionListContribution extends Disposable implements IWor
 	}
 
 	private _shouldRegisterAgent(provider: AgentProvider): boolean {
-		return shouldSurfaceLocalAgentHostProvider(provider, this._configurationService, this._isSessionsWindow);
+		return shouldSurfaceLocalAgentHostProvider(provider, this._configurationService);
 	}
 
 	private _handleRootStateChange(rootState: RootState, sessionListStore: AgentHostSessionListStore): void {

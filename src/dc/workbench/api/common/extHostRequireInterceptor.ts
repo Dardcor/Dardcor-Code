@@ -146,7 +146,7 @@ class NodeModuleAliasingModuleFactory implements IAlternativeModuleProvider {
 //#region --- vscode-module
 
 class VSCodeNodeModuleFactory implements INodeModuleFactory {
-	public readonly nodeModuleName = 'vscode';
+	public readonly nodeModuleName = ['vscode', 'dardcor'];
 
 	private readonly _extApiImpl = new ExtensionIdentifierMap<typeof vscode>();
 	private _defaultApiImpl?: typeof vscode;

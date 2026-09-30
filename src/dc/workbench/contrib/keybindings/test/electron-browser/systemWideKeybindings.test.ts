@@ -41,7 +41,7 @@ suite('SystemWideKeybindings selection', () => {
 
 		const selection = selectSystemWideKeybindings([
 			// eligible: user, system-wide, single combo, with args + when
-			item(acceleratorBinding, 'workbench.action.openAgentsWindow', { commandArgs: { foo: 1 }, when: 'editorFocus', systemWide: true }),
+			item(acceleratorBinding, 'workbench.action.focusNextPart', { commandArgs: { foo: 1 }, when: 'editorFocus', systemWide: true }),
 			// ignored: not system-wide
 			item(resolve(KeyMod.CtrlCmd | KeyCode.KeyB), 'noop.notSystemWide'),
 			// ignored: default keybinding even if flagged
@@ -53,7 +53,7 @@ suite('SystemWideKeybindings selection', () => {
 		assert.deepStrictEqual(selection, {
 			candidates: [{
 				accelerator: 'Ctrl+Cmd+A',
-				commandId: 'workbench.action.openAgentsWindow',
+				commandId: 'workbench.action.focusNextPart',
 				args: { foo: 1 },
 				userSettingsLabel: 'ctrl+cmd+a',
 				hasWhen: true,

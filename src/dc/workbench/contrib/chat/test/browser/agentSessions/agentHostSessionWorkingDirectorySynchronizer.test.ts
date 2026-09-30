@@ -22,7 +22,6 @@ import { NullLogService } from '../../../../../../platform/log/common/log.js';
 import { IUriIdentityService } from '../../../../../../platform/uriIdentity/common/uriIdentity.js';
 import { IWorkspace, IWorkspaceContextService, IWorkspaceFolder, IWorkspaceFoldersChangeEvent } from '../../../../../../platform/workspace/common/workspace.js';
 import { IWorkspaceTrustManagementService } from '../../../../../../platform/workspace/common/workspaceTrust.js';
-import { IWorkbenchEnvironmentService } from '../../../../../services/environment/common/environmentService.js';
 import { AgentHostSessionWorkingDirectorySynchronizer } from '../../../browser/agentSessions/agentHost/agentHostSessionWorkingDirectorySynchronizer.js';
 
 class MutableSessionSubscription extends Disposable implements IAgentSubscription<SessionState> {
@@ -150,14 +149,12 @@ suite('AgentHostSessionWorkingDirectorySynchronizer', () => {
 			override readonly onDidChangeTrustedFolders = onDidChangeTrustedFolders;
 			override async getUriTrustInfo(uri: URI) { return { uri, trusted: await (typeof trusted === 'function' ? trusted() : trusted) }; }
 		};
-		const environmentService = { isSessionsWindow: false, remoteAuthority: undefined } as Partial<IWorkbenchEnvironmentService> as IWorkbenchEnvironmentService;
 		const uriIdentityService = new class extends mock<IUriIdentityService>() {
 			override readonly extUri = extUriBiasedIgnorePathCase;
 		};
 		return disposables.add(new AgentHostSessionWorkingDirectorySynchronizer(
 			workspaceContextService,
 			trustService,
-			environmentService,
 			uriIdentityService,
 			new NullLogService(),
 		));

@@ -121,7 +121,6 @@ suite('DefaultAccountProvider managed settings', () => {
 		instantiationService.stub(ILogService, new NullLogService());
 		instantiationService.stub(IWorkbenchEnvironmentService, {
 			remoteAuthority: undefined,
-			isSessionsWindow: false,
 		});
 		instantiationService.stub(IContextKeyService, new MockContextKeyService());
 		instantiationService.stub(IStorageService, disposables.add(new InMemoryStorageService()));

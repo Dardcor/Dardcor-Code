@@ -97,8 +97,6 @@
   },
   "l10n": "./l10n",
   "enabledApiProposals": [
-    "agentSessionsWorkspace",
-    "agentsWindowConfiguration",
     "chatDebug",
     "chatHooks",
     "extensionsAny",
@@ -1289,6 +1287,337 @@
           "required": [
             "description"
           ]
+        }
+      },
+      {
+        "name": "dardcor_semanticAstMutator",
+        "displayName": "Semantic AST Mutator",
+        "toolReferenceName": "semanticAstMutator",
+        "icon": "$(symbol-structure)",
+        "userDescription": "Mutate code structure directly on Concrete/Abstract Syntax Trees with zero whitespace sensitivity",
+        "modelDescription": "Perform AST-aware structural code mutation (functions, classes, interfaces, imports, wrappers) using syntax tree manipulation. 100% immune to whitespace, tab, and formatting mismatches. Guarantees syntactically valid code.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "filePath": { "type": "string", "description": "Target file path to mutate" },
+            "mutationType": { "type": "string", "enum": ["morph_function", "inject_member", "reconcile_imports", "wrap_node", "rename_symbol"], "description": "Type of AST mutation" },
+            "identifier": { "type": "string", "description": "Target symbol or node identifier" },
+            "newCode": { "type": "string", "description": "New body code for function morphing" },
+            "memberSignature": { "type": "string", "description": "Member signature for interface/class injection" },
+            "wrapKind": { "type": "string", "enum": ["try_catch", "memo", "null_check"], "description": "Wrapper kind" },
+            "newIdentifierName": { "type": "string", "description": "New name for symbol rename" },
+            "description": { "type": "string", "description": "Short explanation of the mutation" }
+          },
+          "required": ["filePath", "mutationType", "identifier", "description"]
+        }
+      },
+      {
+        "name": "dardcor_timeTravelDebugger",
+        "displayName": "Neuro-Trace Time-Travel Debugger",
+        "toolReferenceName": "timeTravelDebugger",
+        "icon": "$(history)",
+        "userDescription": "Inspect live runtime state, evaluate scoped variables, and inject memory probes",
+        "modelDescription": "Introspect live runtime state, evaluate scoped variables, capture asynchronous event loop execution frames, and perform non-intrusive memory probe inspection without manual breakpoints.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "action": { "type": "string", "enum": ["inspect_session", "evaluate_expression", "set_probe", "clear_probes"], "description": "Action to execute" },
+            "expression": { "type": "string", "description": "Expression to evaluate in active runtime memory" },
+            "filePath": { "type": "string", "description": "File path for runtime probe" },
+            "lineNumber": { "type": "integer", "description": "Line number for probe" },
+            "condition": { "type": "string", "description": "Conditional expression for probe trigger" },
+            "frameId": { "type": "integer", "description": "Call stack frame ID" },
+            "description": { "type": "string", "description": "Short summary of debug inspection" }
+          },
+          "required": ["action", "description"]
+        }
+      },
+      {
+        "name": "dardcor_shadowWorktree",
+        "displayName": "Quantum Speculative Shadow Worktree",
+        "toolReferenceName": "shadowWorktree",
+        "icon": "$(git-branch)",
+        "userDescription": "Execute isolated trial mutations in RAM-disk sandbox before atomic merge",
+        "modelDescription": "Execute isolated, zero-risk trial mutations in memory-backed shadow worktrees. Test multiple speculative refactoring branches in parallel with automated headless compilation and test validation before atomic merge.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "action": { "type": "string", "enum": ["create_shadow", "mutate_shadow", "merge_shadow", "destroy_shadow"], "description": "Action on shadow worktree" },
+            "branchId": { "type": "string", "description": "Unique identifier for the shadow branch" },
+            "filePath": { "type": "string", "description": "Relative file path inside shadow sandbox" },
+            "fileContent": { "type": "string", "description": "File content to write in shadow sandbox" },
+            "description": { "type": "string", "description": "Summary of shadow branch operation" }
+          },
+          "required": ["action", "branchId", "description"]
+        }
+      },
+      {
+        "name": "dardcor_reverseDependencyXRay",
+        "displayName": "Reverse Dependency X-Ray",
+        "toolReferenceName": "reverseDependencyXRay",
+        "icon": "$(package)",
+        "userDescription": "Decompile and inspect third-party vendor packages in node_modules",
+        "modelDescription": "Decompile third-party bundles, sourcemaps, and packages in node_modules to trace argument mismatches, identify upstream package errors, and synthesize local monkey-patches.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "packageName": { "type": "string", "description": "Package name in node_modules" },
+            "errorTraceSnippet": { "type": "string", "description": "Stack trace snippet referencing node_modules" },
+            "relativeVendorFilePath": { "type": "string", "description": "Relative path inside vendor package" },
+            "description": { "type": "string", "description": "Summary of inspection" }
+          },
+          "required": ["packageName", "description"]
+        }
+      },
+      {
+        "name": "dardcor_visualPerceptualAuditor",
+        "displayName": "Visual Perceptual Auditor",
+        "toolReferenceName": "visualPerceptualAuditor",
+        "icon": "$(device-mobile)",
+        "userDescription": "Audit DOM layout, responsive matrix, and micro-gesture frame rates",
+        "modelDescription": "Audit DOM layout metrics, detect flex/grid overflows, text clippings, z-index stacking issues, and simulate multi-viewport responsive matrix rendering.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "targetUrlOrFilePath": { "type": "string", "description": "Target local dev URL or HTML/CSS file path" },
+            "checkType": { "type": "string", "enum": ["responsive_matrix", "css_overflow_audit", "accessibility_contrast", "animation_jank"], "description": "Audit check type" },
+            "description": { "type": "string", "description": "Summary of visual check" }
+          },
+          "required": ["targetUrlOrFilePath", "checkType", "description"]
+        }
+      },
+      {
+        "name": "dardcor_swarmConsensusMesh",
+        "displayName": "Swarm Consensus Mesh",
+        "toolReferenceName": "swarmConsensusMesh",
+        "icon": "$(hubot)",
+        "userDescription": "Arbitrate solutions across multi-model frontier ensemble via Dardcor Router",
+        "modelDescription": "Execute cross-model ensemble reasoning across local Dardcor Router (DeepSeek-R1, Claude 3.7, GPT-4o) to eliminate hallucinations and arbitrate critical algorithmic solutions.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "problemStatement": { "type": "string", "description": "The complex engineering or algorithmic problem to solve" },
+            "candidateApproachA": { "type": "string", "description": "Candidate approach or code snippet A" },
+            "candidateApproachB": { "type": "string", "description": "Candidate approach or code snippet B" },
+            "participatingModels": { "type": "array", "items": { "type": "string" }, "description": "List of models to consult" },
+            "strictnessLevel": { "type": "string", "enum": ["normal", "mathematical_invariance"], "description": "Strictness of arbitration" },
+            "description": { "type": "string", "description": "Summary of swarm consensus request" }
+          },
+          "required": ["problemStatement", "description"]
+        }
+      },
+      {
+        "name": "dardcor_securitySynthesizer",
+        "displayName": "Architectural Security Synthesizer",
+        "toolReferenceName": "securitySynthesizer",
+        "icon": "$(shield)",
+        "userDescription": "Scan taint flows and synthesize atomic security patches for zero-day risks",
+        "modelDescription": "Perform full-spectrum taint-flow analysis from external inputs to sinks (RCE, SSRF, SQLi, Prototype Pollution) and synthesize certified cryptographic and sanitization wrappers.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "filePath": { "type": "string", "description": "File path to audit for security taint flow" },
+            "scanDepth": { "type": "string", "enum": ["shallow", "deep_taint_flow"], "description": "Depth of taint flow analysis" },
+            "autoPatch": { "type": "boolean", "description": "Whether to synthesize an automated patch" },
+            "description": { "type": "string", "description": "Summary of security audit" }
+          },
+          "required": ["filePath", "description"]
+        }
+      },
+      {
+        "name": "dardcor_omniscientRuntimeSentinel",
+        "displayName": "Omniscient Runtime Sentinel",
+        "toolReferenceName": "omniscientRuntimeSentinel",
+        "icon": "$(pulse)",
+        "userDescription": "Tri-layer runtime oracle unifying LSP diagnostics, terminal stream errors, and server health",
+        "modelDescription": "Inspect workspace health across 3 convergent layers: LSP diagnostics, live terminal output stream (HTTP 500, Vite/Webpack crash, unhandled exceptions), and active local server ports. Returns unified health score and convergence action directives.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "mode": { "type": "string", "enum": ["full_tri_layer", "lsp_only", "terminal_buffer_only", "process_health_only"], "description": "Mode of sentinel sweep" },
+            "targetPortOrService": { "type": "string", "description": "Optional port or service name to verify health" },
+            "errorPatternFilter": { "type": "string", "description": "Optional regex pattern to search in terminal output" },
+            "description": { "type": "string", "description": "Summary of runtime sentinel check" }
+          },
+          "required": ["description"]
+        }
+      },
+      {
+        "name": "dardcor_lsp",
+        "displayName": "Dardcor Language Server Protocol",
+        "toolReferenceName": "languageServerProtocol",
+        "icon": "$(symbol-class)",
+        "userDescription": "Direct Language Server Protocol integration for semantic definition, references, hovers, hierarchy, and symbols",
+        "modelDescription": "Perform semantic code navigation and analysis via active language servers (TypeScript, Python, Rust, Go, C/C++). Supports goToDefinition, findReferences, hover, documentSymbol, workspaceSymbol, goToImplementation, prepareCallHierarchy, incomingCalls, outgoingCalls. Use this for 100% precise semantic symbol queries instead of text grep.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "operation": {
+              "type": "string",
+              "enum": ["goToDefinition", "findReferences", "hover", "documentSymbol", "workspaceSymbol", "goToImplementation", "prepareCallHierarchy", "incomingCalls", "outgoingCalls"],
+              "description": "LSP semantic operation to execute"
+            },
+            "filePath": { "type": "string", "description": "Relative or absolute target document path" },
+            "line": { "type": "number", "description": "1-based line number" },
+            "character": { "type": "number", "description": "1-based character column offset" },
+            "query": { "type": "string", "description": "Optional search query for workspaceSymbol" }
+          },
+          "required": ["operation", "filePath"]
+        }
+      },
+      {
+        "name": "dardcor_contextMentions",
+        "displayName": "Dardcor Context Mentions Resolver",
+        "toolReferenceName": "contextMentionsResolver",
+        "icon": "$(mention)",
+        "userDescription": "Expands slash context mentions (/problems, /terminal, /git-changes, /file, /url) into rich context",
+        "modelDescription": "Resolve and expand slash-based prompt context mentions (/problems, /terminal, /git-changes, /file:<path>, /url:<link>, /<commit-hash>) into live diagnostic, terminal, git, or web text context.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "mentionQuery": { "type": "string", "description": "Prompt text containing slash context mentions" }
+          },
+          "required": ["mentionQuery"]
+        }
+      },
+      {
+        "name": "dardcor_oscTerminal",
+        "displayName": "Dardcor OSC 633 Terminal Stream Runner",
+        "toolReferenceName": "osc633TerminalRunner",
+        "icon": "$(terminal)",
+        "userDescription": "Precision terminal execution with chunk-boundary safe OSC 633 shell integration stream parsing",
+        "modelDescription": "Execute terminal commands with ANSI OSC 633 escape sequence parsing for exact exit codes, boundary-safe stdout/stderr extraction, and zero prompt echo pollution.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "command": { "type": "string", "description": "Shell command line to execute" },
+            "cwd": { "type": "string", "description": "Optional working directory" },
+            "timeoutMs": { "type": "number", "description": "Execution timeout in milliseconds" }
+          },
+          "required": ["command"]
+        }
+      },
+      {
+        "name": "dardcor_fileContextTracker",
+        "displayName": "Dardcor Active File Stale Guard",
+        "toolReferenceName": "activeFileContextTracker",
+        "icon": "$(sync)",
+        "userDescription": "Watches active files and warns against stale edits or external user collisions",
+        "modelDescription": "Track active files, detect external manual user modifications in the editor, and alert the agent if a file is stale prior to applying diffs or edits.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "action": { "type": "string", "enum": ["check", "track", "markFresh", "listStale"], "description": "Tracking action to perform" },
+            "filePath": { "type": "string", "description": "File path to track or verify" }
+          },
+          "required": ["action"]
+        }
+      },
+      {
+        "name": "dardcor_askQuestion",
+        "displayName": "Dardcor Interactive Clarification Question",
+        "toolReferenceName": "interactiveClarificationQuestion",
+        "icon": "$(question)",
+        "userDescription": "Prompts the user with structured clarification questions and choices to avoid hallucinated assumptions",
+        "modelDescription": "Ask the user one or more multiple-choice or custom text clarification questions via interactive quickpick/dialog. Use when encountering architectural ambiguity or multiple valid implementation directions.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "questions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "question": { "type": "string", "description": "The clarification question text" },
+                  "options": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "label": { "type": "string", "description": "Option label" },
+                        "description": { "type": "string", "description": "Option description" }
+                      },
+                      "required": ["label"]
+                    }
+                  },
+                  "isMultiSelect": { "type": "boolean", "description": "Allow multiple choices" },
+                  "allowCustomResponse": { "type": "boolean", "description": "Allow custom user write-in response" }
+                },
+                "required": ["question", "options"]
+              }
+            }
+          },
+          "required": ["questions"]
+        }
+      },
+      {
+        "name": "dardcor_codeMode",
+        "displayName": "Dardcor CodeMode Batch Orchestrator",
+        "toolReferenceName": "codeModeOrchestrator",
+        "icon": "$(run-all)",
+        "userDescription": "Confined JavaScript batch orchestration sandbox for high-speed multi-tool chaining in 1 turn",
+        "modelDescription": "Execute a small JavaScript batch orchestration script inside a confined sandbox with access to tools (tools.readFile, tools.writeFile, tools.findFiles, tools.getDiagnostics). Chaining multiple tools in 1 turn eliminates round-trip latency.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "code": { "type": "string", "description": "JavaScript orchestration script to execute in sandbox" },
+            "timeoutMs": { "type": "number", "description": "Execution timeout limit in milliseconds" },
+            "maxOutputBytes": { "type": "number", "description": "Maximum output bytes returned" }
+          },
+          "required": ["code"]
+        }
+      },
+      {
+        "name": "dardcor_shadowSnapshot",
+        "displayName": "Dardcor Shadow Snapshot Checkpoint",
+        "toolReferenceName": "shadowSnapshotCheckpoint",
+        "icon": "$(history)",
+        "userDescription": "Out-of-tree Git shadow checkpoint manager for instant zero-risk rollback",
+        "modelDescription": "Manage isolated shadow git snapshots stored outside the project tree. Create instant checkpoints before risky file changes, list checkpoints, revert/restore workspace, and inspect unified diffs.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "action": { "type": "string", "enum": ["createCheckpoint", "restoreCheckpoint", "listCheckpoints", "diffCheckpoint", "getLatestCheckpoint"], "description": "Snapshot operation" },
+            "checkpointId": { "type": "string", "description": "Checkpoint commit hash for restore/diff" },
+            "description": { "type": "string", "description": "Description note for the checkpoint" }
+          },
+          "required": ["action"]
+        }
+      },
+      {
+        "name": "dardcor_liveBrowser",
+        "displayName": "Dardcor Live Browser Visual Perception",
+        "toolReferenceName": "liveBrowserInspector",
+        "icon": "$(browser)",
+        "userDescription": "Live browser testing, DevTools CDP connection, click/type/scroll, and console error interception",
+        "modelDescription": "Launch or connect to a local/remote browser via DevTools protocol. Navigate URLs, click elements, type text, scroll viewports, capture WebP/PNG screenshots, and inspect console.log and runtime page errors.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "action": { "type": "string", "enum": ["launch", "navigate", "click", "type", "scroll", "screenshot", "getConsoleLogs", "close"], "description": "Browser action" },
+            "url": { "type": "string", "description": "URL to launch or navigate" },
+            "selector": { "type": "string", "description": "CSS selector to click or type into" },
+            "text": { "type": "string", "description": "Text to type into selector" },
+            "scrollDelta": { "type": "number", "description": "Scroll delta in pixels" }
+          },
+          "required": ["action"]
+        }
+      },
+      {
+        "name": "dardcor_universalRules",
+        "displayName": "Dardcor Universal Rules Ingestor",
+        "toolReferenceName": "universalRulesIngestor",
+        "icon": "$(law)",
+        "userDescription": "Multi-editor rules discovery and compilation (.cursorrules, .windsurfrules, .dardcorrules, .agents)",
+        "modelDescription": "Discover, compile, and toggle project rule files (.cursorrules, .cursor/rules, .windsurfrules, .dardcorrules, .agents/rules) across workspace roots into active agent instructions.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "action": { "type": "string", "enum": ["discoverRules", "loadRules", "toggleRule"], "description": "Rule action" },
+            "rulePath": { "type": "string", "description": "File path of the rule to toggle" },
+            "enabled": { "type": "boolean", "description": "Whether the rule should be enabled" }
+          },
+          "required": ["action"]
         }
       }
     ],
@@ -3444,13 +3773,7 @@
             "additionalProperties": {
               "type": "boolean"
             },
-            "markdownDescription": "Enable or disable auto triggering of Dardcor AI completions for specified [languages](https://code.visualstudio.com/docs/languages/identifiers). You can still trigger suggestions manually using `Alt + \\`",
-            "agentsWindow": {
-              "default": {
-                "markdown": true,
-                "plaintext": true
-              }
-            }
+            "markdownDescription": "Enable or disable auto triggering of Dardcor AI completions for specified [languages](https://code.visualstudio.com/docs/languages/identifiers). You can still trigger suggestions manually using `Alt + \\`"
           },
           "github.dardcor.selectedCompletionModel": {
             "type": "string",
@@ -3626,10 +3949,7 @@
             "markdownDescription": "%github.dardcor.config.githubMcpServer.enabled%",
             "tags": [
               "experimental"
-            ],
-            "agentsWindow": {
-              "default": true
-            }
+            ]
           },
           "github.dardcor.chat.githubMcpServer.toolsets": {
             "type": "array",
@@ -3983,10 +4303,7 @@
               "experimental",
               "onExP"
             ],
-            "markdownDescription": "%github.dardcor.chat.languageContext.typescript.enabled%",
-            "agentsWindow": {
-              "default": true
-            }
+            "markdownDescription": "%github.dardcor.chat.languageContext.typescript.enabled%"
           },
           "github.dardcor.chat.languageContext.typescript.items": {
             "type": "string",
@@ -5085,10 +5402,7 @@
             "tags": [
               "advanced",
               "experimental"
-            ],
-            "agentsWindow": {
-              "default": true
-            }
+            ]
           },
           "github.dardcor.chat.cli.sandbox.enabled": {
             "type": "string",
@@ -5115,10 +5429,7 @@
             "markdownDescription": "%github.dardcor.config.cli.branchSupport.enabled%",
             "tags": [
               "advanced"
-            ],
-            "agentsWindow": {
-              "default": true
-            }
+            ]
           },
           "github.dardcor.chat.cli.showExternalSessions": {
             "type": "boolean",
@@ -5126,10 +5437,7 @@
             "markdownDescription": "%github.dardcor.config.cli.showExternalSessions%",
             "tags": [
               "advanced"
-            ],
-            "agentsWindow": {
-              "default": false
-            }
+            ]
           },
           "github.dardcor.chat.cli.planExitMode.enabled": {
             "type": "boolean",
@@ -5169,10 +5477,7 @@
             "markdownDescription": "%github.dardcor.config.cli.lazyLoadSessionItem.enabled%",
             "tags": [
               "advanced"
-            ],
-            "agentsWindow": {
-              "default": false
-            }
+            ]
           },
           "github.dardcor.chat.cli.aiGenerateBranchNames.enabled": {
             "type": "boolean",
@@ -5196,10 +5501,7 @@
             "markdownDescription": "%github.dardcor.config.cli.isolationOption.enabled%",
             "tags": [
               "advanced"
-            ],
-            "agentsWindow": {
-              "default": true
-            }
+            ]
           },
           "github.dardcor.chat.cli.autoCommit.enabled": {
             "type": "boolean",
@@ -5208,10 +5510,7 @@
             "tags": [
               "advanced",
               "experimental"
-            ],
-            "agentsWindow": {
-              "default": false
-            }
+            ]
           },
           "github.dardcor.chat.cli.sessionController.enabled": {
             "type": "boolean",
@@ -5219,11 +5518,7 @@
             "markdownDescription": "%github.dardcor.config.cli.sessionController.enabled%",
             "tags": [
               "advanced"
-            ],
-            "agentsWindow": {
-              "default": false,
-              "readOnly": true
-            }
+            ]
           },
           "github.dardcor.chat.cli.thinkingEffort.enabled": {
             "type": "boolean",
@@ -5255,10 +5550,7 @@
             "markdownDescription": "%github.dardcor.config.cli.remote.enabled%",
             "tags": [
               "advanced"
-            ],
-            "agentsWindow": {
-              "default": false
-            }
+            ]
           },
           "github.dardcor.chat.searchSubagent.enabled": {
             "type": "boolean",
@@ -5624,7 +5916,7 @@
       "chat/input/editing/sessionToolbar": [
         {
           "command": "github.dardcor.chat.applyCopilotCLIAgentSessionChanges.apply",
-          "when": "chatSessionType == dardcorcli && workbenchState != empty && !isSessionsWindow",
+          "when": "chatSessionType == dardcorcli && workbenchState != empty",
           "group": "navigation@0"
         },
         {
@@ -5634,95 +5926,19 @@
         },
         {
           "command": "github.dardcor.chat.cloudSessions.createPullRequestForTask",
-          "when": "chatSessionType == dardcor-cloud-agent && github.dardcor.chat.cloudTaskCanCreatePullRequest && !isSessionsWindow",
+          "when": "chatSessionType == dardcor-cloud-agent && github.dardcor.chat.cloudTaskCanCreatePullRequest",
           "group": "navigation@0"
         },
         {
           "command": "github.dardcor.chat.cloudSessions.openPullRequestForTask",
-          "when": "chatSessionType == dardcor-cloud-agent && github.dardcor.chat.cloudTaskCanOpenPullRequest && !isSessionsWindow",
+          "when": "chatSessionType == dardcor-cloud-agent && github.dardcor.chat.cloudTaskCanOpenPullRequest",
           "group": "navigation@0"
-        }
-      ],
-      "agents/changes/actions/primary": [
-        {
-          "command": "github.dardcor.sessions.initializeRepository",
-          "when": "sessionType == dardcorcli && isSessionsWindow && sessions.isolationMode == workspace && !sessions.hasGitRepository && !sessions.isAgentHostSession",
-          "group": "0_init@1"
-        },
-        {
-          "command": "github.dardcor.chat.mergeCopilotCLIAgentSessionChanges.merge",
-          "when": "sessionType == dardcorcli && isSessionsWindow && sessions.isolationMode == worktree && sessions.hasGitRepository && !sessions.isMergeBaseBranchProtected && !sessions.hasPullRequest && (sessions.hasUncommittedChanges || sessions.hasOutgoingChanges) && !sessions.isAgentHostSession",
-          "group": "1_merge@1"
-        },
-        {
-          "command": "github.dardcor.chat.mergeCopilotCLIAgentSessionChanges.mergeAndSync",
-          "when": "sessionType == dardcorcli && isSessionsWindow && sessions.isolationMode == worktree && sessions.hasGitRepository && !sessions.isMergeBaseBranchProtected && !sessions.hasPullRequest && (sessions.hasUncommittedChanges || sessions.hasOutgoingChanges) && !sessions.isAgentHostSession",
-          "group": "1_merge@2"
-        },
-        {
-          "command": "github.dardcor.chat.createPullRequestCopilotCLIAgentSession.createPR",
-          "when": "sessionType == dardcorcli && isSessionsWindow && sessions.isolationMode == worktree && sessions.hasGitRepository && sessions.hasGitHubRemote && !sessions.hasPullRequest && sessions.hasBranchChanges && !sessions.isAgentHostSession",
-          "group": "2_pull_request@1"
-        },
-        {
-          "command": "github.dardcor.chat.createDraftPullRequestCopilotCLIAgentSession.createDraftPR",
-          "when": "sessionType == dardcorcli && isSessionsWindow && sessions.isolationMode == worktree && sessions.hasGitRepository && sessions.hasGitHubRemote && !sessions.hasPullRequest && sessions.hasBranchChanges && !sessions.isAgentHostSession",
-          "group": "2_pull_request@2"
-        },
-        {
-          "command": "github.dardcor.sessions.commit",
-          "when": "sessionType == dardcorcli && isSessionsWindow && sessions.hasGitRepository && sessions.hasUncommittedChanges && !sessions.isAgentHostSession",
-          "group": "3_commit@1"
-        },
-        {
-          "command": "github.dardcor.sessions.commitAndSync",
-          "when": "sessionType == dardcorcli && isSessionsWindow && sessions.hasGitRepository && sessions.hasUncommittedChanges && !sessions.isAgentHostSession",
-          "group": "3_commit@2"
-        },
-        {
-          "command": "github.dardcor.sessions.sync",
-          "when": "sessionType == dardcorcli && isSessionsWindow && sessions.hasGitRepository && sessions.hasUpstream && !sessions.hasUncommittedChanges && (sessions.hasIncomingChanges || sessions.hasOutgoingChanges) && !sessions.isAgentHostSession",
-          "group": "4_sync@1"
-        },
-        {
-          "command": "github.dardcor.claude.sessions.initializeRepository",
-          "when": "sessionType == claude-code && isSessionsWindow && !sessions.hasGitRepository",
-          "group": "init@1"
-        },
-        {
-          "command": "github.dardcor.claude.sessions.commit",
-          "when": "sessionType == claude-code && isSessionsWindow && sessions.hasGitRepository && sessions.hasUncommittedChanges",
-          "group": "commit@1"
-        },
-        {
-          "command": "github.dardcor.claude.sessions.commitAndSync",
-          "when": "sessionType == claude-code && isSessionsWindow && sessions.hasGitRepository && sessions.hasUncommittedChanges && sessions.hasUpstream",
-          "group": "commit@2"
-        },
-        {
-          "command": "github.dardcor.claude.sessions.sync",
-          "when": "sessionType == claude-code && isSessionsWindow && sessions.hasGitRepository && !sessions.hasUncommittedChanges && sessions.hasUpstream",
-          "group": "sync@1"
-        }
-      ],
-      "agents/change/inline": [
-        {
-          "command": "github.dardcor.sessions.discardChanges",
-          "when": "sessionType == dardcorcli && isSessionsWindow && sessions.hasGitRepository && !sessionIsArchived && !sessions.isAgentHostSession",
-          "group": "navigation@2"
         }
       ],
       "chat/contextUsage/actions": [
         {
           "command": "github.dardcor.chat.compact",
           "when": "!chatIsAgentHostSession"
-        }
-      ],
-      "chat/input/status": [
-        {
-          "command": "github.dardcor.chat.otel.statusActive",
-          "when": "github.dardcor.otel.enabledExplicitly && isSessionsWindow",
-          "group": "otel@1"
         }
       ],
       "chat/newSession": [
@@ -6400,7 +6616,7 @@
       "multiDiffEditor/content": [
         {
           "command": "github.dardcor.chat.applyCopilotCLIAgentSessionChanges",
-          "when": "resourceScheme == dardcorcli-worktree-changes && workbenchState != empty && !isSessionsWindow"
+          "when": "resourceScheme == dardcorcli-worktree-changes && workbenchState != empty"
         }
       ],
       "chat/chatSessions": [
@@ -6421,7 +6637,7 @@
         },
         {
           "command": "github.dardcor.cli.sessions.openWorktreeInNewWindow",
-          "when": "chatSessionType == dardcorcli && !isSessionsWindow",
+          "when": "chatSessionType == dardcorcli",
           "group": "2_open@1"
         },
         {
@@ -6441,7 +6657,7 @@
         },
         {
           "command": "github.dardcor.chat.applyCopilotCLIAgentSessionChanges",
-          "when": "chatSessionType == dardcorcli && workbenchState != empty && !isSessionsWindow",
+          "when": "chatSessionType == dardcorcli && workbenchState != empty",
           "group": "3_apply@0"
         },
         {
@@ -6472,13 +6688,6 @@
           "command": "github.dardcor.cloud.sessions.installPRExtension",
           "when": "chatSessionType == dardcor-cloud-agent && !github.dardcor.prExtensionInstalled",
           "group": "inline@1"
-        }
-      ],
-      "chat/input/editing/sessionTitleToolbar": [
-        {
-          "command": "github.dardcor.sessions.refreshChanges",
-          "when": "sessionType == dardcorcli && isSessionsWindow && !sessions.isAgentHostSession",
-          "group": "9_refresh@1"
         }
       ],
       "chat/customizations/create": [
@@ -6843,7 +7052,7 @@
         "inputPlaceholder": "Run local tasks with Claude, type `#` for adding context",
         "order": 3,
         "description": "%github.dardcor.session.providerDescription.claude%",
-        "when": "config.github.dardcor.chat.claudeAgent.enabled && (!agentHostEnabled || (isSessionsWindow && !config.chat.agents.claude.preferAgentHost) || (!isSessionsWindow && !config.chat.editor.claude.preferAgentHost))",
+        "when": "config.github.dardcor.chat.claudeAgent.enabled && (!agentHostEnabled || !config.chat.editor.claude.preferAgentHost)",
         "canDelegate": true,
         "requiresCustomModels": true,
         "supportsAutoModel": false,

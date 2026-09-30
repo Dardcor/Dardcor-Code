@@ -32,8 +32,7 @@ suite('XLF Parser Tests', () => {
 
 	test('JSON file source path to Transifex resource match', () => {
 		const editorProject: string = 'vscode-editor',
-			workbenchProject: string = 'vscode-workbench',
-			sessionsProject: string = 'vscode-sessions';
+			workbenchProject: string = 'vscode-workbench';
 
 		const platform: i18n.Resource = { name: 'dc/platform', project: editorProject },
 			editorContrib = { name: 'dc/editor/contrib', project: editorProject },
@@ -42,9 +41,7 @@ suite('XLF Parser Tests', () => {
 			code = { name: 'dc/code', project: workbenchProject },
 			workbenchParts = { name: 'dc/workbench/contrib/html', project: workbenchProject },
 			workbenchServices = { name: 'dc/workbench/services/textfile', project: workbenchProject },
-			workbench = { name: 'dc/workbench', project: workbenchProject },
-			sessionsContrib = { name: 'dc/sessions/contrib/chat', project: sessionsProject },
-			sessions = { name: 'dc/sessions', project: sessionsProject };
+			workbench = { name: 'dc/workbench', project: workbenchProject };
 
 		assert.deepStrictEqual(i18n.getResource('dc/platform/actions/browser/menusExtensionPoint'), platform);
 		assert.deepStrictEqual(i18n.getResource('dc/editor/contrib/clipboard/browser/clipboard'), editorContrib);
@@ -54,7 +51,5 @@ suite('XLF Parser Tests', () => {
 		assert.deepStrictEqual(i18n.getResource('dc/workbench/contrib/html/browser/webview'), workbenchParts);
 		assert.deepStrictEqual(i18n.getResource('dc/workbench/services/textfile/node/testFileService'), workbenchServices);
 		assert.deepStrictEqual(i18n.getResource('dc/workbench/browser/parts/panel/panelActions'), workbench);
-		assert.deepStrictEqual(i18n.getResource('dc/sessions/contrib/chat/browser/chatWidget'), sessionsContrib);
-		assert.deepStrictEqual(i18n.getResource('dc/sessions/browser/layoutActions'), sessions);
 	});
 });

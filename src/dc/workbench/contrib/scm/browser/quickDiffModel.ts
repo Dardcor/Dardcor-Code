@@ -29,7 +29,6 @@ import { IProgressService, ProgressLocation } from '../../../../platform/progres
 import { IChatEditingService, ModifiedFileEntryState } from '../../chat/common/editing/chatEditingService.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { autorun } from '../../../../base/common/observable.js';
-import { IWorkbenchEnvironmentService } from '../../../services/environment/common/environmentService.js';
 
 export const IQuickDiffModelService = createDecorator<IQuickDiffModelService>('IQuickDiffModelService');
 
@@ -140,8 +139,7 @@ export class QuickDiffModel extends Disposable {
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@ITextModelService private readonly textModelResolverService: ITextModelService,
 		@IChatEditingService private readonly _chatEditingService: IChatEditingService,
-		@IProgressService private readonly progressService: IProgressService,
-		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService
+		@IProgressService private readonly progressService: IProgressService
 	) {
 		super();
 		this._model = textFileModel;
@@ -254,7 +252,7 @@ export class QuickDiffModel extends Disposable {
 	}
 
 	private diff(): Promise<{ allChanges: QuickDiffChange[]; changes: QuickDiffChange[]; mapChanges: Map<string, number[]>; versionId: number } | null> {
-		const location = this.environmentService.isSessionsWindow ? ProgressLocation.Window : ProgressLocation.Scm;
+		const location = ProgressLocation.Scm;
 		return this.progressService.withProgress({ location, delay: 250 }, async () => {
 			if (this._disposed || this._model.isDisposed()) {
 				return null;

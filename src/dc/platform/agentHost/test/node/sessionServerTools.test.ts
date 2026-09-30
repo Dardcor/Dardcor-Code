@@ -682,15 +682,15 @@ suite('SessionServerTools', () => {
 	});
 
 	test('getCreateSessionArgs resolves a unique project name to its configured root', () => {
-		const project = URI.parse('file:///workspace/vscode');
+		const project = URI.parse('file:///workspace/dardcor');
 		const worktree = URI.parse('file:///worktrees/pr-331525');
 		const sessions = [{
 			...sessionMeta('worktree', SessionStatus.Idle, worktree),
-			project: { uri: project, displayName: 'Visual Studio Code' },
+			project: { uri: project, displayName: 'Dardcor Code' },
 		}];
 
 		assert.deepStrictEqual({
-			byName: getCreateSessionArgs({ relationship: 'independent', workspace: 'visual studio code', prompt: 'hi', title: 'Task' }, sessions, []),
+			byName: getCreateSessionArgs({ relationship: 'independent', workspace: 'dardcor code', prompt: 'hi', title: 'Task' }, sessions, []),
 			byProjectUri: getCreateSessionArgs({ relationship: 'independent', workspace: project.toString(), prompt: 'hi', title: 'Task' }, sessions, []),
 		}, {
 			byName: { relationship: 'independent', workspace: project, prompt: 'hi', title: 'Task' },

@@ -19,7 +19,6 @@ import { workbenchInstantiationService } from '../../../../../test/browser/workb
 import { AGENT_HOST_ENABLED_CONTEXT_KEY } from '../../../../../../platform/agentHost/common/agentHostEnablementService.js';
 import { AgentHostCodexAgentEnabledSettingId, CodexPreferAgentHostEditorSettingId, GITHUB_COPILOT_PROTECTED_RESOURCE, GITHUB_REPO_PROTECTED_RESOURCE, protectedResourcesRequireGitHubCopilotSignIn } from '../../../../../../platform/agentHost/common/agentService.js';
 import { ProtectedResourceMetadata } from '../../../../../../platform/agentHost/common/state/protocol/state.js';
-import { IsSessionsWindowContext } from '../../../../../common/contextkeys.js';
 
 suite('Codex Agent Host preference', () => {
 
@@ -28,7 +27,6 @@ suite('Codex Agent Host preference', () => {
 	function isCodexExtensionHostAvailable(options: {
 		agentHostEnabled: boolean;
 		codexAgentEnabled: boolean;
-		isSessionsWindow: boolean;
 		preferAgentHost: boolean;
 	}): boolean {
 		const configurationService = new TestConfigurationService({
@@ -37,7 +35,6 @@ suite('Codex Agent Host preference', () => {
 		});
 		const contextKeyService = store.add(new ContextKeyService(configurationService));
 		AGENT_HOST_ENABLED_CONTEXT_KEY.bindTo(contextKeyService).set(options.agentHostEnabled);
-		IsSessionsWindowContext.bindTo(contextKeyService).set(options.isSessionsWindow);
 
 		const contribution = applyCodexAgentHostPreference({
 			type: SessionType.Codex,
@@ -49,19 +46,13 @@ suite('Codex Agent Host preference', () => {
 		return !!when && contextKeyService.contextMatchesRules(when);
 	}
 
-	test('never surfaces extension-host Codex in the Agents window and replaces it when preferred in the editor', () => {
+	test('surfaces extension-host Codex and replaces it when preferred in the editor', () => {
 		assert.deepStrictEqual({
-			agentsWindowPreferred: isCodexExtensionHostAvailable({ agentHostEnabled: true, codexAgentEnabled: true, isSessionsWindow: true, preferAgentHost: true }),
-			agentsWindowNotPreferred: isCodexExtensionHostAvailable({ agentHostEnabled: true, codexAgentEnabled: true, isSessionsWindow: true, preferAgentHost: false }),
-			agentsWindowAgentHostDisabled: isCodexExtensionHostAvailable({ agentHostEnabled: false, codexAgentEnabled: false, isSessionsWindow: true, preferAgentHost: false }),
-			editorWindowPreferred: isCodexExtensionHostAvailable({ agentHostEnabled: true, codexAgentEnabled: true, isSessionsWindow: false, preferAgentHost: true }),
-			editorWindowNotPreferred: isCodexExtensionHostAvailable({ agentHostEnabled: true, codexAgentEnabled: true, isSessionsWindow: false, preferAgentHost: false }),
-			agentHostDisabled: isCodexExtensionHostAvailable({ agentHostEnabled: false, codexAgentEnabled: true, isSessionsWindow: false, preferAgentHost: true }),
-			codexAgentDisabled: isCodexExtensionHostAvailable({ agentHostEnabled: true, codexAgentEnabled: false, isSessionsWindow: false, preferAgentHost: true }),
+			editorWindowPreferred: isCodexExtensionHostAvailable({ agentHostEnabled: true, codexAgentEnabled: true, preferAgentHost: true }),
+			editorWindowNotPreferred: isCodexExtensionHostAvailable({ agentHostEnabled: true, codexAgentEnabled: true, preferAgentHost: false }),
+			agentHostDisabled: isCodexExtensionHostAvailable({ agentHostEnabled: false, codexAgentEnabled: true, preferAgentHost: true }),
+			codexAgentDisabled: isCodexExtensionHostAvailable({ agentHostEnabled: true, codexAgentEnabled: false, preferAgentHost: true }),
 		}, {
-			agentsWindowPreferred: false,
-			agentsWindowNotPreferred: false,
-			agentsWindowAgentHostDisabled: false,
 			editorWindowPreferred: false,
 			editorWindowNotPreferred: true,
 			agentHostDisabled: true,

@@ -186,22 +186,22 @@ export class RemoteTunnelService extends Disposable implements IRemoteTunnelServ
 		if (!this._tunnelCommand) {
 			let binParentLocation;
 			if (isMacintosh) {
-				// appRoot = /Applications/Visual Studio Code - Insiders.app/Contents/Resources/app
-				// bin = /Applications/Visual Studio Code - Insiders.app/Contents/Resources/app/bin
+				// appRoot = /Applications/Dardcor Code.app/Contents/Resources/app
+				// bin = /Applications/Dardcor Code.app/Contents/Resources/app/bin
 				binParentLocation = this.environmentService.appRoot;
 			} else if (isWindows) {
 				if (this.productService.win32VersionedUpdate) {
-					// appRoot = C:\Users\<name>\AppData\Local\Programs\Microsoft VS Code Insiders\<version>\resources\app
-					// bin = C:\Users\<name>\AppData\Local\Programs\Microsoft VS Code Insiders\bin
+					// appRoot = C:\Users\<name>\AppData\Local\Programs\Dardcor Code\<version>\resources\app
+					// bin = C:\Users\<name>\AppData\Local\Programs\Dardcor Code\bin
 					binParentLocation = dirname(dirname(dirname(this.environmentService.appRoot)));
 				} else {
-					// appRoot = C:\Users\<name>\AppData\Local\Programs\Microsoft VS Code Insiders\resources\app
-					// bin = C:\Users\<name>\AppData\Local\Programs\Microsoft VS Code Insiders\bin
+					// appRoot = C:\Users\<name>\AppData\Local\Programs\Dardcor Code\resources\app
+					// bin = C:\Users\<name>\AppData\Local\Programs\Dardcor Code\bin
 					binParentLocation = dirname(dirname(this.environmentService.appRoot));
 				}
 			} else {
-				// appRoot = /usr/share/code-insiders/resources/app
-				// bin = /usr/share/code-insiders/bin
+				// appRoot = /usr/share/dardcor-code/resources/app
+				// bin = /usr/share/dardcor-code/bin
 				binParentLocation = dirname(dirname(this.environmentService.appRoot));
 			}
 			this._tunnelCommand = join(binParentLocation, 'bin', `${this.productService.tunnelApplicationName}${isWindows ? '.exe' : ''}`);

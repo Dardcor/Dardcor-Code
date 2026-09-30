@@ -46,7 +46,6 @@ Registry.as<IConfigurationRegistry>(Extensions.Configuration).registerConfigurat
 				mode: 'auto'
 			},
 			tags: ['experimental'],
-			agentsWindow: { default: 'editor' },
 		},
 		[InlineChatConfigKeys.FixDiagnostics]: {
 			description: localize('fixDiagnostics', "Controls whether the Fix action is shown for diagnostics in the editor."),

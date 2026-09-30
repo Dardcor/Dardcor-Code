@@ -182,8 +182,8 @@ export class FetchWebPageTool implements IToolImpl {
 		const allFetchedUris = new ResourceSet([...webUris.values(), ...validFileUris]);
 		// File URIs that are inside the workspace don't need confirmation — they're already accessible
 		// and don't carry the web content risks (prompt injection, malicious redirects).
-		// When a working directory is set (agents window), it is the source of truth;
-		// only fall back to workspace folders when no working directory is specified.
+		// When a chat working directory is set, it is the source of truth; only fall
+		// back to workspace folders when no working directory is specified.
 		const workingDir = new WorkingDirectory(this._workspaceContextService, context.workingDirectory);
 		const fileUrisOutsideWorkspace = validFileUris.filter(uri => !workingDir.getFolder(uri));
 		const urlsNeedingConfirmation = new ResourceSet([...webUris.values(), ...fileUrisOutsideWorkspace]);

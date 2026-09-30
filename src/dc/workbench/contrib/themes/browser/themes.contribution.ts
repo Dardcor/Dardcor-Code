@@ -40,7 +40,6 @@ import { INotificationService, Severity } from '../../../../platform/notificatio
 import { mainWindow } from '../../../../base/browser/window.js';
 import { IPreferencesService } from '../../../services/preferences/common/preferences.js';
 import { DisposableStore, IDisposable } from '../../../../base/common/lifecycle.js';
-import { IWorkbenchEnvironmentService } from '../../../services/environment/common/environmentService.js';
 
 export const manageExtensionIcon = registerIcon('theme-selection-manage-extension', Codicon.gear, localize('manageExtensionIcon', 'Icon for the \'Manage\' action in the theme selection quick pick.'));
 
@@ -75,7 +74,6 @@ class MarketplaceThemesPicker implements IDisposable {
 		@IProgressService private readonly progressService: IProgressService,
 		@IExtensionsWorkbenchService private readonly extensionsWorkbenchService: IExtensionsWorkbenchService,
 		@IDialogService private readonly dialogService: IDialogService,
-		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService,
 	) {
 		this._installedExtensions = extensionManagementService.getInstalled().then(installed => {
 			const result = new Set<string>();
@@ -128,9 +126,6 @@ class MarketplaceThemesPicker implements IDisposable {
 						break;
 					}
 					const ext = gallery[i];
-					if (this.environmentService.isSessionsWindow && ext.properties.executesCode) {
-						continue; // Ideally would be in sync with canExecuteOnSessionsWindow
-					}
 					if (!installedExtensions.has(ext.identifier.id) && !this._marketplaceExtensions.has(ext.identifier.id)) {
 						this._marketplaceExtensions.add(ext.identifier.id);
 						promises.push(this.getMarketplaceColorThemes(ext.publisher, ext.name, ext.version));

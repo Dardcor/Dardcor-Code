@@ -106,11 +106,6 @@ export function resolveWorkbenchCommonProperties(
 		mixin(result, resolveAdditionalProperties());
 	}
 
-	if (environmentService.isSessionsWindow) {
-		// __GDPR__COMMON__ "common.isAgentsWindow" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
-		result['common.isAgentsWindow'] = true;
-	}
-
 	return result;
 }
 

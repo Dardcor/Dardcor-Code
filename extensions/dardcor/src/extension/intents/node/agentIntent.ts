@@ -291,7 +291,7 @@ export const getAgentTools = async (accessor: ServicesAccessor, request: vscode.
 
 	// Enable task_complete in autopilot mode so the model can signal task completion.
 	// The tool is registered in core as a built-in but needs explicit opt-in here.
-	allowTools['task_complete'] = request.permissionLevel === 'autopilot';
+	allowTools['task_complete'] = request.permissionLevel === 'autopilot' || request.permissionLevel === 'autoApprove';
 
 	allowTools[ToolName.EditFilesPlaceholder] = false;
 	// todo@connor4312: string check here is for back-compat for 1.109 Insiders
@@ -458,7 +458,7 @@ export class AgentIntent extends EditCodeIntent {
 		// Report auto-mode routing decision if one was made during endpoint resolution
 		const routingDecision = this._automodeService.consumeLastRoutingDecision();
 		if (routingDecision) {
-			stream.push(new ChatResponseAutoModeResolutionPart(routingDecision.resolvedModel, routingDecision.resolvedModelName, routingDecision.predictedLabel, routingDecision.confidence));
+			stream.push(new ChatResponseAutoModeResolutionPart({ id: routingDecision.resolvedModel, name: routingDecision.resolvedModelName }));
 		}
 
 		try {
@@ -577,10 +577,12 @@ export class AgentIntent extends EditCodeIntent {
 			}
 
 			if (summaryMetadata.usage) {
+				const credits = nanoAiuToCredits(summaryMetadata.usage.dardcor_usage?.total_nano_aiu);
 				stream.usage({
 					promptTokens: summaryMetadata.usage.prompt_tokens,
 					completionTokens: summaryMetadata.usage.completion_tokens,
-					dardcorCredits: nanoAiuToCredits(summaryMetadata.usage.dardcor_usage?.total_nano_aiu),
+					copilotCredits: credits,
+					dardcorCredits: credits,
 					promptTokenDetails: summaryMetadata.promptTokenDetails,
 				});
 			}

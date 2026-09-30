@@ -9,20 +9,18 @@ metadata:
 
 Split-view management pane for AI customization items across workspace, user, extension, and plugin storage. Supports harness-based filtering (Local, Copilot CLI, Claude).
 
-## Spec
+## Source
 
-**`src/vs/sessions/AI_CUSTOMIZATIONS.md`** — always read before making changes, always update after.
+The standalone Agent Window and its customization tree view were removed. The Editor management UI is implemented in `src/dc/workbench/contrib/chat/browser/aiCustomization/`; use its source and fixtures as the source of truth.
 
 ## Key Folders
 
 | Folder | What |
 |--------|------|
-| `src/vs/workbench/contrib/chat/common/` | `ICustomizationHarnessService`, `ISectionOverride`, `IStorageSourceFilter` — shared interfaces and filter helpers |
-| `src/vs/workbench/contrib/chat/browser/aiCustomization/` | Management editor, list widgets (prompts, MCP, plugins), harness service registration |
-| `src/vs/sessions/contrib/chat/browser/` | Sessions-window overrides (harness service, workspace service) |
-| `src/vs/sessions/contrib/sessions/browser/` | Sessions tree view counts and toolbar |
+| `src/dc/workbench/contrib/chat/common/` | `ICustomizationHarnessService`, `ISectionOverride`, `IStorageSourceFilter` — shared interfaces and filter helpers |
+| `src/dc/workbench/contrib/chat/browser/aiCustomization/` | Editor management UI, list widgets (prompts, MCP, plugins), harness service registration |
 
-When changing harness descriptor interfaces or factory functions, verify both core and sessions registrations compile.
+When changing harness descriptor interfaces or factory functions, verify the Workbench registration and extension API layers compile.
 
 ## Key Interfaces
 
@@ -49,7 +47,7 @@ When adding fields to `IExternalCustomizationItem`, update all five layers. The 
 
 ## Testing
 
-Component explorer fixtures (see `component-fixtures` skill): `aiCustomizationListWidget.fixture.ts`, `aiCustomizationManagementEditor.fixture.ts` under `src/vs/workbench/test/browser/componentFixtures/`.
+Component explorer fixtures (see `component-fixtures` skill): `aiCustomizationListWidget.fixture.ts`, `aiCustomizationManagementEditor.fixture.ts` under `src/dc/workbench/test/browser/componentFixtures/`.
 
 ### Screenshotting specific tabs
 
@@ -69,7 +67,6 @@ The management editor fixture supports a `selectedSection` option to render any 
 | `chat/aiCustomizations/aiCustomizationManagementEditor/LocalHarness/{Dark,Light}` | Default (Agents, Local harness) |
 | `chat/aiCustomizations/aiCustomizationManagementEditor/CliHarness/{Dark,Light}` | Default (Agents, CLI harness) |
 | `chat/aiCustomizations/aiCustomizationManagementEditor/ClaudeHarness/{Dark,Light}` | Default (Agents, Claude harness) |
-| `chat/aiCustomizations/aiCustomizationManagementEditor/Sessions/{Dark,Light}` | Sessions window variant |
 
 **Adding a new tab fixture:** Add a variant to the `defineThemedFixtureGroup` in `aiCustomizationManagementEditor.fixture.ts`:
 ```typescript
@@ -113,7 +110,7 @@ The management editor embeds a `CodeEditorWidget`. Electron-side editor contribu
 - `IChatEditingService` — needs `editingSessionsObs` as empty observable
 - `IAgentSessionsService` — needs `model.sessions` as empty array
 
-These are cross-layer imports from `vs/sessions/` — use `// eslint-disable-next-line local/code-import-patterns` on the import lines.
+The standalone Agent Window was removed; keep these mocks in the Workbench fixture setup rather than importing removed session-window modules.
 
 ### CI regression gates
 
@@ -146,7 +143,7 @@ await new Promise(resolve => setTimeout(resolve, 2400));
 npm run typecheck-client && npm run valid-layers-check
 ```
 
-See the `sessions` skill for sessions-window specific guidance.
+There is no separate sessions-window variant of this editor.
 
 ## Debugging Layout in the Real Product
 

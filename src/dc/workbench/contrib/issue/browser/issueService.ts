@@ -21,7 +21,6 @@ import { IIssueFormService, IssueReporterData, IssueReporterExtensionData, Issue
 import { IWorkbenchAssignmentService } from '../../../services/assignment/common/assignmentService.js';
 import { IAuthenticationService } from '../../../services/authentication/common/authentication.js';
 import { IWorkbenchExtensionEnablementService } from '../../../services/extensionManagement/common/extensionManagement.js';
-import { IWorkbenchEnvironmentService } from '../../../services/environment/common/environmentService.js';
 import { IExtensionService } from '../../../services/extensions/common/extensions.js';
 import { IIntegrityService } from '../../../services/integrity/common/integrity.js';
 
@@ -42,7 +41,6 @@ export class BrowserIssueService implements IWorkbenchIssueService {
 		@IAuthenticationService private readonly authenticationService: IAuthenticationService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@IOpenerService private readonly openerService: IOpenerService,
-		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService
 	) { }
 
 	async openReporter(options: Partial<IssueReporterData>): Promise<void> {
@@ -135,9 +133,7 @@ export class BrowserIssueService implements IWorkbenchIssueService {
 				enabledExtensions: extensionData,
 				experiments: experiments?.join('\n'),
 				restrictedMode: !this.workspaceTrustManagementService.isWorkspaceTrusted(),
-				isInstallationPure,
-				isSessionsWindow: this.environmentService.isSessionsWindow,
-				githubAccessToken
+				isInstallationPure,				githubAccessToken
 			}, options);
 
 			return this.issueFormService.openReporter(issueReporterData);

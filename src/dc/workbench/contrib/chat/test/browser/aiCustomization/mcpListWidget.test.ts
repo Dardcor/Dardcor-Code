@@ -19,7 +19,6 @@ import { ICommandService } from '../../../../../../platform/commands/common/comm
 import { IHoverService } from '../../../../../../platform/hover/browser/hover.js';
 import { mcpAccessConfig, McpAccessValue } from '../../../../../../platform/mcp/common/mcpManagement.js';
 import { IOutputService } from '../../../../../services/output/common/output.js';
-import { IAICustomizationWorkspaceService } from '../../../common/aiCustomizationWorkspaceService.js';
 import { ICustomizationHarnessService } from '../../../common/customizationHarnessService.js';
 import { IAgentHostCustomizationService } from '../../../browser/agentSessions/agentHost/agentHostCustomizationService.js';
 import { IAgentPluginService } from '../../../common/plugins/agentPluginService.js';
@@ -894,7 +893,6 @@ suite('mcpListWidget', () => {
 			const renderer = new McpServerItemRenderer(
 				async () => { },
 				() => { },
-				{ isSessionsWindow: true } as IAICustomizationWorkspaceService,
 				{ plugins: observableValue<readonly never[]>('plugins', []) } as unknown as IAgentPluginService,
 				{ setupManagedHover: () => Disposable.None } as unknown as IHoverService,
 				agentHostCustomizationService,

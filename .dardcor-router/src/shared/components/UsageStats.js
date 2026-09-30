@@ -193,11 +193,11 @@ const TABLE_OPTIONS = [
 ];
 
 const PERIODS = [
-  { value: "today", label: "Today" },
-  { value: "24h", label: "24h" },
   { value: "7d", label: "7D" },
   { value: "30d", label: "30D" },
-  { value: "60d", label: "60D" },
+  { value: "90d", label: "90D" },
+  { value: "180d", label: "180D" },
+  { value: "360d", label: "360D" },
 ];
 
 export default function UsageStats({ period: periodProp, setPeriod: setPeriodProp, hidePeriodSelector = false } = {}) {
@@ -213,7 +213,7 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
   const [tableView, setTableView] = useState("model");
   const [viewMode, setViewMode] = useState("costs");
   const [providers, setProviders] = useState([]);
-  const [periodLocal, setPeriodLocal] = useState("today");
+  const [periodLocal, setPeriodLocal] = useState("7d");
   const isInitialLoad = useRef(true);
   const hasLoadedStats = useRef(false);
   const period = periodProp ?? periodLocal;

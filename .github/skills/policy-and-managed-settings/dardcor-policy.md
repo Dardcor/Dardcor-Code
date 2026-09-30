@@ -76,8 +76,8 @@ use `policyReference: { name }`.
 
 Never edit or synthesize `policyData.jsonc`, and never invoke a single product
 entrypoint's `--export-policy-data` directly. Run the npm command from the worktree
-containing the source change; it exports both Workbench and the Agents window, detects
-conflicting policy metadata, and produces the complete catalog.
+containing the source change; it exports the Editor Workbench policy catalog and detects
+conflicting policy metadata.
 
 The blocking
 `src/vs/workbench/contrib/policyExport/test/node/policyExport.integrationTest.ts` uses

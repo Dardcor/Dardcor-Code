@@ -27,7 +27,7 @@ import { IEnvironmentMainService } from '../../environment/electron-main/environ
 import { createDecorator, IInstantiationService } from '../../instantiation/common/instantiation.js';
 import { ILifecycleMainService, IRelaunchOptions } from '../../lifecycle/electron-main/lifecycleMainService.js';
 import { ILogService } from '../../log/common/log.js';
-import { FocusMode, ICommonNativeHostService, INativeHostOptions, INativeSystemWideKeybinding, INativeSystemWideKeybindingResult, INativeZipFile, IOpenAgentsWindowOptions, IOSProperties, IOSProxy, IOSProxyConfig, IOSStatistics, IStartTracingOptions, IToastOptions, IToastResult, PowerSaveBlockerType, SystemIdleState, ThermalState } from '../common/native.js';
+import { FocusMode, ICommonNativeHostService, INativeHostOptions, INativeSystemWideKeybinding, INativeSystemWideKeybindingResult, INativeZipFile, IOSProperties, IOSProxy, IOSProxyConfig, IOSStatistics, IStartTracingOptions, IToastOptions, IToastResult, PowerSaveBlockerType, SystemIdleState, ThermalState } from '../common/native.js';
 import { IGlobalKeybindingsMainService } from '../../globalKeybindings/electron-main/globalKeybindingsMainService.js';
 import { IProductService } from '../../product/common/productService.js';
 import { IPartsSplash } from '../../theme/common/themeService.js';
@@ -315,17 +315,6 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 		}, options);
 	}
 
-	async openAgentsWindow(windowId: number | undefined, options?: IOpenAgentsWindowOptions): Promise<void> {
-		const windows = await this.windowsMainService.openAgentsWindow({
-			context: OpenContext.API,
-			contextWindowId: windowId,
-			cli: this.environmentMainService.args,
-		}, options?.folderUri ? URI.revive(options.folderUri) : undefined, options?.sessionResource ? URI.revive(options.sessionResource) : undefined, options?.source);
-		if (windows.length > 0) {
-			windows[0].focus();
-		}
-	}
-
 	async syncSystemWideKeybindings(windowId: number | undefined, keybindings: INativeSystemWideKeybinding[]): Promise<INativeSystemWideKeybindingResult> {
 		if (typeof windowId !== 'number') {
 			return { failed: [] };
@@ -521,7 +510,8 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 		}
 
 		try {
-			const command = `osascript -e "do shell script \\"mkdir -p /usr/local/bin && ln -sf \'${target}\' \'${source}\'\\" with administrator privileges"`;
+			const altSource = `/usr/local/bin/${this.productService.applicationName}`;
+			const command = `osascript -e "do shell script \\"mkdir -p /usr/local/bin && ln -sf \'${target}\' \'${source}\' && ln -sf \'${target}\' \'${altSource}\'\\" with administrator privileges"`;
 			await promisify(exec)(command);
 		} catch (error) {
 			throw new Error(localize('cantCreateBinFolder', "Unable to install the shell command '{0}'.", source));
@@ -550,7 +540,8 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 					}
 
 					try {
-						const command = `osascript -e "do shell script \\"rm \'${source}\'\\" with administrator privileges"`;
+						const altSource = `/usr/local/bin/${this.productService.applicationName}`;
+						const command = `osascript -e "do shell script \\"rm -f \'${source}\' \'${altSource}\'\\" with administrator privileges"`;
 						await promisify(exec)(command);
 					} catch (error) {
 						throw new Error(localize('cantUninstall', "Unable to uninstall the shell command '{0}'.", source));
@@ -566,8 +557,10 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 	}
 
 	private async getShellCommandLink(): Promise<{ readonly source: string; readonly target: string }> {
-		const target = resolve(this.environmentMainService.appRoot, 'bin', 'code');
-		const source = `/usr/local/bin/${this.productService.applicationName}`;
+		const targetDc = resolve(this.environmentMainService.appRoot, 'bin', 'dc');
+		const targetCode = resolve(this.environmentMainService.appRoot, 'bin', 'code');
+		const target = (await Promises.exists(targetDc)) ? targetDc : targetCode;
+		const source = `/usr/local/bin/dc`;
 
 		// Ensure source exists
 		const sourceExists = await Promises.exists(target);

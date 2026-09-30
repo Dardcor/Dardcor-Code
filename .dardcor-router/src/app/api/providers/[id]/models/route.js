@@ -12,6 +12,8 @@ import { resolveGrokCliModels } from "open-sse/services/grokCliModels.js";
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
 import { resolveCursorModels } from "open-sse/services/cursorModels.js";
 import { resolveClineModels, resolveClinepassModels } from "open-sse/services/clinepassModels.js";
+import { resolveDeepseekWebModels } from "open-sse/services/deepseekWebModels.js";
+import { resolveGeminiWebModels } from "open-sse/services/geminiWebModels.js";
 
 const GEMINI_CLI_MODELS_URL = "https://cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels";
 
@@ -197,6 +199,65 @@ const PROVIDER_MODELS_CONFIG = {
         }));
     }
   },
+  "chatgpt-web": {
+    customResolver: async (conn) => {
+      const plan = String(conn?.providerSpecificData?.chatgptPlanType || "free").toLowerCase();
+      if (plan === "pro") {
+        return {
+          models: [
+            { id: "gpt-5.6-luna", name: "GPT-5.6 Luna (Reasoning)" },
+            { id: "gpt-5.6-terra", name: "GPT-5.6 Terra" },
+            { id: "gpt-5.5", name: "GPT-5.5" },
+            { id: "auto", name: "ChatGPT Auto (Default)" },
+            { id: "gpt-4o", name: "GPT-4o (Unlimited)" },
+            { id: "o1", name: "OpenAI o1" },
+            { id: "o1-pro", name: "OpenAI o1 Pro Mode" },
+            { id: "o3-mini", name: "OpenAI o3 Mini" },
+            { id: "gpt-4.5", name: "GPT 4.5" },
+          ]
+        };
+      }
+      if (plan === "plus" || plan === "team") {
+        return {
+          models: [
+            { id: "gpt-5.6-luna", name: "GPT-5.6 Luna (Reasoning)" },
+            { id: "gpt-5.6-terra", name: "GPT-5.6 Terra" },
+            { id: "gpt-5.5", name: "GPT-5.5" },
+            { id: "auto", name: "ChatGPT Auto (Default)" },
+            { id: "gpt-4o", name: "GPT-4o" },
+            { id: "gpt-4o-mini", name: "GPT-4o Mini" },
+            { id: "o1", name: "OpenAI o1" },
+            { id: "o1-mini", name: "OpenAI o1 Mini" },
+            { id: "o3-mini", name: "OpenAI o3 Mini" },
+            { id: "gpt-4.5", name: "GPT 4.5 Preview" },
+          ]
+        };
+      }
+      return {
+        models: [
+          { id: "gpt-5.6-luna", name: "GPT-5.6 Luna (Reasoning)" },
+          { id: "gpt-5.6-terra", name: "GPT-5.6 Terra" },
+          { id: "gpt-5.5", name: "GPT-5.5" },
+          { id: "auto", name: "ChatGPT Auto (Default)" },
+          { id: "gpt-4o", name: "GPT-4o (Free Tier)" },
+          { id: "gpt-4o-mini", name: "GPT-4o Mini" },
+          { id: "o3-mini", name: "OpenAI o3 Mini" },
+        ]
+      };
+    }
+  },
+  "deepseek-web": {
+    customResolver: async (conn) => {
+      const res = await resolveDeepseekWebModels(conn);
+      return { models: res?.models || [] };
+    }
+  },
+  "gemini-web": {
+    customResolver: async (conn) => {
+      const res = await resolveGeminiWebModels(conn);
+      return { models: res?.models || [] };
+    }
+  },
   openai: createOpenAIModelsConfig("https://api.openai.com/v1/models"),
   openrouter: createOpenAIModelsConfig("https://openrouter.ai/api/v1/models"),
   anthropic: {
@@ -315,6 +376,37 @@ const PROVIDER_MODELS_CONFIG = {
       return {
         models: getStaticProviderModels("clinepass"),
         warning: "ClinePass returned no live models; falling back to static catalog.",
+      };
+    },
+  },
+
+  "deepseek-web": {
+    customResolver: async (connection) => {
+      const result = await resolveDeepseekWebModels({
+        accessToken: connection.accessToken,
+        apiKey: connection.apiKey,
+        providerSpecificData: connection.providerSpecificData || {},
+      }, { forceRefresh: true, log: console });
+      if (result?.models?.length) return { models: result.models, warning: result.warning };
+      return {
+        models: getStaticProviderModels("deepseek-web"),
+        warning: "DeepSeek Web returned no models; falling back to static catalog.",
+      };
+    },
+  },
+
+  "gemini-web": {
+    customResolver: async (connection) => {
+      const result = await resolveGeminiWebModels({
+        accessToken: connection.accessToken,
+        apiKey: connection.apiKey,
+        cookie: connection.providerSpecificData?.cookie || connection.accessToken || connection.apiKey,
+        providerSpecificData: connection.providerSpecificData || {},
+      }, { forceRefresh: true, log: console });
+      if (result?.models?.length) return { models: result.models, warning: result.warning };
+      return {
+        models: getStaticProviderModels("gemini-web"),
+        warning: "Gemini Web returned no models; falling back to static catalog.",
       };
     },
   },

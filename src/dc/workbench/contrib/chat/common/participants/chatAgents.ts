@@ -988,6 +988,26 @@ export const DARDCOR_AGENT_TOOLS = [
 				required: ['text']
 			}
 		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'task_completed',
+			description: 'Declare that the requested programming task, feature, or project implementation is 100% complete and fully verified. Call this tool ONLY after all necessary files have been created or modified, configurations are in place, and code diagnostics have been checked. Calling this tool presents a structured completion summary to the developer.',
+			parameters: {
+				type: 'object',
+				properties: {
+					summary: { type: 'string', description: 'Comprehensive summary of what was accomplished, files created/modified, and project state' },
+					verificationSteps: { type: 'string', description: 'Commands and verification steps for the developer to run and test the application' },
+					filesChanged: {
+						type: 'array',
+						items: { type: 'string' },
+						description: 'List of all files created, modified, or deleted'
+					}
+				},
+				required: ['summary']
+			}
+		}
 	}
 ];
 
@@ -1031,6 +1051,7 @@ You have FULL, DIRECT READ, WRITE, AND MANAGEMENT ACCESS to the user's project f
 18. navigate_browser(url, pageId): Navigate the browser page to a new URL.
 19. click_element(selector, elementId, pageId): Click an interactive element on the browser page.
 20. type_in_page(text, selector, pageId): Type text into an input field on the browser page.
+21. task_completed(summary, verificationSteps, filesChanged): Declare that the requested task, feature, or project implementation is 100% complete and fully verified.
 
 TOOL CALLING FORMAT:
 You can call tools via native tool calling, or if using text formatting:
@@ -1054,20 +1075,21 @@ CRITICAL DIRECTIVES:
    Respond directly, politely, and warmly in clean Markdown in the user's detected language WITHOUT calling any tools.
    State clearly that you are Dardcor Code, mention the detected active project (${snapshot.projectName}) and its tech stack (${snapshot.techStack}).
 3. Only use tools when the user specifically asks you to inspect, search, read, modify, or create files, or run commands in the project.
-4. When tasked with building, creating, continuing, completing, fixing, or modifying code (e.g. creating a website, application, Next.js project, components, or fixing bugs):
-   - You MUST implement the entire project completely from start to finish.
-   - Do NOT stop after only creating root configuration files (like package.json, tsconfig.json, tailwind.config.js).
-   - You MUST proceed to implement all necessary source code files in "src/" or "app/" (such as pages, layouts, components, styles, utilities).
-   - Continue calling tools consecutively turn after turn until all required files are written and the application is fully functional.
-   - Never stop midway or output transitional concluding text if key source files remain to be created.
-   - Write full, complete, production-ready code with no placeholders.
-   - Use get_diagnostics to verify there are no syntax or type errors after making major changes.
-   - Only declare the task finished and output the final summary in the user's detected language when every single file and implementation detail has been fully completed and verified.
+4. AUTONOMOUS TASK CONTINUATION & COMPLETION:
+   - When tasked with building, creating, continuing, completing, fixing, or modifying code (e.g. creating a website, application, Next.js project, views, components, or fixing bugs):
+     * You MUST implement the entire project completely from start to finish.
+     * Do NOT stop after only creating root configuration files (like package.json, tsconfig.json, tailwind.config.js).
+     * You MUST proceed to implement all necessary source code files in "src/" or "app/" (such as pages, layouts, views, components, styles, utilities).
+     * Continue calling tools consecutively turn after turn until all required files are written and the application is fully functional.
+     * NEVER stop midway or output transitional conversational text alone (e.g. "Now I will create view X") without immediately calling the tool to create that file in the same turn.
+     * Write full, complete, production-ready code with no placeholders.
+     * Use get_diagnostics to verify there are no syntax or type errors after making major changes.
+     * Always call "task_completed" when all implementation steps and verification are done before outputting your final summary.
 5. When modifying files, apply edits accurately and ensure consistency across the project.
 6. Terminal command execution:
    - The workspace terminal runs ${isWindows ? 'Windows PowerShell' : 'POSIX Bash/Zsh'}.
    ${isWindows ? '- On Windows: use valid PowerShell syntax. Chain commands with semicolons (;), NEVER use "&&" or "cmd /c". NEVER use Unix bash heredocs (<< EOF). Standard commands like "npm run build", "npm run dev", "node script.js", "git status" work directly.' : '- On POSIX systems: use standard bash/zsh syntax.'}
-7. Browser & Website Testing: When the user asks to open, preview, or test a website, web app, or URL in the browser (e.g. "buka browser anda di Dardcor code", "testing website saya di browser anda", "buka website nya"):
+7. Browser & Website Testing: When the user asks to open, preview, or test a website, web app, or URL in the browser (e.g. "open the browser", "test website in integrated browser", "preview web app at localhost:3000"):
    - You MUST immediately call the tool "open_browser_page" with the target URL (e.g. "http://localhost:3000").
    - NEVER merely reply in text telling the user to open it manually or check external preview panels. Always call "open_browser_page" so the integrated browser tab opens in the editor alongside code tabs in a single screen.
 `;
@@ -1078,6 +1100,52 @@ Always identify yourself as Dardcor Code when asked who you are, what model or A
 Never state that you are Provider, or any other third-party model.
 Assist developers with coding, debugging, architecture, refactoring, and software development with precision and depth.
 Automatically detect the user's language and respond fluently and naturally in the exact same language (e.g. Bahasa Indonesia, English, Japanese, etc.) for all outputs, explanations, reasoning, and summaries. Never respond in English when the user communicates in Indonesian or another language unless explicitly requested.`;
+
+export function extractAgentFilePath(args: any): string | undefined {
+	if (!args) {
+		return undefined;
+	}
+	if (typeof args === 'string') {
+		const trimmed = args.trim();
+		return trimmed.length > 0 ? trimmed : undefined;
+	}
+	if (typeof args !== 'object') {
+		return undefined;
+	}
+
+	const candidate = args.filePath
+		?? args.path
+		?? args.file_path
+		?? args.targetFile
+		?? args.target_file
+		?? args.file
+		?? args.filename
+		?? args.filepath;
+
+	if (typeof candidate === 'string') {
+		const trimmed = candidate.trim();
+		return trimmed.length > 0 ? trimmed : undefined;
+	}
+	if (candidate && typeof candidate === 'object') {
+		return extractAgentFilePath(candidate);
+	}
+	return undefined;
+}
+
+export function resolveAgentUri(filePath: string | undefined, rootUri?: URI): URI {
+	const raw = typeof filePath === 'string' ? filePath.trim() : '';
+	if (!raw) {
+		return rootUri ?? URI.file('/');
+	}
+	const clean = raw.replace(/^[\\\/]+/, '');
+	if (!rootUri) {
+		return URI.file(raw);
+	}
+	if (/^[a-zA-Z]:[\\\/]/.test(raw) || raw.startsWith('/') || raw.startsWith('\\')) {
+		return URI.file(raw);
+	}
+	return joinPath(rootUri, clean);
+}
 
 export class ChatAgentService extends Disposable implements IChatAgentService {
 
@@ -1417,7 +1485,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			}
 		}
 
-		if (!id || id === 'dardcor.default' || id === 'chat' || id.startsWith('agent-host-') || id === 'workspace-agent') {
+		if (!id || typeof id !== 'string' || id === 'dardcor.default' || id === 'chat' || id.startsWith('agent-host-') || id === 'workspace-agent') {
 			return this.streamDardcorRouter(request, progress, history, token);
 		}
 
@@ -1547,7 +1615,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					const resource = EditorResourceAccessor.getCanonicalUri(active);
 					if (resource) {
 						activeFile = resource.fsPath || resource.path;
-						if (rootUri && activeFile.startsWith(rootUri.fsPath)) {
+						if (rootUri && typeof activeFile === 'string' && activeFile.startsWith(rootUri.fsPath)) {
 							activeFile = activeFile.slice(rootUri.fsPath.length).replace(/^[\\\/]+/, '');
 						}
 						if (fileService) {
@@ -1575,7 +1643,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 	private _getToolDisplayInfo(toolName: string, args: any): { invocationMessage: string; pastTenseMessage: string; formattedInput: string } {
 		switch (toolName) {
 			case 'read_file': {
-				const target = args?.filePath || 'file';
+				const target = extractAgentFilePath(args) || 'file';
 				const range = args?.startLine ? `:${args.startLine}${args?.endLine ? `-${args.endLine}` : ''}` : '';
 				return {
 					invocationMessage: `Reading \`${target}${range}\``,
@@ -1584,7 +1652,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				};
 			}
 			case 'write_file': {
-				const target = args?.filePath || 'file';
+				const target = extractAgentFilePath(args) || 'file';
 				return {
 					invocationMessage: `Writing \`${target}\``,
 					pastTenseMessage: `Wrote \`${target}\``,
@@ -1592,7 +1660,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				};
 			}
 			case 'edit_file': {
-				const target = args?.filePath || 'file';
+				const target = extractAgentFilePath(args) || 'file';
 				return {
 					invocationMessage: `Editing \`${target}\``,
 					pastTenseMessage: `Edited \`${target}\``,
@@ -1600,7 +1668,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				};
 			}
 			case 'list_directory': {
-				const target = args?.dirPath || '.';
+				const target = extractAgentFilePath(args) || (typeof args?.dirPath === 'string' ? args.dirPath.trim() : (typeof args?.path === 'string' ? args.path.trim() : '.'));
 				return {
 					invocationMessage: `Listing directory \`${target}\``,
 					pastTenseMessage: `Listed directory \`${target}\``,
@@ -1671,7 +1739,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				};
 			}
 			case 'delete_file': {
-				const target = args?.filePath || 'file';
+				const target = extractAgentFilePath(args) || 'file';
 				return {
 					invocationMessage: `Deleting \`${target}\``,
 					pastTenseMessage: `Deleted \`${target}\``,
@@ -1679,8 +1747,8 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				};
 			}
 			case 'rename_file': {
-				const oldPath = args?.oldFilePath || 'oldFile';
-				const newPath = args?.newFilePath || 'newFile';
+				const oldPath = extractAgentFilePath(args?.oldFilePath ?? args?.oldPath) || 'oldFile';
+				const newPath = extractAgentFilePath(args?.newFilePath ?? args?.newPath) || 'newFile';
 				return {
 					invocationMessage: `Renaming \`${oldPath}\` to \`${newPath}\``,
 					pastTenseMessage: `Renamed \`${oldPath}\` to \`${newPath}\``,
@@ -1688,7 +1756,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				};
 			}
 			case 'get_diagnostics': {
-				const target = args?.filePath || 'entire workspace';
+				const target = extractAgentFilePath(args) || 'entire workspace';
 				const sev = args?.severity || 'all';
 				return {
 					invocationMessage: `Inspecting diagnostics for \`${target}\``,
@@ -1697,7 +1765,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				};
 			}
 			case 'get_file_outline': {
-				const target = args?.filePath || 'file';
+				const target = extractAgentFilePath(args) || 'file';
 				return {
 					invocationMessage: `Extracting outline from \`${target}\``,
 					pastTenseMessage: `Extracted outline from \`${target}\``,
@@ -1847,6 +1915,14 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					formattedInput: `Text: ${args?.text || ''}`
 				};
 			}
+			case 'task_completed':
+			case 'complete_task': {
+				return {
+					invocationMessage: 'Verifying task completion',
+					pastTenseMessage: 'Task completed and verified',
+					formattedInput: typeof args?.summary === 'string' ? args.summary : JSON.stringify(args ?? {}, null, 2)
+				};
+			}
 			default: {
 				return {
 					invocationMessage: `Executing ${toolName}`,
@@ -1865,34 +1941,31 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			});
 		} catch { }
 
-		const resolveUri = (filePath: string): URI => {
-			const clean = (filePath || '').replace(/^[\\\/]+/, '').trim();
-			if (!rootUri) return URI.file(filePath);
-			if (/^[a-zA-Z]:[\\\/]/.test(filePath) || filePath.startsWith('/')) {
-				return URI.file(filePath);
-			}
-			return joinPath(rootUri, clean);
-		};
+		const resolveUri = (filePath: string | undefined): URI => resolveAgentUri(filePath, rootUri);
 
 		switch (toolName) {
 			case 'read_file': {
 				if (!fileService) return { output: 'Error: fileService unavailable' };
-				const target = resolveUri(args.filePath);
+				const targetPath = extractAgentFilePath(args);
+				if (!targetPath) return { output: 'Error: Missing filePath parameter.' };
+				const target = resolveUri(targetPath);
 				try {
 					const data = await fileService.readFile(target);
 					const text = new TextDecoder().decode(data.value.buffer);
 					const lines = text.split('\n');
-					const start = Math.max(1, typeof args.startLine === 'number' ? args.startLine : 1);
-					const end = Math.min(lines.length, typeof args.endLine === 'number' ? args.endLine : lines.length);
+					const start = Math.max(1, typeof args?.startLine === 'number' ? args.startLine : 1);
+					const end = Math.min(lines.length, typeof args?.endLine === 'number' ? args.endLine : lines.length);
 					const numbered = lines.slice(start - 1, end).map((l, i) => `${start + i}: ${l}`).join('\n');
 					return { output: numbered || '(File is empty)' };
 				} catch (e: any) {
-					return { output: `Error reading file ${args.filePath}: ${e.message || String(e)}` };
+					return { output: `Error reading file ${targetPath}: ${e.message || String(e)}` };
 				}
 			}
 			case 'write_file': {
 				if (!fileService) return { output: 'Error: fileService unavailable' };
-				const target = resolveUri(args.filePath);
+				const targetPath = extractAgentFilePath(args);
+				if (!targetPath) return { output: 'Error: Missing filePath parameter.' };
+				const target = resolveUri(targetPath);
 				try {
 					let isNew = true;
 					let initialContent: string | undefined;
@@ -1904,7 +1977,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						}
 					} catch { }
 
-					const content = args.content ?? '';
+					const content = typeof args?.content === 'string' ? args.content : (args?.content != null ? String(args.content) : '');
 					const parent = dirname(target);
 					if (!(await fileService.exists(parent))) {
 						await fileService.createFolder(parent);
@@ -1914,7 +1987,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						? { added: content ? content.split(/\r\n|\r|\n/).length : 0, removed: 0 }
 						: computeAgentFileDiff(initialContent ?? '', content);
 					return {
-						output: `Successfully wrote ${content.length} bytes to ${args.filePath}`,
+						output: `Successfully wrote ${content.length} bytes to ${targetPath}`,
 						externalEdit: {
 							uri: target,
 							editKind: isNew ? 'create' : 'edit',
@@ -1923,14 +1996,16 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						}
 					};
 				} catch (e: any) {
-					return { output: `Error writing file ${args.filePath}: ${e.message || String(e)}` };
+					return { output: `Error writing file ${targetPath}: ${e.message || String(e)}` };
 				}
 			}
 			case 'edit_file': {
 				if (!fileService) return { output: 'Error: fileService unavailable' };
-				const target = resolveUri(args.filePath);
+				const targetPath = extractAgentFilePath(args);
+				if (!targetPath) return { output: 'Error: Missing filePath parameter.' };
+				const target = resolveUri(targetPath);
 				try {
-					if (!args.searchContent && args.content) {
+					if (!args?.searchContent && args?.content) {
 						let initialContent: string | undefined;
 						try {
 							if (await fileService.exists(target)) {
@@ -1942,10 +2017,11 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						if (!(await fileService.exists(parent))) {
 							await fileService.createFolder(parent);
 						}
-						await fileService.writeFile(target, VSBuffer.fromString(args.content));
-						const diff = computeAgentFileDiff(initialContent ?? '', args.content || '');
+						const newContent = typeof args.content === 'string' ? args.content : String(args.content);
+						await fileService.writeFile(target, VSBuffer.fromString(newContent));
+						const diff = computeAgentFileDiff(initialContent ?? '', newContent);
 						return {
-							output: `Successfully updated ${args.filePath}`,
+							output: `Successfully updated ${targetPath}`,
 							externalEdit: {
 								uri: target,
 								editKind: 'edit',
@@ -1957,14 +2033,14 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					const data = await fileService.readFile(target);
 					const initialContent = new TextDecoder().decode(data.value.buffer);
 					let text = initialContent;
-					const search = (args.searchContent ?? '').replace(/\r\n/g, '\n');
-					const replace = (args.replaceContent ?? '').replace(/\r\n/g, '\n');
+					const search = (args?.searchContent ?? '').replace(/\r\n/g, '\n');
+					const replace = (args?.replaceContent ?? '').replace(/\r\n/g, '\n');
 					const normText = text.replace(/\r\n/g, '\n');
 
 					if (!normText.includes(search)) {
 						const trimmedSearch = search.trim();
 						if (!normText.includes(trimmedSearch)) {
-							return { output: `Error: searchContent not found in ${args.filePath}. Ensure searchContent matches the existing file exactly.` };
+							return { output: `Error: searchContent not found in ${targetPath}. Ensure searchContent matches the existing file exactly.` };
 						}
 						text = normText.replace(trimmedSearch, replace);
 					} else {
@@ -1974,7 +2050,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					await fileService.writeFile(target, VSBuffer.fromString(text));
 					const diff = computeAgentFileDiff(initialContent, text);
 					return {
-						output: `Successfully applied edits to ${args.filePath}`,
+						output: `Successfully applied edits to ${targetPath}`,
 						externalEdit: {
 							uri: target,
 							editKind: 'edit',
@@ -1983,19 +2059,20 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						}
 					};
 				} catch (e: any) {
-					return { output: `Error editing file ${args.filePath}: ${e.message || String(e)}` };
+					return { output: `Error editing file ${targetPath}: ${e.message || String(e)}` };
 				}
 			}
 			case 'list_directory': {
 				if (!fileService) return { output: 'Error: fileService unavailable' };
-				const target = resolveUri(args.dirPath || '.');
+				const dirCandidate = extractAgentFilePath(args) || (typeof args?.dirPath === 'string' ? args.dirPath.trim() : (typeof args?.path === 'string' ? args.path.trim() : '.'));
+				const target = resolveUri(dirCandidate || '.');
 				try {
 					const res = await fileService.resolve(target);
-					if (!res.children || res.children.length === 0) return { output: `Directory is empty: ${args.dirPath || '.'}` };
+					if (!res.children || res.children.length === 0) return { output: `Directory is empty: ${dirCandidate || '.'}` };
 					const items = res.children.map(c => `${c.isDirectory ? '[DIR]' : '[FILE]'} ${c.name}${c.size ? ` (${c.size} bytes)` : ''}`);
 					return { output: items.join('\n') };
 				} catch (e: any) {
-					return { output: `Error listing directory ${args.dirPath}: ${e.message || String(e)}` };
+					return { output: `Error listing directory ${dirCandidate}: ${e.message || String(e)}` };
 				}
 			}
 			case 'find_files': {
@@ -2351,10 +2428,12 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			}
 			case 'delete_file': {
 				if (!fileService) return { output: 'Error: fileService unavailable' };
-				const target = resolveUri(args.filePath);
+				const targetPath = extractAgentFilePath(args);
+				if (!targetPath) return { output: 'Error: Missing filePath parameter.' };
+				const target = resolveUri(targetPath);
 				try {
 					if (!(await fileService.exists(target))) {
-						return { output: `File or directory not found: ${args.filePath}` };
+						return { output: `File or directory not found: ${targetPath}` };
 					}
 					const stat = await fileService.resolve(target);
 					const isDir = stat.isDirectory;
@@ -2367,9 +2446,9 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							removedLines = initialContent.split('\n').length;
 						} catch { }
 					}
-					await fileService.del(target, { recursive: args.recursive !== false });
+					await fileService.del(target, { recursive: args?.recursive !== false });
 					return {
-						output: `Successfully deleted ${isDir ? 'directory' : 'file'}: ${args.filePath}`,
+						output: `Successfully deleted ${isDir ? 'directory' : 'file'}: ${targetPath}`,
 						externalEdit: isDir ? undefined : {
 							uri: target,
 							editKind: 'delete',
@@ -2378,27 +2457,30 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						}
 					};
 				} catch (e: any) {
-					return { output: `Error deleting ${args.filePath}: ${e.message || String(e)}` };
+					return { output: `Error deleting ${targetPath}: ${e.message || String(e)}` };
 				}
 			}
 			case 'rename_file': {
 				if (!fileService) return { output: 'Error: fileService unavailable' };
-				const source = resolveUri(args.oldFilePath);
-				const target = resolveUri(args.newFilePath);
+				const oldPath = extractAgentFilePath(args?.oldFilePath ?? args?.oldPath ?? args?.source ?? args?.from);
+				const newPath = extractAgentFilePath(args?.newFilePath ?? args?.newPath ?? args?.target ?? args?.to);
+				if (!oldPath || !newPath) return { output: 'Error: Both oldFilePath and newFilePath are required.' };
+				const source = resolveUri(oldPath);
+				const target = resolveUri(newPath);
 				try {
 					if (!(await fileService.exists(source))) {
-						return { output: `Source file not found: ${args.oldFilePath}` };
+						return { output: `Source file not found: ${oldPath}` };
 					}
 					const targetParent = dirname(target);
 					if (!(await fileService.exists(targetParent))) {
 						await fileService.createFolder(targetParent);
 					}
-					await fileService.move(source, target, !!args.overwrite);
+					await fileService.move(source, target, !!args?.overwrite);
 					return {
-						output: `Successfully renamed ${args.oldFilePath} to ${args.newFilePath}`
+						output: `Successfully renamed ${oldPath} to ${newPath}`
 					};
 				} catch (e: any) {
-					return { output: `Error renaming ${args.oldFilePath}: ${e.message || String(e)}` };
+					return { output: `Error renaming ${oldPath}: ${e.message || String(e)}` };
 				}
 			}
 			case 'get_diagnostics': {
@@ -2411,18 +2493,19 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				if (!markerService) return { output: 'Error: markerService unavailable' };
 				try {
 					let targetUri: URI | undefined;
-					if (args.filePath) {
-						targetUri = resolveUri(args.filePath);
+					const targetPath = extractAgentFilePath(args);
+					if (targetPath) {
+						targetUri = resolveUri(targetPath);
 					}
 					const markers = markerService.read({ resource: targetUri });
-					const filterSev = args.severity || 'all';
+					const filterSev = args?.severity || 'all';
 					const filtered = markers.filter(m => {
 						if (filterSev === 'error') return m.severity === MarkerSeverity.Error;
 						if (filterSev === 'warning') return m.severity === MarkerSeverity.Warning;
 						return m.severity === MarkerSeverity.Error || m.severity === MarkerSeverity.Warning || m.severity === MarkerSeverity.Info;
 					});
 					if (filtered.length === 0) {
-						return { output: args.filePath ? `No diagnostic problems (errors/warnings) found for ${args.filePath}.` : 'No diagnostic problems (errors/warnings) found in workspace.' };
+						return { output: targetPath ? `No diagnostic problems (errors/warnings) found for ${targetPath}.` : 'No diagnostic problems (errors/warnings) found in workspace.' };
 					}
 					const formatted = filtered.slice(0, 50).map(m => {
 						const rel = rootUri ? m.resource.fsPath.replace(rootUri.fsPath, '').replace(/^[\\\/]+/, '') : m.resource.path;
@@ -2438,10 +2521,12 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			}
 			case 'get_file_outline': {
 				if (!fileService) return { output: 'Error: fileService unavailable' };
-				const target = resolveUri(args.filePath);
+				const targetPath = extractAgentFilePath(args);
+				if (!targetPath) return { output: 'Error: Missing filePath parameter.' };
+				const target = resolveUri(targetPath);
 				try {
 					if (!(await fileService.exists(target))) {
-						return { output: `File not found: ${args.filePath}` };
+						return { output: `File not found: ${targetPath}` };
 					}
 					const data = await fileService.readFile(target);
 					const text = new TextDecoder().decode(data.value.buffer);
@@ -2471,22 +2556,22 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					}
 
 					if (symbols.length === 0) {
-						return { output: `No structural symbols found in ${args.filePath} (file has ${lines.length} lines).` };
+						return { output: `No structural symbols found in ${targetPath} (file has ${lines.length} lines).` };
 					}
 
 					return {
-						output: `Outline of ${args.filePath} (${symbols.length} symbols):\n${symbols.slice(0, 80).join('\n')}`
+						output: `Outline of ${targetPath} (${symbols.length} symbols):\n${symbols.slice(0, 80).join('\n')}`
 					};
 				} catch (e: any) {
-					return { output: `Error extracting outline for ${args.filePath}: ${e.message || String(e)}` };
+					return { output: `Error extracting outline for ${targetPath}: ${e.message || String(e)}` };
 				}
 			}
 			case 'grep_search': {
 				if (!fileService || !rootUri) return { output: 'Error: fileService unavailable or no open workspace' };
-				const patStr = args.pattern || '';
+				const patStr = typeof args?.pattern === 'string' ? args.pattern : '';
 				if (!patStr) return { output: 'Error: No search pattern provided' };
-				const isRegex = !!args.isRegex;
-				const caseInsensitive = args.caseInsensitive !== false;
+				const isRegex = !!args?.isRegex;
+				const caseInsensitive = args?.caseInsensitive !== false;
 				let regex: RegExp;
 				try {
 					regex = isRegex ? new RegExp(patStr, caseInsensitive ? 'i' : '') : new RegExp(patStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), caseInsensitive ? 'i' : '');
@@ -2494,7 +2579,8 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					return { output: `Invalid regex pattern: ${err.message || String(err)}` };
 				}
 
-				const searchBase = args.subPath ? resolveUri(args.subPath) : rootUri;
+				const subCandidate = extractAgentFilePath(args?.subPath) || (typeof args?.subPath === 'string' ? args.subPath.trim() : undefined);
+				const searchBase = subCandidate ? resolveUri(subCandidate) : rootUri;
 				const matches: string[] = [];
 				const ignoreList = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.cache', 'out', 'coverage']);
 
@@ -2775,8 +2861,8 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			}
 			case 'open_browser_page': {
 				let output = '';
-				const rawUrl = (args?.url || 'http://localhost:3000').trim();
-				const targetUrl = /^https?:\/\//i.test(rawUrl) || rawUrl.startsWith('file:') ? rawUrl : `http://${rawUrl}`;
+				const rawUrl = typeof args?.url === 'string' ? args.url.trim() : (typeof args?.uri === 'string' ? args.uri.trim() : '');
+				const targetUrl = /^https?:\/\//i.test(rawUrl) || (rawUrl && rawUrl.startsWith('file:')) ? rawUrl : (rawUrl ? `http://${rawUrl}` : 'http://localhost:3000');
 				await this.instantiationService.invokeFunction(async accessor => {
 					try {
 						const browserService = accessor.get(IBrowserViewWorkbenchService);
@@ -2831,8 +2917,8 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			case 'navigate_browser':
 			case 'navigate_page': {
 				let output = '';
-				const rawUrl = (args?.url || '').trim();
-				const targetUrl = /^https?:\/\//i.test(rawUrl) || rawUrl.startsWith('file:') ? rawUrl : `http://${rawUrl}`;
+				const rawUrl = typeof args?.url === 'string' ? args.url.trim() : (typeof args?.uri === 'string' ? args.uri.trim() : '');
+				const targetUrl = /^https?:\/\//i.test(rawUrl) || (rawUrl && rawUrl.startsWith('file:')) ? rawUrl : (rawUrl ? `http://${rawUrl}` : 'http://localhost:3000');
 				await this.instantiationService.invokeFunction(async accessor => {
 					try {
 						const browserService = accessor.get(IBrowserViewWorkbenchService);
@@ -2871,6 +2957,16 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			case 'type_in_page':
 			case 'type_browser': {
 				return { output: `Typed "${args?.text || ''}" into input field on active browser page.` };
+			}
+			case 'task_completed':
+			case 'complete_task': {
+				const summary = typeof args?.summary === 'string' ? args.summary : 'Task completed successfully.';
+				const verificationSteps = typeof args?.verificationSteps === 'string' ? args.verificationSteps : '';
+				const filesChanged = Array.isArray(args?.filesChanged) ? args.filesChanged.join(', ') : '';
+				const outputText = `### Task Completion Confirmed\n\n${summary}\n\n` +
+					(verificationSteps ? `**Verification Steps:**\n${verificationSteps}\n\n` : '') +
+					(filesChanged ? `**Files Modified/Created:**\n${filesChanged}\n` : '');
+				return { output: outputText };
 			}
 			default:
 				return { output: `Unknown tool: ${toolName}` };
@@ -2923,7 +3019,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 
 	async streamDardcorRouter(request: IChatAgentRequest, progress: (parts: IChatProgress[]) => void, history: IChatAgentHistoryEntry[], token: CancellationToken): Promise<IChatAgentResult> {
 		let modelName = request.userSelectedModelId;
-		if (modelName === 'opencode/no-model-selected' || modelName === 'opencode/auto' || modelName === 'auto') modelName = undefined;
+		if (!modelName || modelName === 'auto' || modelName.endsWith('/auto') || modelName.endsWith('/no-model-selected')) modelName = undefined;
 
 		let chatEditingService: IChatEditingService | undefined;
 		try {
@@ -2961,7 +3057,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						if (!modelName) {
 							modelName = modelsData.data[0].id;
 						} else {
-							const target = (modelName || '').replace(/^(dardcor|ag|oc|ds|opencode|gemini|grok|claude)\//i, '').toLowerCase().trim();
+							const target = (modelName || '').replace(/^(dardcor|ag|oc|ds|gemini|grok|claude|openai)\//i, '').toLowerCase().trim();
 							const match = modelsData.data.find((m: any) => target && (m?.id === modelName || m?.id?.toLowerCase() === modelName?.toLowerCase() || m?.id?.toLowerCase().endsWith('/' + target) || m?.id?.toLowerCase() === target));
 							if (match) {
 								modelName = match.id;
@@ -2979,7 +3075,6 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				modelName = undefined;
 			}
 			if (typeof modelName === 'string') {
-				if (modelName.toLowerCase().startsWith('opencode/')) modelName = `oc/${modelName.slice('opencode/'.length)}`;
 				if (modelName.toLowerCase().endsWith('-free') && !modelName.includes('/')) modelName = `oc/${modelName}`;
 			}
 
@@ -2996,6 +3091,9 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			let turn = 0;
 			const maxTurns = 100;
 			let supportsNativeTools = true;
+			let consecutiveTextTurns = 0;
+			const MAX_CONSECUTIVE_TEXT_TURNS = 3;
+			const MAX_STREAM_RETRIES = 5;
 
 			while (turn < maxTurns) {
 				turn++;
@@ -3011,126 +3109,193 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					payload.tool_choice = 'auto';
 				}
 
-				let res = await fetchRouter('/v1/chat/completions', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json', ...ROUTER_AUTH_HEADER },
-					body: JSON.stringify(payload)
-				});
-
-				if (!res.ok && supportsNativeTools && (res.status === 400 || res.status === 422)) {
-					supportsNativeTools = false;
-					delete payload.tools;
-					delete payload.tool_choice;
-					res = await fetchRouter('/v1/chat/completions', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json', ...ROUTER_AUTH_HEADER },
-						body: JSON.stringify(payload)
-					});
-				}
-
-				if (!res.ok) {
-					const errorText = await res.text();
-					progress([{
-						kind: 'markdownContent',
-						content: new MarkdownString(formatDardcorRouterError(res.status, errorText, modelName))
-					}]);
-					return {};
-				}
-
-				const reader = res.body?.getReader();
-				if (!reader) break;
-
-				const decoder = new TextDecoder();
-				let buffer = '';
 				let streamedAssistantText = '';
 				let streamedReasoningText = '';
 				const toolCallsMap = new Map<number, { id: string; name: string; arguments: string }>();
 
-				const cancelListener = token.onCancellationRequested(() => {
-					try { reader.cancel(); } catch { }
-				});
+				let streamAttempt = 0;
+				let streamSucceeded = false;
+				let lastStreamError: any = undefined;
 
-				const readWithTimeout = (r: typeof reader) => {
-					return new Promise<ReadableStreamReadResult<Uint8Array>>((resolve, reject) => {
-						const timer = setTimeout(() => {
-							try { r.cancel(); } catch { }
-							reject(new Error('Stream idle timeout'));
-						}, 60000);
-						r.read().then(
-							res => { clearTimeout(timer); resolve(res); },
-							err => { clearTimeout(timer); reject(err); }
-						);
+				while (streamAttempt < MAX_STREAM_RETRIES && !streamSucceeded) {
+					streamAttempt++;
+					if (token.isCancellationRequested) break;
+
+					streamedAssistantText = '';
+					streamedReasoningText = '';
+					toolCallsMap.clear();
+
+					let res: Response;
+					try {
+						res = await fetchRouter('/v1/chat/completions', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json', ...ROUTER_AUTH_HEADER },
+							body: JSON.stringify(payload)
+						});
+					} catch (fetchErr: any) {
+						lastStreamError = fetchErr;
+						if (streamAttempt < MAX_STREAM_RETRIES && !token.isCancellationRequested) {
+							const backoffMs = Math.min(1000 * Math.pow(2, streamAttempt - 1), 6000);
+							progress([{
+								kind: 'markdownContent',
+								content: new MarkdownString(`\n\n> ⚠️ *Stream connection interrupted. Reconnecting to model... (Attempt ${streamAttempt}/${MAX_STREAM_RETRIES} in ${Math.round(backoffMs / 1000)}s)*\n\n`)
+							}]);
+							await new Promise(r => setTimeout(r, backoffMs));
+							continue;
+						} else {
+							break;
+						}
+					}
+
+					if (!res.ok && supportsNativeTools && (res.status === 400 || res.status === 422)) {
+						supportsNativeTools = false;
+						delete payload.tools;
+						delete payload.tool_choice;
+						try {
+							res = await fetchRouter('/v1/chat/completions', {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json', ...ROUTER_AUTH_HEADER },
+								body: JSON.stringify(payload)
+							});
+						} catch { }
+					}
+
+					if (!res.ok) {
+						const errorText = await res.text();
+						if (streamAttempt < MAX_STREAM_RETRIES && (res.status === 429 || res.status >= 500) && !token.isCancellationRequested) {
+							const backoffMs = Math.min(2000 * Math.pow(2, streamAttempt - 1), 8000);
+							progress([{
+								kind: 'markdownContent',
+								content: new MarkdownString(`\n\n> ⚠️ *Model gateway returned HTTP ${res.status}. Retrying... (Attempt ${streamAttempt}/${MAX_STREAM_RETRIES} in ${Math.round(backoffMs / 1000)}s)*\n\n`)
+							}]);
+							await new Promise(r => setTimeout(r, backoffMs));
+							continue;
+						}
+						progress([{
+							kind: 'markdownContent',
+							content: new MarkdownString(formatDardcorRouterError(res.status, errorText, modelName))
+						}]);
+						return {};
+					}
+
+					const reader = res.body?.getReader();
+					if (!reader) {
+						lastStreamError = new Error('No readable response body');
+						continue;
+					}
+
+					const decoder = new TextDecoder();
+					let buffer = '';
+
+					const cancelListener = token.onCancellationRequested(() => {
+						try { reader.cancel(); } catch { }
 					});
-				};
 
-				try {
-					while (true) {
-						if (token.isCancellationRequested) {
-							try { reader.cancel(); } catch { }
-							break;
-						}
-						const readResult = await raceCancellation(readWithTimeout(reader), token);
-						if (!readResult || readResult.done || token.isCancellationRequested) {
-							break;
-						}
-						const value = readResult.value;
-						buffer += decoder.decode(value, { stream: true });
-						const lines = buffer.split('\n');
-						buffer = lines.pop() ?? '';
-						for (const line of lines) {
-							const trimmed = line.trim();
-							if (!trimmed || !trimmed.startsWith('data:')) continue;
-							const jsonStr = trimmed.slice(5).trim();
-							if (jsonStr === '[DONE]') continue;
-							try {
-								const parsed = JSON.parse(jsonStr);
-								const choice = parsed.choices?.[0];
-								const delta = choice?.delta?.content
-									?? choice?.delta?.text
-									?? choice?.message?.content
-									?? (typeof choice?.text === 'string' ? choice.text : '')
-									?? '';
-								const reasoningDelta = choice?.delta?.reasoning_content
-									?? choice?.delta?.thought
-									?? choice?.delta?.thinking
-									?? '';
+					const readWithTimeout = (r: typeof reader) => {
+						return new Promise<ReadableStreamReadResult<Uint8Array>>((resolve, reject) => {
+							const timer = setTimeout(() => {
+								try { r.cancel(); } catch { }
+								reject(new Error('Stream idle timeout'));
+							}, 180000);
+							r.read().then(
+								readVal => { clearTimeout(timer); resolve(readVal); },
+								err => { clearTimeout(timer); reject(err); }
+							);
+						});
+					};
 
-								if (reasoningDelta) {
-									streamedReasoningText += reasoningDelta;
-									progress([{
-										kind: 'thinking',
-										value: reasoningDelta
-									}]);
-								}
+					try {
+						while (true) {
+							if (token.isCancellationRequested) {
+								try { reader.cancel(); } catch { }
+								break;
+							}
+							const readResult = await raceCancellation(readWithTimeout(reader), token);
+							if (!readResult || readResult.done || token.isCancellationRequested) {
+								break;
+							}
+							const value = readResult.value;
+							buffer += decoder.decode(value, { stream: true });
+							const lines = buffer.split('\n');
+							buffer = lines.pop() ?? '';
+							for (const line of lines) {
+								const trimmed = line.trim();
+								if (!trimmed || !trimmed.startsWith('data:')) continue;
+								const jsonStr = trimmed.slice(5).trim();
+								if (jsonStr === '[DONE]') continue;
+								try {
+									const parsed = JSON.parse(jsonStr);
+									const choice = parsed.choices?.[0];
+									const delta = choice?.delta?.content
+										?? choice?.delta?.text
+										?? choice?.message?.content
+										?? (typeof choice?.text === 'string' ? choice.text : '')
+										?? '';
+									const reasoningDelta = choice?.delta?.reasoning_content
+										?? choice?.delta?.thought
+										?? choice?.delta?.thinking
+										?? '';
 
-								if (delta) {
-									streamedAssistantText += delta;
-									progress([{
-										kind: 'markdownContent',
-										content: new MarkdownString(delta)
-									}]);
-								}
-
-								if (Array.isArray(choice?.delta?.tool_calls)) {
-									for (const tc of choice.delta.tool_calls) {
-										const idx = tc.index ?? 0;
-										const existing = toolCallsMap.get(idx) || { id: tc.id || `call_${idx}_${Date.now()}`, name: '', arguments: '' };
-										if (tc.id) existing.id = tc.id;
-										if (tc.function?.name) existing.name += tc.function.name;
-										if (tc.function?.arguments) existing.arguments += tc.function.arguments;
-										toolCallsMap.set(idx, existing);
+									if (reasoningDelta) {
+										streamedReasoningText += reasoningDelta;
+										progress([{
+											kind: 'thinking',
+											value: reasoningDelta
+										}]);
 									}
-								}
-							} catch { }
+
+									if (delta) {
+										streamedAssistantText += delta;
+										progress([{
+											kind: 'markdownContent',
+											content: new MarkdownString(delta)
+										}]);
+									}
+
+									if (Array.isArray(choice?.delta?.tool_calls)) {
+										for (const tc of choice.delta.tool_calls) {
+											const idx = tc.index ?? 0;
+											const existing = toolCallsMap.get(idx) || { id: tc.id || `call_${idx}_${Date.now()}`, name: '', arguments: '' };
+											if (tc.id) existing.id = tc.id;
+											if (tc.function?.name) existing.name += tc.function.name;
+											if (tc.function?.arguments) existing.arguments += tc.function.arguments;
+											toolCallsMap.set(idx, existing);
+										}
+									}
+								} catch { }
+							}
 						}
+						streamSucceeded = true;
+					} catch (streamErr: any) {
+						lastStreamError = streamErr;
+						if (!token.isCancellationRequested) {
+							console.warn(`[streamDardcorRouter] stream reading error (attempt ${streamAttempt}/${MAX_STREAM_RETRIES}):`, streamErr);
+							if (streamAttempt < MAX_STREAM_RETRIES) {
+								const backoffMs = Math.min(1000 * Math.pow(2, streamAttempt - 1), 6000);
+								progress([{
+									kind: 'markdownContent',
+									content: new MarkdownString(`\n\n> ⚠️ *Stream connection interrupted. Reconnecting to model... (Attempt ${streamAttempt}/${MAX_STREAM_RETRIES} in ${Math.round(backoffMs / 1000)}s)*\n\n`)
+								}]);
+								await new Promise(r => setTimeout(r, backoffMs));
+							}
+						}
+					} finally {
+						cancelListener.dispose();
+						try { reader.cancel(); } catch { }
 					}
-				} catch (err) {
+				}
+
+				if (!streamSucceeded && !streamedAssistantText && toolCallsMap.size === 0) {
+					if (lastStreamError) {
+						console.warn('[streamDardcorRouter] stream failed completely:', lastStreamError);
+					}
 					if (!token.isCancellationRequested) {
-						console.warn('[streamDardcorRouter] stream reading terminated:', err);
+						progress([{
+							kind: 'markdownContent',
+							content: new MarkdownString('*(Connection lost. Please verify your connection or try another model.)*')
+						}]);
 					}
-				} finally {
-					cancelListener.dispose();
-					try { reader.cancel(); } catch { }
+					return {};
 				}
 
 				if (!streamedAssistantText && streamedReasoningText && toolCallsMap.size === 0) {
@@ -3145,6 +3310,8 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				const textToolCalls = nativeToolCalls.length === 0 ? this._parseTextToolCalls(streamedAssistantText) : [];
 
 				if (nativeToolCalls.length > 0) {
+					consecutiveTextTurns = 0;
+					const isTaskCompleted = nativeToolCalls.some(tc => tc.name === 'task_completed' || tc.name === 'complete_task');
 					const assistantToolCalls = nativeToolCalls.map(tc => ({
 						id: tc.id,
 						type: 'function',
@@ -3163,17 +3330,14 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							parsedArgs = JSON.parse(tc.arguments);
 						} catch { }
 
+						const filePath = extractAgentFilePath(parsedArgs);
+						if (filePath && !parsedArgs.filePath) {
+							parsedArgs.filePath = filePath;
+						}
+
 						let targetUri: URI | undefined;
-						if (['write_file', 'edit_file', 'delete_file'].includes(tc.name)) {
-							const filePath = parsedArgs?.filePath;
-							if (filePath) {
-								const clean = filePath.replace(/^[\\\/]+/, '').trim();
-								if (snapshot.rootUri && !(/^[a-zA-Z]:[\\\/]/.test(filePath) || filePath.startsWith('/'))) {
-									targetUri = joinPath(snapshot.rootUri, clean);
-								} else {
-									targetUri = URI.file(filePath);
-								}
-							}
+						if (['write_file', 'edit_file', 'delete_file'].includes(tc.name) && filePath) {
+							targetUri = resolveAgentUri(filePath, snapshot.rootUri);
 						}
 
 						if (chatEditingService && targetUri) {
@@ -3281,25 +3445,49 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							content: toolResult.output
 						});
 					}
+
+					if (isTaskCompleted) {
+						let markerService: IMarkerService | undefined;
+						try {
+							this.instantiationService.invokeFunction(accessor => {
+								try { markerService = accessor.get(IMarkerService); } catch { }
+							});
+						} catch { }
+						if (markerService) {
+							const errorMarkers = markerService.read({}).filter(m => m.severity === MarkerSeverity.Error);
+							if (errorMarkers.length > 0 && consecutiveTextTurns === 0) {
+								const sampleErrors = errorMarkers.slice(0, 5).map(m => {
+									const rel = snapshot.rootUri ? m.resource.fsPath.replace(snapshot.rootUri.fsPath, '').replace(/^[\\\/]+/, '') : m.resource.path;
+									return `[ERROR] ${rel}:${m.startLineNumber} - ${m.message}`;
+								}).join('\n');
+								messages.push({
+									role: 'user',
+									content: `[System Quality Guard]: Task completed was signaled, but the following diagnostic error(s) were detected in the workspace:\n${sampleErrors}\nPlease fix these compilation/syntax errors before concluding.`
+								});
+								continue;
+							}
+						}
+						break;
+					}
+
 					continue;
 				} else if (textToolCalls.length > 0) {
+					consecutiveTextTurns = 0;
+					const isTaskCompleted = textToolCalls.some(tc => tc.name === 'task_completed' || tc.name === 'complete_task');
 					messages.push({
 						role: 'assistant',
 						content: streamedAssistantText
 					});
 
 					for (const tc of textToolCalls) {
+						const filePath = extractAgentFilePath(tc.args);
+						if (filePath && !tc.args.filePath) {
+							tc.args.filePath = filePath;
+						}
+
 						let targetUri: URI | undefined;
-						if (['write_file', 'edit_file', 'delete_file'].includes(tc.name)) {
-							const filePath = tc.args?.filePath;
-							if (filePath) {
-								const clean = filePath.replace(/^[\\\/]+/, '').trim();
-								if (snapshot.rootUri && !(/^[a-zA-Z]:[\\\/]/.test(filePath) || filePath.startsWith('/'))) {
-									targetUri = joinPath(snapshot.rootUri, clean);
-								} else {
-									targetUri = URI.file(filePath);
-								}
-							}
+						if (['write_file', 'edit_file', 'delete_file'].includes(tc.name) && filePath) {
+							targetUri = resolveAgentUri(filePath, snapshot.rootUri);
 						}
 
 						const callId = `text_call_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -3408,6 +3596,31 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							content: `[Tool Execution Result for ${tc.name}]:\n${toolResult.output}`
 						});
 					}
+
+					if (isTaskCompleted) {
+						let markerService: IMarkerService | undefined;
+						try {
+							this.instantiationService.invokeFunction(accessor => {
+								try { markerService = accessor.get(IMarkerService); } catch { }
+							});
+						} catch { }
+						if (markerService) {
+							const errorMarkers = markerService.read({}).filter(m => m.severity === MarkerSeverity.Error);
+							if (errorMarkers.length > 0 && consecutiveTextTurns === 0) {
+								const sampleErrors = errorMarkers.slice(0, 5).map(m => {
+									const rel = snapshot.rootUri ? m.resource.fsPath.replace(snapshot.rootUri.fsPath, '').replace(/^[\\\/]+/, '') : m.resource.path;
+									return `[ERROR] ${rel}:${m.startLineNumber} - ${m.message}`;
+								}).join('\n');
+								messages.push({
+									role: 'user',
+									content: `[System Quality Guard]: Task completed was signaled, but the following diagnostic error(s) were detected in the workspace:\n${sampleErrors}\nPlease fix these compilation/syntax errors before concluding.`
+								});
+								continue;
+							}
+						}
+						break;
+					}
+
 					continue;
 				}
 
@@ -3416,16 +3629,40 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						kind: 'markdownContent',
 						content: new MarkdownString('*(No response content returned by model. Please verify your connection or try another model.)*')
 					}]);
+					break;
+				}
+
+				const hasPriorToolExecution = turn > 1;
+				if (hasPriorToolExecution && consecutiveTextTurns < MAX_CONSECUTIVE_TEXT_TURNS) {
+					consecutiveTextTurns++;
+					messages.push({
+						role: 'assistant',
+						content: streamedAssistantText
+					});
+					messages.push({
+						role: 'user',
+						content: '[System Directive]: You provided conversational text without invoking an action tool. If all project files, components, views, styles, and requirements are 100% complete and verified, call "task_completed" with your final summary. Otherwise, proceed immediately with the next implementation step using your tools (write_file, edit_file, run_command, etc.). Do not stop until all components are created.'
+					});
+					continue;
 				}
 
 				break;
 			}
 
+			if (turn >= maxTurns && !token.isCancellationRequested) {
+				progress([{
+					kind: 'markdownContent',
+					content: new MarkdownString('\n\n---\n> ℹ️ *Maximum autonomous turn budget reached for this task. You can prompt to continue if more work is needed.*')
+				}]);
+			}
+
 			return {};
 		} catch (e: any) {
+			const errorMsg = e?.message || String(e || 'Unknown error');
+			console.error('[streamDardcorRouter] Agent turn error:', e);
 			progress([{
 				kind: 'markdownContent',
-				content: new MarkdownString(formatDardcorRouterError(0, e.message || String(e), modelName))
+				content: new MarkdownString(formatDardcorRouterError(0, errorMsg, modelName))
 			}]);
 			return {};
 		}

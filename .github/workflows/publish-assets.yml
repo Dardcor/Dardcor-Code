@@ -44,6 +44,13 @@ jobs:
           run-id: ${{ inputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Checkout Repository for Scripts
+        uses: actions/checkout@v4
+
+      - name: Generate Structured updater.json
+        run: |
+          node build/generate-updater-json.cjs release_assets "${{ github.repository }}" "${{ inputs.tag_name }}"
+
       - name: Verify Total 25 Assets Count
         run: |
           cd release_assets
@@ -76,7 +83,7 @@ jobs:
       - name: Upload All 25 Assets to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Dardcor Code v1.0.0"
+          name: "Dardcor Code ${{ startsWith(inputs.tag_name, 'v') && inputs.tag_name || (startsWith(inputs.tag_name, 'Dardcor-Code-') && inputs.tag_name || format('v{0}', inputs.tag_name)) }}"
           tag_name: ${{ inputs.tag_name }}
           files: release_assets/*
         env:

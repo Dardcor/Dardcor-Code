@@ -487,6 +487,11 @@ function packageTask(type: string, platform: string, arch: string, sourceFolderN
 					.pipe(replace('@@COMMIT@@', commit || ''))
 					.pipe(replace('@@APPNAME@@', product.applicationName))
 					.pipe(rename(`bin/remote-cli/${product.applicationName}.cmd`)),
+				gulp.src('resources/server/bin/remote-cli/code.cmd', { base: '.' })
+					.pipe(replace('@@VERSION@@', version))
+					.pipe(replace('@@COMMIT@@', commit || ''))
+					.pipe(replace('@@APPNAME@@', product.applicationName))
+					.pipe(rename(`bin/remote-cli/dc.cmd`)),
 				gulp.src('resources/server/bin/helpers/browser.cmd', { base: '.' })
 					.pipe(replace('@@VERSION@@', version))
 					.pipe(replace('@@COMMIT@@', commit || ''))
@@ -502,6 +507,12 @@ function packageTask(type: string, platform: string, arch: string, sourceFolderN
 					.pipe(replace('@@COMMIT@@', commit || ''))
 					.pipe(replace('@@APPNAME@@', product.applicationName))
 					.pipe(rename(`bin/remote-cli/${product.applicationName}`))
+					.pipe(util.setExecutableBit()),
+				gulp.src(`resources/server/bin/remote-cli/${platform === 'darwin' ? 'code-darwin.sh' : 'code-linux.sh'}`, { base: '.' })
+					.pipe(replace('@@VERSION@@', version))
+					.pipe(replace('@@COMMIT@@', commit || ''))
+					.pipe(replace('@@APPNAME@@', product.applicationName))
+					.pipe(rename(`bin/remote-cli/dc`))
 					.pipe(util.setExecutableBit()),
 				gulp.src(`resources/server/bin/helpers/${platform === 'darwin' ? 'browser-darwin.sh' : 'browser-linux.sh'}`, { base: '.' })
 					.pipe(replace('@@VERSION@@', version))

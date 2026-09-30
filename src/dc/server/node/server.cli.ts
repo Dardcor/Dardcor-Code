@@ -87,11 +87,11 @@ const cliPipe = process.env['VSCODE_IPC_HOOK_CLI'] as string;
 const cliCommand = process.env['VSCODE_CLIENT_COMMAND'] as string;
 const cliCommandCwd = process.env['VSCODE_CLIENT_COMMAND_CWD'] as string;
 const cliRemoteAuthority = process.env['VSCODE_CLI_AUTHORITY'] as string;
-const cliStdInFilePath = process.env['VSCODE_STDIN_FILE_PATH'] as string;
+const cliStdInFilePath = (process.env['DARDCOR_STDIN_FILE_PATH'] ?? process.env['VSCODE_STDIN_FILE_PATH']) as string;
 
 export async function main(desc: ProductDescription, args: string[]): Promise<void> {
 	if (!cliPipe && !cliCommand) {
-		console.log('Command is only available in WSL or inside a Visual Studio Code terminal.');
+		console.log('Command is only available in WSL or inside a Dardcor Code terminal.');
 		return;
 	}
 

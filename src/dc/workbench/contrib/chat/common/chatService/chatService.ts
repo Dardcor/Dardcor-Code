@@ -1334,7 +1334,7 @@ export interface IChatModifiedFilesConfirmationData {
  * comments themselves are not carried here: the renderer fetches them (and
  * performs reveal/delete/accept actions) through commands registered by the
  * agent feedback feature, so this workbench/chat layer stays decoupled from the
- * `dc/sessions` feedback model. The renderer resolves the owning session from
+ * the host's feedback model. The renderer resolves the owning conversation from
  * its render context. Only the confirmation button labels are needed up front.
  */
 export interface IChatAgentFeedbackReviewConfirmationData {
@@ -1372,7 +1372,7 @@ export interface IChatAgentFeedbackPullRequestThreadLink {
 /**
  * Command ids the agent feedback review confirmation renderer (workbench/chat)
  * uses to fetch unreviewed comments and apply the user's selection. They are
- * implemented by the agent feedback feature in `dc/sessions`, keeping the chat
+ * implemented by the host's agent feedback feature, keeping the chat
  * layer decoupled from the feedback model. Most take the rendered session or chat
  * resource (`UriComponents`) as their first argument and resolve it to the owning
  * session; {@link AgentFeedbackReviewCommandId.RevealAt} instead resolves the
@@ -1809,7 +1809,7 @@ export interface IChatDetail {
 	isEmpty?: boolean;
 	/**
 	 * The working directory URI associated with this session.
-	 * Only populated in the sessions/agents window context.
+	 * Populated when the chat session has a configured working directory.
 	 */
 	workingDirectory?: URI;
 }

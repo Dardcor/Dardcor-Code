@@ -5,7 +5,6 @@
 
 import assert from 'assert';
 import { URI } from '../../../../../../base/common/uri.js';
-import { mock } from '../../../../../../base/test/common/mock.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/test/common/utils.js';
 import { TestConfigurationService } from '../../../../../../platform/configuration/test/common/testConfigurationService.js';
 import { ContextKeyService } from '../../../../../../platform/contextkey/browser/contextKeyService.js';
@@ -13,7 +12,6 @@ import { workbenchInstantiationService } from '../../../../../test/browser/workb
 import { ClientToolSetsContribution } from '../../../browser/tools/clientToolSetsContribution.js';
 import { LanguageModelToolsService } from '../../../browser/tools/languageModelToolsService.js';
 import { createToolSetFileContents, deleteToolSetFromFileContents, getEnabledSelectionReferences } from '../../../browser/tools/toolSetsContribution.js';
-import { IAICustomizationWorkspaceService } from '../../../common/aiCustomizationWorkspaceService.js';
 import { IToolData, ToolDataSource, ToolAndToolSetEnablementMap } from '../../../common/tools/languageModelToolsService.js';
 
 suite('ToolSetsContribution', () => {
@@ -36,60 +34,16 @@ suite('ToolSetsContribution', () => {
 		});
 		const general = ['runTests', 'testFailure', 'rename', 'usages', 'toolSearch'].map(makeTool);
 		const removed = ['extensions', 'installExtension', 'newWorkspace', 'runCommand', 'vscodeAPI'].map(makeTool);
-		const createContribution = (isSessionsWindow: boolean) => {
-			const toolsService = createToolsService();
-			for (const tool of [...general, ...removed]) {
-				store.add(toolsService.registerToolData(tool));
-			}
-			const workspaceService = new class extends mock<IAICustomizationWorkspaceService>() {
-				override readonly isSessionsWindow = isSessionsWindow;
-			}();
-			store.add(new ClientToolSetsContribution(toolsService, workspaceService));
-			return toolsService;
-		};
+		const toolsService = createToolsService();
+		for (const tool of [...general, ...removed]) {
+			store.add(toolsService.registerToolData(tool));
+		}
+		store.add(new ClientToolSetsContribution(toolsService));
 
-		const sessionsToolsService = createContribution(true);
-		const coreToolsService = createContribution(false);
-
-		assert.deepStrictEqual({
-			sessionsMembers: Array.from(sessionsToolsService.getToolSet('vscode-general')?.getTools() ?? [], tool => tool.toolReferenceName),
-			coreMembers: Array.from(coreToolsService.getToolSet('vscode-general')?.getTools() ?? [], tool => tool.toolReferenceName),
-		}, {
-			sessionsMembers: ['toolSearch'],
-			coreMembers: ['runTests', 'testFailure', 'rename', 'usages', 'toolSearch'],
-		});
-	});
-
-	test('ClientToolSetsContribution exposes Automations only in the Sessions window', () => {
-		const makeTool = (name: string): IToolData => ({
-			id: name,
-			modelDescription: name,
-			displayName: name,
-			toolReferenceName: name,
-			source: ToolDataSource.Internal,
-		});
-		const createContribution = (isSessionsWindow: boolean) => {
-			const toolsService = createToolsService();
-			for (const tool of ['listAutomations', 'configureAutomation', 'runAutomation', 'deleteAutomation'].map(makeTool)) {
-				store.add(toolsService.registerToolData(tool));
-			}
-			const workspaceService = new class extends mock<IAICustomizationWorkspaceService>() {
-				override readonly isSessionsWindow = isSessionsWindow;
-			}();
-			store.add(new ClientToolSetsContribution(toolsService, workspaceService));
-			return toolsService;
-		};
-
-		const sessionsToolsService = createContribution(true);
-		const coreToolsService = createContribution(false);
-
-		assert.deepStrictEqual({
-			sessionsMembers: Array.from(sessionsToolsService.getToolSet('vscode-automations')?.getTools() ?? [], tool => tool.toolReferenceName),
-			coreHasSet: !!coreToolsService.getToolSet('vscode-automations'),
-		}, {
-			sessionsMembers: ['listAutomations', 'configureAutomation', 'runAutomation', 'deleteAutomation'],
-			coreHasSet: false,
-		});
+		assert.deepStrictEqual(
+			Array.from(toolsService.getToolSet('vscode-general')?.getTools() ?? [], tool => tool.toolReferenceName),
+			['runTests', 'testFailure', 'rename', 'usages', 'toolSearch'],
+		);
 	});
 
 	test('getEnabledSelectionReferences keeps enabled tool set references and drops covered tools', () => {

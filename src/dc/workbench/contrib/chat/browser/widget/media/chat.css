@@ -4029,6 +4029,11 @@ have to be updated for changes to the rules above, or to support more deeply nes
 	box-sizing: border-box !important;
 }
 
+.chat-editor-overflow .suggest-widget .monaco-highlighted-label .highlight,
+.chat-editor-overflow .suggest-widget .monaco-list .monaco-list-row.focused .monaco-highlighted-label .highlight {
+	color: #ffffff !important;
+}
+
 .interactive-session:not(.chat-widget > .interactive-session) {
 
 	.interactive-item-container {

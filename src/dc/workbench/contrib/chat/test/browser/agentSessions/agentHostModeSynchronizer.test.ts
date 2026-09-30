@@ -11,7 +11,6 @@ import { URI } from '../../../../../../base/common/uri.js';
 import { agentHostAgentPickerStorageKey } from '../../../../../../platform/agentHost/common/customAgents.js';
 import { StorageScope, StorageTarget } from '../../../../../../platform/storage/common/storage.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/test/common/utils.js';
-import { IWorkbenchEnvironmentService } from '../../../../../services/environment/common/environmentService.js';
 import { TestStorageService } from '../../../../../test/common/workbenchTestServices.js';
 import { AgentHostModeSynchronizer } from '../../../browser/agentSessions/agentHost/agentHostModeSynchronizer.js';
 import { IAgentHostUntitledProvisionalSessionService } from '../../../browser/agentSessions/agentHost/agentHostUntitledProvisionalSessionService.js';
@@ -89,8 +88,7 @@ suite('AgentHostModeSynchronizer', () => {
 		} as unknown as IAgentHostUntitledProvisionalSessionService;
 
 		const storageService = store.add(new TestStorageService());
-		const environmentService = { isSessionsWindow: false } as IWorkbenchEnvironmentService;
-		const synchronizer = store.add(new AgentHostModeSynchronizer(widgetService, provisionalSessionService, storageService, environmentService));
+		const synchronizer = store.add(new AgentHostModeSynchronizer(widgetService, provisionalSessionService, storageService));
 
 		return {
 			modeChanges,

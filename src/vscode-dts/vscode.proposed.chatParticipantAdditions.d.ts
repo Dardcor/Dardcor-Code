@@ -880,6 +880,11 @@ declare module 'vscode' {
 		readonly copilotCredits?: number;
 
 		/**
+		 * The number of dardcor credits consumed by this request.
+		 */
+		readonly dardcorCredits?: number;
+
+		/**
 		 * Optional breakdown of prompt token usage by category and label.
 		 * If the percentages do not sum to 100%, the remaining will be shown as "Uncategorized".
 		 */

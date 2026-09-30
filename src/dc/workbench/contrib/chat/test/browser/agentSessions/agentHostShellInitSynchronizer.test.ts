@@ -88,7 +88,6 @@ suite('AgentHostShellInitSynchronizer', () => {
 		collection?: MergedEnvironmentVariableCollection;
 		folders?: readonly IWorkspaceFolder[];
 		enabled?: boolean;
-		sessionsWindow?: boolean;
 		remoteAuthority?: string;
 		onDidChangeCollections?: Event<MergedEnvironmentVariableCollection>;
 		onDispatch?: (config: Record<string, unknown>) => void;
@@ -127,7 +126,7 @@ suite('AgentHostShellInitSynchronizer', () => {
 				configurationService,
 				environmentService,
 				workspaceService,
-				{ isSessionsWindow: options?.sessionsWindow === true, remoteAuthority: options?.remoteAuthority } as IWorkbenchEnvironmentService,
+				{ remoteAuthority: options?.remoteAuthority } as IWorkbenchEnvironmentService,
 			)),
 		};
 	}
@@ -290,21 +289,8 @@ suite('AgentHostShellInitSynchronizer', () => {
 		assert.deepStrictEqual(dispatched, [{ [SessionConfigKey.ShellInitScripts]: [] }]);
 	});
 
-	test('does not publish a script from the Agents window even when it owns the session folder', async () => {
-		// The Agents window mounts the active session folder into its workspace,
-		// so folder ownership alone would otherwise qualify it as a publisher.
-		const { synchronizer, dispatched } = create({
-			enabled: true,
-			sessionsWindow: true,
-			folders: [folderA],
-			collection: collection([{ variable: ACTIVATION_VARIABLE, value: 'activate-a', folder: folderA }]),
-		});
-		await register(synchronizer, state());
-		assert.deepStrictEqual(dispatched, []);
-	});
-
-	test('the Agents window can clear a stale script when disabled', async () => {
-		const { synchronizer, dispatched } = create({ enabled: false, sessionsWindow: true, folders: [] });
+	test('can clear a stale script when disabled', async () => {
+		const { synchronizer, dispatched } = create({ enabled: false, folders: [] });
 		await register(synchronizer, state({
 			values: { [SessionConfigKey.ShellInitScripts]: [{ shell: 'bash', script: 'old' }] },
 		}));

@@ -127,7 +127,8 @@ export class AgentPrompt extends PromptElement<AgentPromptProps> {
 				<MemoryInstructionsPrompt />
 			</SystemMessage>}
 		</>;
-		const isAutopilot = this.props.promptContext.request?.permissionLevel === 'autopilot';
+		const permLevel = this.props.promptContext.request?.permissionLevel;
+		const isAutopilot = permLevel === 'autopilot' || permLevel === 'autoApprove';
 		const sessionResource = this.props.promptContext.request?.sessionResource;
 		const sessionId = sessionResource ? sessionResourceToId(sessionResource) : undefined;
 		const debugTargetSessionIds = extractDebugTargetSessionIds([...this.props.promptContext.chatVariables].map(v => v.reference));

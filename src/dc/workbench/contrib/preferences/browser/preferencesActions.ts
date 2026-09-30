@@ -127,10 +127,6 @@ export interface IConfigurationPropertyInformation {
 		mode: 'startup' | 'auto';
 		name?: string;
 	};
-	agentsWindow?: {
-		default?: unknown;
-		readOnly?: boolean;
-	};
 	section?: {
 		id?: string;
 		title?: string;

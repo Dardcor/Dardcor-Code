@@ -22,17 +22,16 @@ import { resolveCommandsContext } from '../../../browser/parts/editor/editorComm
 import { MultiDiffEditor } from './multiDiffEditor.js';
 import { MultiDiffEditorInput } from './multiDiffEditorInput.js';
 import { IEditorGroupsService } from '../../../services/editor/common/editorGroupsService.js';
-import { AUX_WINDOW_GROUP, IEditorService, SIDE_GROUP } from '../../../services/editor/common/editorService.js';
-import { ActiveEditorContext, IsSessionsWindowContext } from '../../../common/contextkeys.js';
+import { IEditorService, SIDE_GROUP } from '../../../services/editor/common/editorService.js';
+import { ActiveEditorContext } from '../../../common/contextkeys.js';
 import { createMultiDiffEditorLayoutDebugModel, isMultiDiffEditorLayoutDebugStateProvider } from './multiDiffEditorLayoutDebug.js';
-import { IWorkbenchEnvironmentService } from '../../../services/environment/common/environmentService.js';
 
 MenuRegistry.appendMenuItem(MenuId.EditorTitle, {
 	submenu: MenuId.DiffEditorViewSubmenu,
 	title: localize('diffView', "Diff View"),
 	group: '1_diff',
 	order: 10,
-	when: ContextKeyExpr.and(ActiveEditorContext.isEqualTo(MultiDiffEditor.ID), IsSessionsWindowContext.toNegated()),
+	when: ActiveEditorContext.isEqualTo(MultiDiffEditor.ID),
 });
 
 export class GoToFileAction extends Action2 {
@@ -99,7 +98,6 @@ export class OpenMultiDiffEditorLayoutDebugAction extends Action2 {
 
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const editorService = accessor.get(IEditorService);
-		const environmentService = accessor.get(IWorkbenchEnvironmentService);
 		const activeEditorPane = editorService.activeEditorPane;
 		if (!isMultiDiffEditorLayoutDebugStateProvider(activeEditorPane)) {
 			return;
@@ -113,7 +111,7 @@ export class OpenMultiDiffEditorLayoutDebugAction extends Action2 {
 		try {
 			const editor = await editorService.openEditor(
 				{ resource: model.uri, options: { pinned: true } },
-				environmentService.isSessionsWindow ? AUX_WINDOW_GROUP : SIDE_GROUP,
+				SIDE_GROUP,
 			);
 			if (!editor) {
 				model.dispose();
@@ -201,10 +199,9 @@ export class CollapseAllAction extends Action2 {
 			icon: Codicon.collapseAll,
 			precondition: ContextKeyExpr.and(ContextKeyExpr.equals('activeEditor', MultiDiffEditor.ID), ContextKeyExpr.not('multiDiffEditorAllCollapsed')),
 			menu: [
-				// In the agents window this action lives in the editor header overflow (...) menu instead of as a primary toolbar icon.
 				{
 					id: MenuId.EditorTitle,
-					when: ContextKeyExpr.and(ContextKeyExpr.equals('activeEditor', MultiDiffEditor.ID), ContextKeyExpr.not('multiDiffEditorAllCollapsed'), IsSessionsWindowContext.toNegated()),
+					when: ContextKeyExpr.and(ContextKeyExpr.equals('activeEditor', MultiDiffEditor.ID), ContextKeyExpr.not('multiDiffEditorAllCollapsed')),
 					group: 'navigation',
 					order: 100
 				},
@@ -214,12 +211,6 @@ export class CollapseAllAction extends Action2 {
 					when: ContextKeyExpr.and(ContextKeyExpr.equals('activeEditor', MultiDiffEditor.ID), ContextKeyExpr.not('multiDiffEditorAllCollapsed')),
 					group: 'navigation',
 					order: 100
-				},
-				{
-					id: MenuId.EditorTitle,
-					when: ContextKeyExpr.and(ContextKeyExpr.equals('activeEditor', MultiDiffEditor.ID), ContextKeyExpr.not('multiDiffEditorAllCollapsed'), IsSessionsWindowContext),
-					group: '4_collapse',
-					order: 10
 				}
 			],
 			f1: true,
@@ -250,10 +241,9 @@ export class ExpandAllAction extends Action2 {
 			icon: Codicon.expandAll,
 			precondition: ContextKeyExpr.and(ContextKeyExpr.equals('activeEditor', MultiDiffEditor.ID), ContextKeyExpr.has('multiDiffEditorAllCollapsed')),
 			menu: [
-				// In the agents window this action lives in the editor header overflow (...) menu instead of as a primary toolbar icon.
 				{
 					id: MenuId.EditorTitle,
-					when: ContextKeyExpr.and(ContextKeyExpr.equals('activeEditor', MultiDiffEditor.ID), ContextKeyExpr.has('multiDiffEditorAllCollapsed'), IsSessionsWindowContext.toNegated()),
+					when: ContextKeyExpr.and(ContextKeyExpr.equals('activeEditor', MultiDiffEditor.ID), ContextKeyExpr.has('multiDiffEditorAllCollapsed')),
 					group: 'navigation',
 					order: 100
 				},
@@ -263,12 +253,6 @@ export class ExpandAllAction extends Action2 {
 					when: ContextKeyExpr.and(ContextKeyExpr.equals('activeEditor', MultiDiffEditor.ID), ContextKeyExpr.has('multiDiffEditorAllCollapsed')),
 					group: 'navigation',
 					order: 100
-				},
-				{
-					id: MenuId.EditorTitle,
-					when: ContextKeyExpr.and(ContextKeyExpr.equals('activeEditor', MultiDiffEditor.ID), ContextKeyExpr.has('multiDiffEditorAllCollapsed'), IsSessionsWindowContext),
-					group: '4_collapse',
-					order: 10
 				}
 			],
 			f1: true,

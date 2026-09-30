@@ -101,6 +101,7 @@ export interface IProductConfiguration {
 	readonly date?: string;
 	readonly quality?: string;
 	readonly commit?: string;
+	readonly dardcorVersion?: string;
 
 	readonly nameShort: string;
 	readonly nameLong: string;
@@ -114,7 +115,6 @@ export interface IProductConfiguration {
 	readonly win32ContextMenu?: { readonly [arch: string]: { readonly clsid: string } };
 	readonly applicationName: string;
 	readonly embedderIdentifier?: string;
-	readonly agentsTelemetryAppName?: string;
 
 	readonly urlProtocol: string;
 	readonly dataFolderName: string; // location for extensions (e.g. ~/.vscode-insiders)
@@ -252,7 +252,6 @@ export interface IProductConfiguration {
 	}>;
 	readonly extensionsForceVersionByQuality?: readonly string[];
 	readonly builtInExtensionsEnabledWithAutoUpdates: readonly string[];
-	readonly sessionsWindowAllowedExtensions?: readonly string[];
 
 	readonly msftInternalDomains?: string[];
 	readonly linkProtectionTrustedDomains?: readonly string[];

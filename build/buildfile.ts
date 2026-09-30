@@ -29,12 +29,10 @@ export const workbenchDesktop = [
 	createModuleDescription('dc/platform/agentHost/node/diffWorkerMain'),
 	createModuleDescription('dc/workbench/api/node/extensionHostProcess'),
 	createModuleDescription('dc/workbench/workbench.desktop.main'),
-	createModuleDescription('dc/sessions/sessions.desktop.main')
 ];
 
 export const workbenchWeb = createModuleDescription('dc/workbench/workbench.web.main.internal');
 
-export const sessionsWeb = createModuleDescription('dc/sessions/sessions.web.main.internal');
 
 export const keyboardMaps = [
 	createModuleDescription('dc/workbench/services/keybinding/browser/keyboardLayouts/layout.contribution.linux'),
@@ -48,7 +46,6 @@ export const code = [
 	createModuleDescription('dc/code/node/cliProcessMain'),
 	createModuleDescription('dc/code/electron-utility/sharedProcess/sharedProcessMain'),
 	createModuleDescription('dc/code/electron-browser/workbench/workbench'),
-	createModuleDescription('dc/sessions/electron-browser/sessions'),
 ];
 
 export const codeWeb = createModuleDescription('dc/code/browser/workbench/workbench');
@@ -76,7 +73,6 @@ const buildfile = {
 	workerBackgroundTokenization,
 	workbenchDesktop,
 	workbenchWeb,
-	sessionsWeb,
 	keyboardMaps,
 	code,
 	codeWeb,

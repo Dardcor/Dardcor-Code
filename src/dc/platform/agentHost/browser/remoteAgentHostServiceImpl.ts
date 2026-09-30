@@ -46,7 +46,7 @@ import { WebSocketClientTransport } from './webSocketClientTransport.js';
 import { AGENT_HOST_LABEL_FORMATTER, AGENT_HOST_SCHEME, agentHostAuthority, normalizeRemoteAgentHostAddress } from '../common/agentHostUri.js';
 import { PROTOCOL_VERSION } from '../common/state/protocol/version/registry.js';
 import { type IVscodeUpgradeResult } from '../common/state/protocolUpgrade.js';
-import { agentsWindowAgentHostClientInfo, editorWindowAgentHostClientInfo } from '../common/agentHostClientInfo.js';
+import { editorWindowAgentHostClientInfo } from '../common/agentHostClientInfo.js';
 
 /** Tracks a single remote connection through its lifecycle. */
 interface IConnectionEntry {
@@ -941,22 +941,5 @@ export class RemoteAgentHostService extends Disposable implements IRemoteAgentHo
 		}
 		this._labelFormatters.clear();
 		super.dispose();
-	}
-}
-
-export class AgentsWindowRemoteAgentHostService extends RemoteAgentHostService {
-
-	protected override get clientInfo() {
-		return agentsWindowAgentHostClientInfo;
-	}
-
-	constructor(
-		@IConfigurationService configurationService: IConfigurationService,
-		@IInstantiationService instantiationService: IInstantiationService,
-		@ILogService logService: ILogService,
-		@ILabelService labelService: ILabelService,
-		@IEnvironmentService environmentService: IEnvironmentService,
-	) {
-		super(configurationService, instantiationService, logService, labelService, environmentService);
 	}
 }

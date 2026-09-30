@@ -184,18 +184,19 @@ export class ProductContribution implements IWorkbenchContribution {
 			}
 
 			const lastVersion = tryParseVersion(storageService.get(ProductContribution.KEY, StorageScope.APPLICATION, ''));
-			const currentVersion = tryParseVersion(productService.version);
+			const activeVersion = productService.dardcorVersion ?? productService.version;
+			const currentVersion = tryParseVersion(activeVersion);
 			const shouldShowReleaseNotes = configurationService.getValue<boolean>('update.showReleaseNotes');
 			const shouldShowPostInstallInfo = configurationService.getValue<boolean>('update.showPostInstallInfo');
 			const releaseNotesUrl = productService.releaseNotesUrl;
 
 			// was there a major/minor update? if so, open release notes (unless post-install info is enabled, which takes over)
 			if (shouldShowReleaseNotes && !shouldShowPostInstallInfo && !environmentService.skipReleaseNotes && releaseNotesUrl && lastVersion && currentVersion && isMajorMinorUpdate(lastVersion, currentVersion)) {
-				showReleaseNotesInEditor(instantiationService, productService.version, false)
+				showReleaseNotesInEditor(instantiationService, activeVersion, false)
 					.then(undefined, () => {
 						notificationService.prompt(
 							severity.Info,
-							nls.localize('read the release notes', "Welcome to {0} v{1}! Would you like to read the Release Notes?", productService.nameLong, productService.version),
+							nls.localize('read the release notes', "Welcome to {0} v{1}! Would you like to read the Release Notes?", productService.nameLong, activeVersion),
 							[{
 								label: nls.localize('releaseNotes', "Release Notes"),
 								run: () => {
@@ -208,7 +209,7 @@ export class ProductContribution implements IWorkbenchContribution {
 					});
 			}
 
-			storageService.store(ProductContribution.KEY, productService.version, StorageScope.APPLICATION, StorageTarget.MACHINE);
+			storageService.store(ProductContribution.KEY, activeVersion, StorageScope.APPLICATION, StorageTarget.MACHINE);
 		});
 	}
 }
@@ -272,7 +273,7 @@ export class UpdateContribution extends Disposable implements IWorkbenchContribu
 			case StateType.Ready: {
 				const productVersion = state.update.productVersion;
 				if (productVersion) {
-					const currentVersion = tryParseVersion(this.productService.version);
+					const currentVersion = tryParseVersion(this.productService.dardcorVersion ?? this.productService.version);
 					const nextVersion = tryParseVersion(productVersion);
 					this.majorMinorUpdateAvailableContextKey.set(Boolean(currentVersion && nextVersion && isMajorMinorUpdate(currentVersion, nextVersion)));
 				}

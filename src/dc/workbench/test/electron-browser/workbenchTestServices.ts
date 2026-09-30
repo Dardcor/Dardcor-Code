@@ -9,7 +9,7 @@ import { CancellationToken } from '../../../base/common/cancellation.js';
 import { Event } from '../../../base/common/event.js';
 import { DisposableStore, IDisposable } from '../../../base/common/lifecycle.js';
 import { Schemas } from '../../../base/common/network.js';
-import { URI, UriComponents } from '../../../base/common/uri.js';
+import { URI } from '../../../base/common/uri.js';
 import { IModelService } from '../../../editor/common/services/model.js';
 import { ModelService } from '../../../editor/common/services/modelService.js';
 import { TestConfigurationService } from '../../../platform/configuration/test/common/testConfigurationService.js';
@@ -103,10 +103,7 @@ export class TestNativeHostService implements INativeHostService {
 	openWindow(toOpen: IWindowOpenable[], options?: IOpenWindowOptions): Promise<void>;
 	openWindow(arg1?: IOpenEmptyWindowOptions | IWindowOpenable[], arg2?: IOpenWindowOptions): Promise<void> {
 		throw new Error('Method not implemented.');
-	}
-
-	async openAgentsWindow(_options?: { folderUri?: UriComponents; sessionResource?: UriComponents }): Promise<void> { }
-
+	}
 	async syncSystemWideKeybindings(_keybindings: INativeSystemWideKeybinding[]): Promise<INativeSystemWideKeybindingResult> { return { failed: [] }; }
 
 	async toggleFullScreen(): Promise<void> { }

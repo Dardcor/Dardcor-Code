@@ -32,8 +32,6 @@ import { IInstantiationService } from '../../../../../platform/instantiation/com
 import { WorkbenchList } from '../../../../../platform/list/browser/listService.js';
 import { IOpenerService } from '../../../../../platform/opener/common/opener.js';
 import { defaultButtonStyles, defaultCheckboxStyles, defaultInputBoxStyles } from '../../../../../platform/theme/browser/defaultStyles.js';
-import { IExtensionManifestPropertiesService } from '../../../../services/extensions/common/extensionManifestPropertiesService.js';
-import { IWorkbenchEnvironmentService } from '../../../../services/environment/common/environmentService.js';
 import { ExtensionState, IExtension, IExtensionsWorkbenchService } from '../../../extensions/common/extensions.js';
 import { GalleryItemInstallState, GalleryItemRenderer, IGalleryItemProvider } from './galleryItemRenderer.js';
 import { ILanguageModelToolsService, IToolData, IToolSet, ToolDataSource } from '../../common/tools/languageModelToolsService.js';
@@ -176,8 +174,6 @@ export class ToolsListWidget extends Disposable {
 		@IOpenerService private readonly _openerService: IOpenerService,
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
 		@IExtensionsWorkbenchService private readonly _extensionsWorkbenchService: IExtensionsWorkbenchService,
-		@IExtensionManifestPropertiesService private readonly _extensionManifestPropertiesService: IExtensionManifestPropertiesService,
-		@IWorkbenchEnvironmentService private readonly _environmentService: IWorkbenchEnvironmentService,
 	) {
 		super();
 
@@ -262,13 +258,11 @@ export class ToolsListWidget extends Disposable {
 			}).catch(() => { /* delayer disposed */ });
 		}));
 
-		if (!this._environmentService.isSessionsWindow) {
-			const browseLabel = localize('toolsBrowseMarketplace', "Browse Marketplace");
-			this._browseButtonContainer = DOM.append(this._searchRow, $('.tools-list-browse-button-container'));
-			const browseButton = this._register(new Button(this._browseButtonContainer, { ...defaultButtonStyles, secondary: true, supportIcons: true, title: browseLabel, ariaLabel: browseLabel }));
-			browseButton.label = `$(${Codicon.library.id}) ${browseLabel}`;
-			this._register(browseButton.onDidClick(() => this._setBrowseMode(true)));
-		}
+		const browseLabel = localize('toolsBrowseMarketplace', "Browse Marketplace");
+		this._browseButtonContainer = DOM.append(this._searchRow, $('.tools-list-browse-button-container'));
+		const browseButton = this._register(new Button(this._browseButtonContainer, { ...defaultButtonStyles, secondary: true, supportIcons: true, title: browseLabel, ariaLabel: browseLabel }));
+		browseButton.label = `$(${Codicon.library.id}) ${browseLabel}`;
+		this._register(browseButton.onDidClick(() => this._setBrowseMode(true)));
 
 		const backLabel = localize('toolsBrowseBack', "Back");
 		this._backButtonContainer = DOM.append(this._searchRow, $('.tools-list-browse-button-container'));
@@ -413,9 +407,6 @@ export class ToolsListWidget extends Disposable {
 
 	/** Enters/leaves marketplace browse mode, swapping the tree for the gallery list. */
 	private _setBrowseMode(browse: boolean): void {
-		if (browse && this._environmentService.isSessionsWindow) {
-			return;
-		}
 		if (this._browseMode === browse) {
 			return;
 		}
@@ -486,23 +477,13 @@ export class ToolsListWidget extends Disposable {
 	}
 
 	/**
-	 * Keeps only extensions that contribute language model tools and, in the Agents window, can run there
-	 * ({@link IExtensionManifestPropertiesService.canExecuteOnSessionsWindow}); the `executesCode` hint skips
-	 * manifest fetches for extensions that can never run.
+	 * Keeps only extensions that contribute language model tools.
 	 */
 	private async _filterGalleryResults(extensions: readonly IExtension[], token: CancellationToken): Promise<IExtension[]> {
-		const requireAgentsWindowSupport = this._environmentService.isSessionsWindow;
 		const results = await Promise.all(extensions.map(async extension => {
-			// In the Agents window, code-executing extensions can never run: reject before fetching the manifest.
-			if (requireAgentsWindowSupport && extension.gallery?.properties.executesCode) {
-				return undefined;
-			}
 			try {
 				const manifest = await extension.getManifest(token);
 				if (!manifest?.contributes?.languageModelTools?.length) {
-					return undefined;
-				}
-				if (requireAgentsWindowSupport && !this._extensionManifestPropertiesService.canExecuteOnSessionsWindow(manifest)) {
 					return undefined;
 				}
 				return extension;

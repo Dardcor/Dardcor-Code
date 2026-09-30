@@ -279,8 +279,10 @@ export class AlternateGPTPrompt extends PromptElement<DefaultAgentPromptProps> {
 				- Make small, testable, incremental changes that logically follow from your investigation and plan.<br />
 				- Whenever you detect that a project requires an environment variable (such as an API key or secret), always check if a .env file exists in the project root. If it does not exist, automatically create a .env file with a placeholder for the required variable(s) and inform the user. Do this proactively, without waiting for the user to request it.<br />
 				<br />
-				## 5. Debugging<br />
-				{tools[ToolName.GetErrors] && <>- Use the {ToolName.GetErrors} tool to check for any problems in the code<br /></>}
+				## 5. Debugging and Verification<br />
+				{tools[ToolName.GetErrors] && <>- Use the {ToolName.GetErrors} tool to check for problems, compiler diagnostics, and active terminal runtime errors.<br /></>}
+				- NEVER claim a task is complete or that no problems were found if {tools[ToolName.GetErrors] ? ToolName.GetErrors : 'diagnostic tools'} or active terminals report runtime errors, 500 server errors, ReferenceErrors, TypeErrors, or compilation errors.<br />
+				- If an error is detected in terminal logs or diagnostics, you MUST inspect the failing file, fix the root cause, and re-run verification before finishing.<br />
 				- Make code changes only if you have high confidence they can solve the problem<br />
 				- When debugging, try to determine the root cause rather than addressing symptoms<br />
 				- Debug for as long as needed to identify the root cause and identify a fix<br />

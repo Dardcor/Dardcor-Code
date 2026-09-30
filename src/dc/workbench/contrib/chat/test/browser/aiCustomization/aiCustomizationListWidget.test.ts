@@ -612,7 +612,6 @@ suite('aiCustomizationListWidget', () => {
 				activeProjectLabel: observableValue('test', undefined),
 				getActiveProjectRoot: () => undefined,
 				managementSections: [AICustomizationManagementSection.Agents],
-				isSessionsWindow: false,
 				welcomePageFeatures: { showGettingStartedBanner: false },
 				getSkillUIIntegrations: () => new Map(),
 				hasOverrideProjectRoot: observableValue('test', false),

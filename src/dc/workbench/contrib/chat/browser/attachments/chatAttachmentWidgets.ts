@@ -1164,7 +1164,7 @@ export class ToolSetOrToolItemAttachmentWidget extends AbstractChatAttachmentWid
 /**
  * Renders an agent-host {@link IChatRequestChatReferenceVariableEntry chat-reference}
  * attachment (`#chat:<title>`) as a clickable chip. Clicking (or pressing
- * Enter/Space) opens the referenced chat in the Agents window by handing an
+ * Enter/Space) opens the referenced chat in the current Workbench by handing an
  * `agent-host-session://` link to the {@link IOpenerService}. When the link
  * cannot be built or the opener declines it (e.g. the chat was deleted or lives
  * in another window) the chip degrades gracefully and still renders its label.

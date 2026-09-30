@@ -322,11 +322,6 @@ export interface IChatWidgetViewOptions {
 	 * instead of silently dropping them.
 	 */
 	submitHandler?: (query: string, mode: ChatModeKind, attachedContext?: IChatRequestVariableEntry[], isVoiceModeInput?: boolean) => Promise<boolean>;
-	/**
-	 * Whether we are running in the sessions window.
-	 * When true, the secondary toolbar (permissions picker) is hidden.
-	 */
-	isSessionsWindow?: boolean;
 
 	/** Whether this host supports the experimental session state indicator. Defaults to false. */
 	enableSessionStateIndicator?: boolean;

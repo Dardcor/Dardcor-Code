@@ -200,8 +200,8 @@ function codexSseErrorResponse(status, message) {
  * Automatically injects default instructions if missing
  */
 export class CodexExecutor extends BaseExecutor {
-  constructor() {
-    super("codex", PROVIDERS.codex);
+  constructor(provider = "codex", config = PROVIDERS.codex) {
+    super(provider, config);
     this._currentSessionId = null;
   }
 
@@ -284,6 +284,17 @@ export class CodexExecutor extends BaseExecutor {
     let attempt = 0;
     while (true) {
       const result = await super.execute(args);
+      if (result.response?.status === 400 && args.body?.model !== "gpt-5.6-terra") {
+        try {
+          const cloned = result.response.clone();
+          const errText = await cloned.text();
+          if (errText.includes("not supported when using Codex with a ChatGPT account")) {
+            args.log?.warn?.("RETRY", `CODEX | Model ${args.body.model} not supported on ChatGPT account, retrying with gpt-5.6-terra`);
+            args.body.model = "gpt-5.6-terra";
+            continue;
+          }
+        } catch { /* ignore clone error */ }
+      }
       const peek = await this._peekSseTransientError(result.response);
       if (!peek.matched) {
         // Replace body with re-assembled stream (prefix bytes already read + rest)
@@ -439,6 +450,19 @@ export class CodexExecutor extends BaseExecutor {
 
     // Map virtual Codex review models to the upstream Codex model before suffix parsing.
     body.model = getModelUpstreamId("cx", body.model || model);
+
+    // Map models unsupported on ChatGPT account OAuth connections to active models
+    const CHATGPT_ACCOUNT_FALLBACKS = {
+      "gpt-6-astra": "gpt-5.6-terra",
+      "gpt-5.6-sol": "gpt-5.6-terra",
+      "gpt-5.5": "gpt-5.6-luna",
+      "gpt-5.4": "gpt-5.6-terra",
+      "gpt-5.4-mini": "gpt-5.6-luna",
+      "gpt-5.3-codex-spark": "gpt-5.6-luna",
+    };
+    if (CHATGPT_ACCOUNT_FALLBACKS[body.model]) {
+      body.model = CHATGPT_ACCOUNT_FALLBACKS[body.model];
+    }
 
     // Extract thinking level from model name suffix
     // e.g., gpt-5.3-codex-high → high, gpt-5.3-codex → medium (default)

@@ -31,7 +31,7 @@ import { IRemoteAgentHostLocationPreferenceService } from '../common/remoteAgent
 import { promptRemoteAgentHostLocationPreference } from '../common/remoteAgentHostLocationPreferenceDialog.js';
 import { ReconnectingRelayTransport, type IRelayConnectionHandle } from '../common/relayTransport.js';
 import { AgentHostProtocolClient } from '../browser/agentHostProtocolClient.js';
-import { agentsWindowAgentHostClientInfo } from '../common/agentHostClientInfo.js';
+import { editorWindowAgentHostClientInfo } from '../common/agentHostClientInfo.js';
 import { NonReconnectableTransportError } from '../common/state/sessionTransport.js';
 import {
 	ISSHRemoteAgentHostService,
@@ -128,7 +128,7 @@ export class SSHRelayClientFactory implements ISSHRelayClientFactory {
 				'[SSHRelayTransport]',
 				AgentHostClientConnectionKind.SSH,
 			);
-		}, { clientInfo: agentsWindowAgentHostClientInfo });
+		}, { clientInfo: editorWindowAgentHostClientInfo });
 	}
 }
 

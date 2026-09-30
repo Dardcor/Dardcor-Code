@@ -9,9 +9,7 @@
 				"Compile",
 				"Watch Client Transpile"
 			],
-			"dependsOrder": "sequence",
-			"inAgents": true,
-			"problemMatcher": []
+			"dependsOrder": "sequence",			"problemMatcher": []
 		},
 		{
 			"label": "Run VS Code",
@@ -24,9 +22,7 @@
 			"args": [
 				"--user-data-dir=${workspaceFolder}/.profile-oss",
 				"--extensions-dir=${workspaceFolder}/.profile-oss/extensions"
-			],
-			"inAgents": true,
-			"problemMatcher": []
+			],			"problemMatcher": []
 		},
 		{
 			"label": "Install & Watch (All)",
@@ -35,9 +31,7 @@
 				"Install Dependencies",
 				"Watch"
 			],
-			"dependsOrder": "sequence",
-			"inAgents": true,
-			"problemMatcher": []
+			"dependsOrder": "sequence",			"problemMatcher": []
 		},
 		{
 			"label": "Install Dependencies",
@@ -104,9 +98,7 @@
 					"beginsPattern": "Starting transpilation\\.\\.\\.",
 					"endsPattern": "Finished transpilation with"
 				}
-			},
-			"inAgents": true,
-		},
+			},		},
 		{
 			"type": "npm",
 			"script": "watch-client-transpiled",
@@ -374,32 +366,9 @@
 			}
 		},
 		{
-			"label": "Run Dev Agents",
-			"type": "shell",
-			"command": "./scripts/code.sh",
-			"windows": {
-				"command": ".\\scripts\\code.bat"
-			},
-			"args": [
-				"--agents",
-				"--user-data-dir=${userHome}/.vscode-oss-dev",
-				"--extensions-dir=${userHome}/.vscode-oss-dev/extensions"
-			],
-			"problemMatcher": []
-		},
-		{
 			"label": "Transpile Client",
 			"type": "npm",
 			"script": "transpile-client",
-			"problemMatcher": []
-		},
-		{
-			"label": "Run and Compile Agents - OSS",
-			"dependsOn": [
-				"Transpile Client",
-				"Run Dev Agents"
-			],
-			"dependsOrder": "sequence",
 			"problemMatcher": []
 		},
 		{
@@ -478,7 +447,7 @@
 		},
 		{
 			"label": "Run VS Code (Web)",
-			"detail": "Run the Agents window as a web client.",
+			"detail": "Run the VS Code web client.",
 			"type": "shell",
 			"command": "./scripts/code-server.sh",
 			"windows": {
@@ -489,9 +458,7 @@
 				"dev-token",
 				"--port",
 				"8080"
-			],
-			"inAgents": true,
-			"isBackground": true,
+			],			"isBackground": true,
 			"problemMatcher": {
 				"pattern": {
 					"regexp": ""
@@ -615,9 +582,7 @@
 			"label": "Component Explorer Server",
 			"type": "shell",
 			"command": "npx component-explorer serve -p ./test/componentFixtures/component-explorer.json -vv --kill-if-running",
-			"isBackground": true,
-			"inAgents": true,
-			"problemMatcher": {
+			"isBackground": true,			"problemMatcher": {
 				"owner": "component-explorer",
 				"fileLocation": "absolute",
 				"pattern": {

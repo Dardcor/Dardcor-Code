@@ -2,6 +2,13 @@
 // Alias related brands; session-cache 404s so one miss never spams again.
 
 const ICON_ALIASES = {
+  "chatgpt-web": "openai",
+  chatgpt: "openai",
+  cgw: "openai",
+  "deepseek-web": "deepseek",
+  dsw: "deepseek",
+  "gemini-web": "gemini",
+  gmw: "gemini",
   "perplexity-agent": "perplexity",
   "gitlab-duo": "gitlab",
   "vercel-ai-gateway": "vercel",

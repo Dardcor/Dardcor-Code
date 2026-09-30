@@ -69,8 +69,10 @@ const KNOWN_PROVIDER_DIRS = {
   "opencode-go": "OpenCode-Go",
   cursor: "Cursor",
   qwen: "Qwen",
-  iflow: "iFlow",
   "xiaomi-mimo": "Xiaomi-MiMo",
+  "chatgpt-web": "Chatgpt-Web",
+  "deepseek-web": "Deepseek-Web",
+  "gemini-web": "Gemini-Web",
 };
 
 export const ALL_CANONICAL_PROVIDERS = Array.from(new Set(Object.values(KNOWN_PROVIDER_DIRS)));

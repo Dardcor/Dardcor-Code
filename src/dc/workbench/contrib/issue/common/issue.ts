@@ -25,7 +25,6 @@ export const enum IssueType {
 
 export enum IssueSource {
 	VSCode = 'vscode',
-	AgentsWindow = 'agentsWindow',
 	Extension = 'extension',
 	Marketplace = 'marketplace',
 	Unknown = 'unknown'
@@ -87,7 +86,6 @@ export interface IssueReporterData extends WindowData {
 	experiments?: string;
 	restrictedMode: boolean;
 	isInstallationPure: boolean;
-	isSessionsWindow: boolean;
 	githubAccessToken: string;
 	issueTitle?: string;
 	issueBody?: string;

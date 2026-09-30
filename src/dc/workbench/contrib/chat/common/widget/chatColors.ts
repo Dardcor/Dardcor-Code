@@ -47,7 +47,7 @@ export const chatSlashCommandBackground = registerColor(
 
 export const chatSlashCommandForeground = registerColor(
 	'chat.slashCommandForeground',
-	{ dark: '#85b6ff', light: '#26569e', hcDark: Color.black, hcLight: badgeForeground },
+	{ dark: '#ffffff', light: '#26569e', hcDark: Color.black, hcLight: badgeForeground },
 	localize('chat.slashCommandForeground', 'The foreground color of a chat slash command.')
 );
 

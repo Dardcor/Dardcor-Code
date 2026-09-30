@@ -26,7 +26,6 @@ import { Registry } from '../../../../../../platform/registry/common/platform.js
 import { IWorkbenchContribution } from '../../../../../common/contributions.js';
 import { IAgentHostFileSystemService } from '../../../../../services/agentHost/common/agentHostFileSystemService.js';
 import { AuthenticationSession, IAuthenticationService } from '../../../../../services/authentication/common/authentication.js';
-import { IWorkbenchEnvironmentService } from '../../../../../services/environment/common/environmentService.js';
 import { IBrowserWorkbenchEnvironmentService } from '../../../../../services/environment/browser/environmentService.js';
 import { ChatSessionsExtensions, IAsyncChatSessionActivationRegistry, IChatSessionsService, isLocalAgentHostTarget } from '../../../common/chatSessionsService.js';
 import { ChatAgentLocation } from '../../../common/constants.js';
@@ -63,7 +62,6 @@ async function waitForLocalAgentHostActivation(accessor: ServicesAccessor, sessi
 	const agentHostEnablementService = accessor.get(IAgentHostEnablementService);
 	const agentHostService = accessor.get(IAgentHostService);
 	const configurationService = accessor.get(IConfigurationService);
-	const environmentService = accessor.get(IWorkbenchEnvironmentService);
 	if (!agentHostEnablementService.enabled.get()) {
 		return false;
 	}
@@ -79,7 +77,7 @@ async function waitForLocalAgentHostActivation(accessor: ServicesAccessor, sessi
 			return false;
 		}
 		if (rootState) {
-			return rootState.agents.some(agent => agent.provider === provider && shouldSurfaceLocalAgentHostProvider(agent.provider, configurationService, environmentService.isSessionsWindow));
+			return rootState.agents.some(agent => agent.provider === provider && shouldSurfaceLocalAgentHostProvider(agent.provider, configurationService));
 		}
 
 		const changed = await Promise.race([
@@ -120,7 +118,6 @@ export class AgentHostContribution extends Disposable implements IWorkbenchContr
 	private readonly _authTokenCache = new AgentHostAuthTokenCache();
 	private readonly _authRecovery = new AgentHostAuthenticationRecovery();
 
-	private readonly _isSessionsWindow: boolean;
 	private readonly _enableSmokeTestDriver: boolean;
 	private _initialized = false;
 	private readonly _enablementStore = this._register(new MutableDisposable<DisposableStore>());
@@ -145,7 +142,6 @@ export class AgentHostContribution extends Disposable implements IWorkbenchContr
 		@IAgentHostEnablementService private readonly _agentHostEnablementService: IAgentHostEnablementService,
 	) {
 		super();
-		this._isSessionsWindow = this._environmentService.isSessionsWindow;
 		this._enableSmokeTestDriver = !!this._environmentService.enableSmokeTestDriver;
 
 		this._register(autorun(reader => {
@@ -190,7 +186,7 @@ export class AgentHostContribution extends Disposable implements IWorkbenchContr
 		}
 
 		this._register(this._configurationService.onDidChangeConfiguration(e => {
-			if (!affectsAgentHostProviderPreference(e, this._isSessionsWindow)) {
+			if (!affectsAgentHostProviderPreference(e)) {
 				return;
 			}
 			const current = this._agentHostService.rootState.value;
@@ -222,24 +218,18 @@ export class AgentHostContribution extends Disposable implements IWorkbenchContr
 		}));
 
 		// Surface the agent host's lazy, first-use SDK download as a progress
-		// notification. The Agents window renders this via its own sessions
-		// provider (`BaseAgentHostSessionsProvider`), so only wire it up here
-		// for regular editor windows to avoid duplicate notifications (this
-		// contribution runs in both windows). The matching `createSession`
-		// opt-in (`progressToken`) lives in the editor-window session handlers.
-		if (!this._isSessionsWindow) {
-			const downloadProgress = store.add(this._instantiationService.createInstance(AgentHostDownloadProgress));
-			store.add(this._agentHostService.onDidNotification(n => {
-				if (n.type === NotificationType.Progress) {
-					downloadProgress.handleProgress(n);
-				}
-			}));
-		}
+		// notification in the editor window.
+		const downloadProgress = store.add(this._instantiationService.createInstance(AgentHostDownloadProgress));
+		store.add(this._agentHostService.onDidNotification(n => {
+			if (n.type === NotificationType.Progress) {
+				downloadProgress.handleProgress(n);
+			}
+		}));
 		this._enablementStore.value = store;
 	}
 
 	private _shouldRegisterAgent(provider: AgentProvider): boolean {
-		return shouldSurfaceLocalAgentHostProvider(provider, this._configurationService, this._isSessionsWindow);
+		return shouldSurfaceLocalAgentHostProvider(provider, this._configurationService);
 	}
 
 	private _handleRootStateChange(rootState: RootState): void {

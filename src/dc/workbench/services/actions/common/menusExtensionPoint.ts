@@ -558,24 +558,6 @@ const apiMenus: IAPIMenu[] = [
 		description: localize('menus.chatNewSession', "The Chat new session menu."),
 		proposed: 'chatSessionsProvider'
 	},
-	{
-		key: 'agents/changes/actions',
-		id: MenuId.AgentsChangesToolbar,
-		description: localize('menus.agentsChangesToolbar', "The Changes view toolbar of the agents window."),
-		proposed: 'chatSessionsProvider'
-	},
-	{
-		key: 'agents/changes/actions/primary',
-		id: MenuId.AgentsChangesPrimaryActionSubMenu,
-		description: localize('menus.agentsChangesPrimaryActionSubMenu', "The Changes view toolbar primary action submenu in the agents window."),
-		proposed: 'chatSessionsProvider'
-	},
-	{
-		key: 'agents/change/inline',
-		id: MenuId.AgentsChangeInlineToolbar,
-		description: localize('menus.agentsChangeInline', "The Changes view inline menu in the agents window."),
-		proposed: 'chatSessionsProvider'
-	},
 ];
 
 namespace schema {

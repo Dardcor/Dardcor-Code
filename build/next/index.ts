@@ -97,7 +97,6 @@ const desktopWorkerEntryPoints = [
 // Desktop workbench and code entry points
 const desktopEntryPoints = [
 	'dc/workbench/workbench.desktop.main',
-	'dc/sessions/sessions.desktop.main',
 	'dc/workbench/contrib/debug/node/telemetryApp',
 	'dc/platform/files/node/watcher/watcherMain',
 	'dc/platform/localTranscription/node/localTranscriptionMain',
@@ -111,7 +110,6 @@ const codeEntryPoints = [
 	'dc/code/node/cliProcessMain',
 	'dc/code/electron-utility/sharedProcess/sharedProcessMain',
 	'dc/code/electron-browser/workbench/workbench',
-	'dc/sessions/electron-browser/sessions',
 ];
 
 // Web entry points (used in server-web and vscode-web)
@@ -120,10 +118,6 @@ const webEntryPoints = [
 	'dc/code/browser/workbench/workbench',
 ];
 
-// Additional web-only entry points (CDN build only, not in server-web)
-const webOnlyEntryPoints = [
-	'dc/sessions/sessions.web.main.internal',
-];
 
 const keyboardMapEntryPoints = [
 	'dc/workbench/services/keybinding/browser/keyboardLayouts/layout.contribution.linux',
@@ -179,7 +173,6 @@ function getEntryPointsForTarget(target: BuildTarget): string[] {
 		case 'web':
 			return [
 				...workerEntryPoints,
-				...webOnlyEntryPoints,
 				'dc/workbench/workbench.web.main.internal', // web workbench only (no browser shell)
 				...keyboardMapEntryPoints,
 			];
@@ -214,8 +207,6 @@ function getCssBundleEntryPointsForTarget(target: BuildTarget): Set<string> {
 			return new Set([
 				'dc/workbench/workbench.desktop.main',
 				'dc/code/electron-browser/workbench/workbench',
-				'dc/sessions/sessions.desktop.main',
-				'dc/sessions/electron-browser/sessions',
 			]);
 		case 'server':
 			return new Set(); // Server has no UI
@@ -227,7 +218,6 @@ function getCssBundleEntryPointsForTarget(target: BuildTarget): Set<string> {
 		case 'web':
 			return new Set([
 				'dc/workbench/workbench.web.main.internal',
-				'dc/sessions/sessions.web.main.internal',
 			]);
 		default:
 			throw new Error(`Unknown target: ${target}`);
@@ -248,8 +238,6 @@ const commonResourcePatterns = [
 	'dc/workbench/browser/media/code-icon.svg',
 	'dc/workbench/browser/parts/editor/media/letterpress*.svg',
 	'dc/workbench/contrib/chat/browser/widget/media/chatPet/*.{gif,png}',
-	'dc/sessions/contrib/chat/browser/media/*.svg',
-	'dc/sessions/contrib/welcome/browser/media/themePreviews/*.svg'
 ];
 
 // Resources for desktop target
@@ -259,8 +247,6 @@ const desktopResourcePatterns = [
 	// HTML
 	'dc/code/electron-browser/workbench/workbench.html',
 	'dc/code/electron-browser/workbench/workbench-dev.html',
-	'dc/sessions/electron-browser/sessions.html',
-	'dc/sessions/electron-browser/sessions-dev.html',
 	'dc/workbench/services/extensions/worker/webWorkerExtensionHostIframe.html',
 	'dc/workbench/contrib/webview/browser/pre/*.html',
 
@@ -295,10 +281,6 @@ const desktopResourcePatterns = [
 	'dc/workbench/services/extensionManagement/common/media/*.png',
 	'dc/workbench/browser/parts/editor/media/*.png',
 	'dc/workbench/contrib/debug/browser/media/*.png',
-
-	// Sessions - built-in prompts and skills
-	'dc/sessions/prompts/*.prompt.md',
-	'dc/sessions/skills/**/SKILL.md',
 ];
 
 // Resources for server target (minimal - no UI)

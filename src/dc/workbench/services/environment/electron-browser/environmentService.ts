@@ -154,9 +154,6 @@ export class NativeWorkbenchEnvironmentService extends AbstractNativeEnvironment
 	@memoize
 	get filesToWait(): IPathsToWaitFor | undefined { return this.configuration.filesToWait; }
 
-	@memoize
-	get isSessionsWindow(): boolean { return !!this.configuration.isSessionsWindow; }
-
 	constructor(
 		private readonly configuration: INativeWindowConfiguration,
 		productService: IProductService

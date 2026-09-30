@@ -19,8 +19,8 @@ import { IConfigurationService } from '../../../../../../platform/configuration/
 import { InstantiationType, registerSingleton } from '../../../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../../../platform/instantiation/common/instantiation.js';
 import { IWorkspaceContextService, IWorkspaceFolder } from '../../../../../../platform/workspace/common/workspace.js';
-import { IEnvironmentVariableService } from '../../../../terminal/common/environmentVariable.js';
 import { IWorkbenchEnvironmentService } from '../../../../../services/environment/common/environmentService.js';
+import { IEnvironmentVariableService } from '../../../../terminal/common/environmentVariable.js';
 
 const PYTHON_ENV_EXTENSION_ID = 'ms-python.vscode-python-envs';
 // Only the variable matching the tool shell: the extension publishes
@@ -135,12 +135,7 @@ export class AgentHostShellInitSynchronizer extends Disposable implements IAgent
 		}
 
 		const enabled = this._configurationService.getValue<boolean>(AgentHostShellToolInitScriptEnabledSettingId) === true;
-		// A non-empty script belongs to the Editor Window that owns the session
-		// folder. The Agents window mounts the active session's folder into its
-		// own workspace, so ownership alone would qualify it too; it never
-		// publishes. The application-scoped disabled value is authoritative from
-		// any local window, including the Agents window.
-		const folder = enabled && !this._environmentService.isSessionsWindow ? this._resolveFolder(state) : undefined;
+		const folder = enabled ? this._resolveFolder(state) : undefined;
 		if (enabled && !folder) {
 			return;
 		}

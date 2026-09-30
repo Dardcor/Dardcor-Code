@@ -65,7 +65,7 @@ import { getChatSessionType } from '../../common/model/chatUri.js';
 import { getExplicitFileOrImageAttachmentSummary, IChatRequestVariableEntry, isExplicitFileOrImageVariableEntry, isPasteVariableEntry } from '../../common/attachments/chatVariableEntries.js';
 import { getStickyScrollTargetItem, IChatChangesSummaryPart, IChatCodeCitations, IChatErrorDetailsPart, IChatReferences, IChatRendererContent, IChatRequestViewModel, IChatResponseViewModel, IChatViewModel, IChatWorkingProgress, isRequestVM, isResponseVM, IChatPendingDividerViewModel, isPendingDividerVM, IChatTurnPillsPart } from '../../common/model/chatViewModel.js';
 import { getNWords } from '../../common/model/chatWordCounter.js';
-import { CHAT_OPEN_AGENT_HOST_CHAT_COMMAND_ID, ChatAgentLocation, ChatConfiguration, ChatModeKind, CollapsedToolsDisplayMode, ThinkingDisplayMode } from '../../common/constants.js';
+import { ChatAgentLocation, ChatConfiguration, ChatModeKind, CollapsedToolsDisplayMode, ThinkingDisplayMode } from '../../common/constants.js';
 import { formatChatRequestTimestamp, formatChatResponseDetails, formatChatResponseElapsedTime } from '../../common/chatProgressFormatting.js';
 import { ClickAnimation } from '../../../../../base/browser/ui/animations/animations.js';
 import { ForkConversationActionId } from '../actions/chatForkActions.js';
@@ -129,7 +129,6 @@ import { ITelemetryService } from '../../../../../platform/telemetry/common/tele
 import { ChatHookContentPart } from './chatContentParts/chatHookContentPart.js';
 import { ChatPendingDragController } from './chatPendingDragAndDrop.js';
 import { HookType } from '../../common/promptSyntax/hookTypes.js';
-import { IWorkbenchEnvironmentService } from '../../../../services/environment/common/environmentService.js';
 import { AccessibilityWorkbenchSettingId } from '../../../accessibility/browser/accessibilityConfiguration.js';
 import { isAskQuestionsToolInvocation, isMcpToolInvocation } from './chatContentParts/toolInvocationParts/chatToolPartUtilities.js';
 import { AgentSessionProviders, isAgentHostTarget } from '../agentSessions/agentSessions.js';
@@ -640,11 +639,10 @@ export interface IChatRendererDelegate {
 
 const mostRecentResponseClassName = 'chat-most-recent-response';
 
-export function shouldHideChatUserIdentity(username: string, sessionResource: URI, isResponse: boolean, isSessionsWindow: boolean, isSystemInitiatedRequest: boolean): boolean {
+export function shouldHideChatUserIdentity(username: string, sessionResource: URI, isResponse: boolean, isSystemInitiatedRequest: boolean): boolean {
 	const sessionType = getChatSessionType(sessionResource);
 	return username === COPILOT_USERNAME ||
 		(isResponse && isAgentHostCopilotSessionType(sessionType)) ||
-		isSessionsWindow ||
 		isSystemInitiatedRequest;
 }
 
@@ -759,7 +757,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		@IChatService private readonly chatService: IChatService,
 		@IAccessibilitySignalService private readonly accessibilitySignalService: IAccessibilitySignalService,
 		@IAccessibilityService private readonly accessibilityService: IAccessibilityService,
-		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService,
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
 	) {
 		super();
@@ -1505,7 +1502,7 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		const isSystemInitiatedRequest = isRequestVM(element) && !!element.isSystemInitiated;
 
 		templateData.username.textContent = element.username;
-		const hideChatUserIdentity = shouldHideChatUserIdentity(element.username, element.sessionResource, isResponseVM(element), this.environmentService.isSessionsWindow, isSystemInitiatedRequest);
+		const hideChatUserIdentity = shouldHideChatUserIdentity(element.username, element.sessionResource, isResponseVM(element), isSystemInitiatedRequest);
 		templateData.username.classList.toggle('hidden', hideChatUserIdentity);
 		templateData.avatarContainer.classList.toggle('hidden', hideChatUserIdentity);
 
@@ -2173,8 +2170,7 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		}
 
 		dom.clearNode(templateData.value);
-		const isFirstRequest = this.viewModel?.model.getRequests()[0]?.id === element.id;
-		if (!isStickyScrollRow && (element.origin || (this.environmentService.isSessionsWindow && isFirstRequest))) {
+		if (!isStickyScrollRow && element.origin) {
 			const requestOriginPart = this.instantiationService.createInstance(ChatRequestOriginPart, element.sessionResource, element.origin);
 			templateData.value.appendChild(requestOriginPart.domNode);
 			templateData.elementDisposables.add(requestOriginPart);
@@ -3460,16 +3456,9 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		const revealSubagent = (targetSubAgentId: string) => {
 			const currentTemplateData = this.getTemplateDataForRequestId(context.element.id);
 			const currentSubagentPart = this.getSubagentPart(currentTemplateData?.renderedParts, targetSubAgentId) ?? subagentPart;
-			const chatResource = currentSubagentPart.getChatResource();
-			if (this.environmentService.isSessionsWindow && chatResource) {
-				void this.commandService.executeCommand(CHAT_OPEN_AGENT_HOST_CHAT_COMMAND_ID, { chatResource });
-			} else {
-				currentSubagentPart.domNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
-			}
+			currentSubagentPart.domNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
 		};
-		const revealSubagentLabel = this.environmentService.isSessionsWindow
-			? localize('openSubagentChat', "Open {0} Chat", subagentTitle)
-			: undefined;
+		const revealSubagentLabel = undefined;
 
 		const navigateToCarousel = (targetSubAgentId: string) => {
 			widget.inputPart.activateCarouselForSubagent(targetSubAgentId);

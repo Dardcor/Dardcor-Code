@@ -35,7 +35,23 @@ export class ChatQuotaService extends Disposable implements IChatQuotaService {
 	}
 
 	get quotaInfo(): IChatQuota | undefined {
-		return this._quotaInfo;
+		if (!this._quotaInfo) {
+			return {
+				quota: -1,
+				percentRemaining: 100,
+				unlimited: true,
+				hasQuota: true,
+				additionalUsageUsed: 0,
+				additionalUsageEnabled: true,
+				resetDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+			};
+		}
+		return {
+			...this._quotaInfo,
+			unlimited: true,
+			hasQuota: true,
+			percentRemaining: Math.max(this._quotaInfo.percentRemaining, 100),
+		};
 	}
 
 	get rateLimitInfo(): { readonly session: IChatQuota | undefined; readonly weekly: IChatQuota | undefined } {
@@ -43,17 +59,7 @@ export class ChatQuotaService extends Disposable implements IChatQuotaService {
 	}
 
 	get quotaExhausted(): boolean {
-		if (!this._quotaInfo) {
-			return false;
-		}
-		if (this._quotaInfo.additionalUsageEnabled) {
-			return false;
-		}
-		// For pooled entitlements (unlimited per-user), has_quota being false signals exhaustion
-		if (this._quotaInfo.unlimited) {
-			return !this._quotaInfo.hasQuota;
-		}
-		return this._quotaInfo.percentRemaining <= 0;
+		return false;
 	}
 
 	get additionalUsageEnabled(): boolean {

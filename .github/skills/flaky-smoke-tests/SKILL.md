@@ -230,10 +230,10 @@ Useful files include:
   response"**: they are the SDK/CLI's own record (startup, auth, model request,
   turn lifecycle, panics, out-of-order or protocol errors) and explain a timeout
   the test error alone does not. A tail is also mirrored into
-  `smoke-test-runner.log`. **Agent Host** sessions (Agents Window / local
-  AgentHost) write a full log run at `trace`; Chat Sessions editor (Copilot CLI /
-  Claude) and Local sessions write only a minimal startup log here (whether the
-  runtime came up), with their detailed diagnostics in `GitHub Copilot Chat.log`.
+  `smoke-test-runner.log`. **Agent Host** sessions write a full log run at
+  `trace`; Copilot CLI sessions run the SDK in-process and write only a minimal
+  startup log here (whether the runtime came up), with detailed diagnostics in
+  `GitHub Copilot Chat.log`.
   (Claude / Codex sessions use a different runtime and are not captured here.)
 - `playwright-screenshot-*.png`
 - Playwright trace archives

@@ -34,8 +34,8 @@ extension configuration properties.
 The fixture must match the pinned distro policy data or the policy-export integration
 test fails.
 
-The canonical export launches both Workbench and the Agents window with isolated
-profiles and merges their policy catalogs. Do not invoke a single entrypoint directly.
+The canonical export launches the Editor Workbench with an isolated profile and
+produces its policy catalog. Do not invoke ad hoc entrypoints directly.
 
 Downstream consumers:
 

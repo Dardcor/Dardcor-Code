@@ -6,7 +6,7 @@ import { Action2, MenuId, MenuRegistry, registerAction2 } from '../../../../plat
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
-import { IWorkbenchLayoutService, LayoutSettings, ModernUIDensity } from '../../../services/layout/browser/layoutService.js';
+import { IWorkbenchLayoutService, LayoutSettings, ModernUIDensity, ModernUIEditorTabStyle } from '../../../services/layout/browser/layoutService.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 import { DEFAULT_SCROLLBAR_SIZE, setGlobalDefaultScrollbarSize } from '../../../../base/browser/ui/scrollbar/scrollableElement.js';
 import { COMPACT_NOTIFICATION_ROW_HEIGHT, DEFAULT_NOTIFICATION_ROW_HEIGHT, setNotificationRowHeight } from '../../../browser/parts/notifications/notificationsViewer.js';
@@ -29,6 +29,7 @@ import './media/sashHandles.css';
 import './media/shadows.css';
 import './media/statusBar.css';
 import './media/tabs.css';
+import './connectedEditorTabs.js';
 import './media/titlebar.css';
 import '../../../services/themes/browser/modernTabColorCustomizations.js';
 
@@ -41,6 +42,7 @@ interface IModernUIModule {
 const MODERN_UI_CLASS = 'modern-ui';
 const MODERN_UI_COMPACT_CLASS = 'modern-ui-compact';
 const MODERN_UI_TABS_CLASS = 'modern-ui-tabs';
+const MODERN_UI_CONNECTED_EDITOR_TABS_CLASS = 'modern-ui-connected-editor-tabs';
 const MODERN_UI_NOTIFICATIONS_DIALOGS_CLASS = 'modern-ui-notifications-dialogs';
 const MODERN_UI_UPPERCASE_VIEW_HEADERS_CLASS = 'modern-ui-uppercase-view-headers';
 
@@ -164,10 +166,15 @@ export class ModernUIContribution extends Disposable implements IWorkbenchContri
 		this.applyNotificationRowHeight(enabled);
 	}
 
+	private useConnectedEditorTabs(): boolean {
+		return this.configurationService.getValue<ModernUIEditorTabStyle>(LayoutSettings.MODERN_UI_EDITOR_TAB_STYLE) === ModernUIEditorTabStyle.Connected;
+	}
+
 	private applyTo(container: HTMLElement, enabled: boolean, compact: boolean, useUppercaseViewHeaders: boolean): void {
 		container.classList.toggle(MODERN_UI_CLASS, enabled);
 		container.classList.toggle(MODERN_UI_COMPACT_CLASS, compact);
 		container.classList.toggle(MODERN_UI_TABS_CLASS, enabled);
+		container.classList.toggle(MODERN_UI_CONNECTED_EDITOR_TABS_CLASS, enabled && this.useConnectedEditorTabs());
 		container.classList.toggle(MODERN_UI_NOTIFICATIONS_DIALOGS_CLASS, enabled);
 		container.classList.toggle(MODERN_UI_UPPERCASE_VIEW_HEADERS_CLASS, useUppercaseViewHeaders);
 	}
@@ -193,6 +200,7 @@ export class ModernUIContribution extends Disposable implements IWorkbenchContri
 			container.classList.remove(MODERN_UI_CLASS);
 			container.classList.remove(MODERN_UI_COMPACT_CLASS);
 			container.classList.remove(MODERN_UI_TABS_CLASS);
+			container.classList.remove(MODERN_UI_CONNECTED_EDITOR_TABS_CLASS);
 			container.classList.remove(MODERN_UI_NOTIFICATIONS_DIALOGS_CLASS);
 			container.classList.remove(MODERN_UI_UPPERCASE_VIEW_HEADERS_CLASS);
 		}

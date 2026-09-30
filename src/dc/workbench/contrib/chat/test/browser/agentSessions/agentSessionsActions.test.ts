@@ -19,7 +19,6 @@ import { KeybindingResolver } from '../../../../../../platform/keybinding/common
 import { ResolvedKeybindingItem } from '../../../../../../platform/keybinding/common/resolvedKeybindingItem.js';
 import { USLayoutResolvedKeybinding } from '../../../../../../platform/keybinding/common/usLayoutResolvedKeybinding.js';
 import { IQuickInputService } from '../../../../../../platform/quickinput/common/quickInput.js';
-import { IsSessionsWindowContext } from '../../../../../common/contextkeys.js';
 import { IChatWidget, IChatWidgetService } from '../../../browser/chat.js';
 import { AGENT_SESSION_RENAME_ACTION_ID, AgentSessionProviders } from '../../../browser/agentSessions/agentSessions.js';
 import { RenameAgentSessionAction } from '../../../browser/agentSessions/agentSessionsActions.js';
@@ -62,7 +61,6 @@ suite('RenameAgentSessionAction', () => {
 			[ChatContextKeys.agentSessionsViewerFocused.key, false],
 			[ChatContextKeys.inChatSession.key, true],
 			[ChatContextKeys.inQuickChat.key, false],
-			[IsSessionsWindowContext.key, false],
 			[ChatContextKeys.agentSessionType.key, AgentSessionProviders.Local],
 			[ChatContextKeys.chatSessionSupportsRename.key, true],
 		] satisfies Array<[string, boolean | string]>;
@@ -70,7 +68,6 @@ suite('RenameAgentSessionAction', () => {
 			[ChatContextKeys.agentSessionsViewerFocused.key, false],
 			[ChatContextKeys.inChatSession.key, true],
 			[ChatContextKeys.inQuickChat.key, false],
-			[IsSessionsWindowContext.key, false],
 			[ChatContextKeys.agentSessionType.key, 'agent-host-copilotcli'],
 			[ChatContextKeys.chatSessionSupportsRename.key, true],
 		] satisfies Array<[string, boolean | string]>;
@@ -119,11 +116,6 @@ suite('RenameAgentSessionAction', () => {
 				[ChatContextKeys.inQuickChat.key, true],
 				[ChatContextKeys.inChatInput.key, true],
 			]),
-			sessionsWindowInput: lookup([
-				...regularChat,
-				[IsSessionsWindowContext.key, true],
-				[ChatContextKeys.inChatInput.key, true],
-			]),
 			outsideChat: lookup([
 				[ChatContextKeys.agentSessionsViewerFocused.key, false],
 				[ChatContextKeys.inChatSession.key, false],
@@ -142,7 +134,6 @@ suite('RenameAgentSessionAction', () => {
 			renameableContributedInput: expectedChatKeybinding,
 			cloudEditorInput: null,
 			quickChatInput: null,
-			sessionsWindowInput: null,
 			outsideChat: null,
 		});
 	});
@@ -165,7 +156,6 @@ suite('RenameAgentSessionAction', () => {
 				[ChatContextKeys.agentSessionsViewerFocused.key, false],
 				[ChatContextKeys.inChatSession.key, true],
 				[ChatContextKeys.inQuickChat.key, false],
-				[IsSessionsWindowContext.key, false],
 				[ChatContextKeys.chatSessionSupportsRename.key, true],
 			]),
 		}, {

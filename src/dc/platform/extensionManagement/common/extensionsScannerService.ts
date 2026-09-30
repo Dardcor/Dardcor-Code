@@ -224,6 +224,20 @@ export abstract class AbstractExtensionsScannerService extends Disposable implem
 			allSystemExtensions = allSystemExtensions.filter(ext => !skipSet.has(ext.identifier.id.toLowerCase()));
 		}
 
+		if (!this.environmentService.extensionTestsLocationURI) {
+			const testExtensionIds = new Set([
+				'vscode.vscode-api-tests',
+				'dardcor.dardcor-api-tests',
+				'vscode.vscode-colorize-tests',
+				'dardcor.dardcor-colorize-tests',
+				'vscode.vscode-colorize-perf-tests',
+				'dardcor.dardcor-colorize-perf-tests',
+				'vscode.vscode-test-resolver',
+				'dardcor.dardcor-test-resolver',
+			]);
+			allSystemExtensions = allSystemExtensions.filter(ext => !testExtensionIds.has(ext.identifier.id.toLowerCase()));
+		}
+
 		return this.applyScanOptions(allSystemExtensions, ExtensionType.System, { pickLatest: false });
 	}
 

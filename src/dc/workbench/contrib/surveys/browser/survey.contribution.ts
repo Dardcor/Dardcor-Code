@@ -19,8 +19,6 @@ import { EditorPaneDescriptor, IEditorPaneRegistry } from '../../../browser/edit
 import { ActiveEditorContext } from '../../../common/contextkeys.js';
 import { EditorExtensions } from '../../../common/editor.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
-import { IEditorGroupsService } from '../../../services/editor/common/editorGroupsService.js';
-import { IWorkbenchEnvironmentService } from '../../../services/environment/common/environmentService.js';
 import { SurveyEditorInput } from './surveyEditorInput.js';
 import { SurveyEditorPane } from './surveyEditorPane.js';
 import { CopilotPMFSurvey } from './surveyQuestions.js';
@@ -85,9 +83,7 @@ CommandsRegistry.registerCommand('_workbench.action.openCopilotSurvey', (accesso
 function openSurveyEditor(accessor: ServicesAccessor, source?: string): Promise<void> {
 	const instantiationService = accessor.get(IInstantiationService);
 	const editorService = accessor.get(IEditorService);
-	const editorGroupsService = accessor.get(IEditorGroupsService);
-	const environmentService = accessor.get(IWorkbenchEnvironmentService);
-	const surveySource = environmentService.isSessionsWindow ? 'agents' : source;
+	const surveySource = source;
 
 	const input = instantiationService.createInstance(SurveyEditorInput, CopilotPMFSurvey, surveySource);
 
@@ -99,12 +95,7 @@ function openSurveyEditor(accessor: ServicesAccessor, source?: string): Promise<
 		}
 	}
 
-	// In the sessions window, open in the main editor part (not modal)
-	const preferredGroup = environmentService.isSessionsWindow
-		? editorGroupsService.mainPart.activeGroup
-		: undefined;
-
-	return editorService.openEditor(input, { pinned: true }, preferredGroup).then(() => undefined);
+	return editorService.openEditor(input, { pinned: true }).then(() => undefined);
 }
 
 // Accessibility help for the survey pane

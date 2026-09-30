@@ -20,7 +20,7 @@ import { IQuickAccessRegistry, Extensions as QuickAccessExtensions } from '../..
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import { EditorPaneDescriptor, IEditorPaneRegistry } from '../../../browser/editor.js';
 import { ViewPaneContainer } from '../../../browser/parts/views/viewPaneContainer.js';
-import { FocusedViewContext, IsSessionsWindowContext } from '../../../common/contextkeys.js';
+import { FocusedViewContext } from '../../../common/contextkeys.js';
 import { IWorkbenchContributionsRegistry, Extensions as WorkbenchExtensions, WorkbenchPhase, registerWorkbenchContribution2 } from '../../../common/contributions.js';
 import { EditorExtensions } from '../../../common/editor.js';
 import { IViewContainersRegistry, IViewsRegistry, ViewContainer, ViewContainerLocation, Extensions as ViewExtensions } from '../../../common/views.js';
@@ -264,8 +264,7 @@ MenuRegistry.appendMenuItem(MenuId.MenubarMainMenu, {
 		...nls.localize2('runMenu', "Run"),
 		mnemonicTitle: nls.localize({ key: 'mRun', comment: ['&& denotes a mnemonic'] }, "&&Run")
 	},
-	order: 6,
-	when: IsSessionsWindowContext.negate()
+	order: 6
 });
 
 MenuRegistry.appendMenuItem(MenuId.MenubarDebugMenu, {

@@ -10,6 +10,7 @@ import { ILanguageDiagnosticsService } from '../../../platform/languages/common/
 import { ILogService } from '../../../platform/log/common/logService';
 import { INotebookService } from '../../../platform/notebook/common/notebookService';
 import { IPromptPathRepresentationService } from '../../../platform/prompts/common/promptPathRepresentationService';
+import { ITerminalService } from '../../../platform/terminal/common/terminalService';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
 import { getLanguage } from '../../../util/common/languages';
 import { findNotebook } from '../../../util/common/notebooks';
@@ -31,6 +32,14 @@ import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
 import { formatUriForFileWidget } from '../common/toolUtils';
 import { checkCancellation, resolveToolInputPath } from './toolUtils';
 
+export interface ITerminalErrorInfo {
+	terminalName: string;
+	errorSnippet: string;
+	summary: string;
+	fileUri?: URI;
+	line?: number;
+}
+
 interface IGetErrorsParams {
 	// Note that empty array is not the same as absence; empty array
 	// will not return any errors. Absence returns all errors.
@@ -38,6 +47,30 @@ interface IGetErrorsParams {
 	// sparse array of ranges, as numbers because it goes through JSON
 	// ignored if filePaths is missing / null.
 	ranges?: ([a: number, b: number, c: number, d: number] | undefined)[];
+}
+
+export function annotateDiagnosticsWithCausality(diagnostics: vscode.Diagnostic[]): vscode.Diagnostic[] {
+	if (diagnostics.length <= 1) {
+		return diagnostics;
+	}
+
+	const isRootCause = (d: vscode.Diagnostic): boolean => {
+		const codeStr = String(typeof d.code === 'object' ? d.code.value : d.code || '');
+		if (/^(2304|2307|2614|1005|2305|2792)$/.test(codeStr)) {
+			return true;
+		}
+		const msg = d.message.toLowerCase();
+		return msg.includes('cannot find module') || msg.includes('cannot find name') || msg.includes('is not defined') || msg.includes('syntax error');
+	};
+
+	return [...diagnostics].sort((a, b) => {
+		const aRoot = isRootCause(a) ? 1 : 0;
+		const bRoot = isRootCause(b) ? 1 : 0;
+		if (aRoot !== bRoot) {
+			return bRoot - aRoot;
+		}
+		return a.range.start.line - b.range.start.line;
+	});
 }
 
 export class GetErrorsTool extends Disposable implements ICopilotTool<IGetErrorsParams> {
@@ -50,7 +83,8 @@ export class GetErrorsTool extends Disposable implements ICopilotTool<IGetErrors
 		@IWorkspaceService private readonly workspaceService: IWorkspaceService,
 		@IPromptPathRepresentationService private readonly promptPathRepresentationService: IPromptPathRepresentationService,
 		@INotebookService private readonly notebookService: INotebookService,
-		@ILogService private readonly logService: ILogService
+		@ILogService private readonly logService: ILogService,
+		@ITerminalService private readonly terminalService: ITerminalService
 	) {
 		super();
 	}
@@ -146,6 +180,92 @@ export class GetErrorsTool extends Disposable implements ICopilotTool<IGetErrors
 		return results;
 	}
 
+	private scrapeTerminalErrors(targetUris?: URI[]): ITerminalErrorInfo[] {
+		const results: ITerminalErrorInfo[] = [];
+		const terminals = this.terminalService.terminals;
+		if (!terminals || terminals.length === 0) {
+			return results;
+		}
+
+		const errorPattern = /(?:(?:ReferenceError|TypeError|SyntaxError|RangeError|URIError|EvalError|Error):\s*([^\n\r]+)|(?:Failed to compile[^\n\r]*)|(?:Unhandled Runtime Error[^\n\r]*)|(?:(?:GET|POST|PUT|DELETE|PATCH)\s+[^\s]+\s+500\b[^\n\r]*)|(?:Module not found:[^\n\r]*)|(?:Cannot find module\s*['"][^'"]+['"])|(?:Traceback \(most recent call last\):)|(?:panic:\s*[^\n\r]+))/i;
+		const fileLocationPattern = /(?:at\s+.*?\s+\(?|in\s+|-->\s+|^)?([a-zA-Z0-9_\-./\\]+\.(?:tsx|ts|jsx|js|vue|svelte|py|rs|go|mjs|cjs))(?::(\d+)(?::(\d+))?|\((\d+)(?:,(\d+))?\))/im;
+
+		for (const terminal of terminals) {
+			let buffer = '';
+			try {
+				buffer = this.terminalService.getBufferForTerminal(terminal, 32768);
+			} catch (err) {
+				this.logService.warn(`Could not read buffer for terminal ${terminal.name}: ${err}`);
+				continue;
+			}
+
+			if (!buffer) {
+				continue;
+			}
+
+			const cleanBuffer = buffer.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/\r\n/g, '\n');
+			const lines = cleanBuffer.split('\n');
+			const tailLines = lines.slice(-150);
+
+			for (let i = tailLines.length - 1; i >= 0; i--) {
+				const line = tailLines[i];
+				const match = line.match(errorPattern);
+				if (match) {
+					const startIndex = Math.max(0, i - 2);
+					const endIndex = Math.min(tailLines.length, i + 12);
+					const snippetLines = tailLines.slice(startIndex, endIndex);
+					const errorSnippet = snippetLines.join('\n').trim();
+
+					let fileUri: URI | undefined;
+					let errorLine: number | undefined;
+
+					for (const sLine of snippetLines) {
+						const fMatch = sLine.match(fileLocationPattern);
+						if (fMatch) {
+							const rawPath = fMatch[1];
+							const lineNum = fMatch[2] ? parseInt(fMatch[2], 10) : fMatch[4] ? parseInt(fMatch[4], 10) : undefined;
+							try {
+								const resolved = resolveToolInputPath(rawPath, this.promptPathRepresentationService);
+								if (resolved) {
+									fileUri = resolved;
+									errorLine = lineNum;
+									break;
+								}
+							} catch {
+								for (const folder of this.workspaceService.getWorkspaceFolders()) {
+									const candidate = URI.joinPath(folder, rawPath);
+									fileUri = candidate;
+									errorLine = lineNum;
+									break;
+								}
+							}
+						}
+					}
+
+					if (targetUris && targetUris.length > 0 && fileUri) {
+						const matchesTarget = targetUris.some(u => isEqualOrParent(fileUri!, u));
+						if (!matchesTarget) {
+							continue;
+						}
+					}
+
+					const summary = (match[1] || match[0]).trim();
+					results.push({
+						terminalName: terminal.name,
+						errorSnippet,
+						summary,
+						fileUri,
+						line: errorLine
+					});
+
+					break;
+				}
+			}
+		}
+
+		return results;
+	}
+
 	async invoke(options: vscode.LanguageModelToolInvocationOptions<IGetErrorsParams>, token: CancellationToken) {
 		const getAll = () => this.languageDiagnosticsService.getAllDiagnostics()
 			.map(d => ({ uri: d[0], diagnostics: d[1].filter(e => e.severity <= DiagnosticSeverity.Warning), inputUri: undefined }))
@@ -167,11 +287,12 @@ export class GetErrorsTool extends Disposable implements ICopilotTool<IGetErrors
 
 		const diagnostics = coalesce(await Promise.all(ds.map((async ({ uri, diagnostics, inputUri }) => {
 			try {
+				const sortedDiagnostics = annotateDiagnosticsWithCausality(diagnostics);
 				const document = await this.workspaceService.openTextDocumentAndSnapshot(uri);
 				checkCancellation(token);
 				return {
 					uri,
-					diagnostics,
+					diagnostics: sortedDiagnostics,
 					context: { document, language: getLanguage(document) },
 					inputUri
 				};
@@ -182,9 +303,25 @@ export class GetErrorsTool extends Disposable implements ICopilotTool<IGetErrors
 		}))));
 		checkCancellation(token);
 
+		const terminalErrors = this.scrapeTerminalErrors(options.input.filePaths?.length ? ds.map(d => d.uri) : undefined);
+
+		for (const tErr of terminalErrors) {
+			if (tErr.fileUri && !diagnostics.some(d => d.uri.toString() === tErr.fileUri?.toString())) {
+				try {
+					const document = await this.workspaceService.openTextDocumentAndSnapshot(tErr.fileUri);
+					diagnostics.push({
+						uri: tErr.fileUri,
+						diagnostics: [],
+						context: { document, language: getLanguage(document) },
+						inputUri: undefined
+					});
+				} catch { /* ignore */ }
+			}
+		}
+
 		const result = new ExtendedLanguageModelToolResult([
 			new LanguageModelPromptTsxPart(
-				await renderPromptElementJSON(this.instantiationService, DiagnosticToolOutput, { diagnosticsGroups: diagnostics, maxDiagnostics: 50 }, options.tokenizationOptions, token)
+				await renderPromptElementJSON(this.instantiationService, DiagnosticToolOutput, { diagnosticsGroups: diagnostics, terminalErrors, maxDiagnostics: 50 }, options.tokenizationOptions, token)
 			)
 		]);
 
@@ -200,7 +337,14 @@ export class GetErrorsTool extends Disposable implements ICopilotTool<IGetErrors
 
 		const formattedURIs = this.formatURIs(Array.from(displayUriSet));
 
-		if (options.input.filePaths?.length) {
+		if (terminalErrors.length > 0) {
+			const termSummaries = terminalErrors.map(t => `${t.terminalName}: ${t.summary}`).join('; ');
+			if (numDiagnostics > 0) {
+				result.toolResultMessage = new MarkdownString(l10n.t`Checked workspace: ${numDiagnostics} diagnostic problem(s) and ${terminalErrors.length} terminal runtime error(s) found (${termSummaries})`);
+			} else {
+				result.toolResultMessage = new MarkdownString(l10n.t`Checked workspace: ${terminalErrors.length} terminal runtime error(s) detected (${termSummaries}). You must fix these errors before completing.`);
+			}
+		} else if (options.input.filePaths?.length) {
 			result.toolResultMessage = numDiagnostics === 0 ?
 				new MarkdownString(l10n.t`Checked ${formattedURIs}, no problems found`) :
 				numDiagnostics === 1 ?
@@ -307,6 +451,7 @@ ToolRegistry.registerTool(GetErrorsTool);
 
 interface IDiagnosticToolOutputProps extends BasePromptElementProps {
 	diagnosticsGroups: { context: DiagnosticContext; uri: URI; diagnostics: vscode.Diagnostic[] }[];
+	terminalErrors?: ITerminalErrorInfo[];
 	maxDiagnostics?: number;
 }
 
@@ -319,7 +464,9 @@ export class DiagnosticToolOutput extends PromptElement<IDiagnosticToolOutputPro
 	}
 
 	render() {
-		if (!this.props.diagnosticsGroups.length) {
+		const hasDiagnostics = this.props.diagnosticsGroups.length > 0;
+		const hasTerminalErrors = Boolean(this.props.terminalErrors?.length);
+		if (!hasDiagnostics && !hasTerminalErrors) {
 			return <>No errors found.</>;
 		}
 
@@ -343,6 +490,29 @@ export class DiagnosticToolOutput extends PromptElement<IDiagnosticToolOutputPro
 
 		return <>
 			{limitMsg}
+			{(() => {
+				const rootCauses = diagnosticsGroups.flatMap(g => g.diagnostics.filter(d => {
+					const codeStr = String(typeof d.code === 'object' ? d.code.value : d.code || '');
+					return /^(2304|2307|2614|1005|2305|2792)$/.test(codeStr) || d.message.toLowerCase().includes('cannot find') || d.message.toLowerCase().includes('is not defined');
+				}));
+				if (rootCauses.length > 0) {
+					return (
+						<Tag name='rootCauseHypothesis'>
+							Identified {rootCauses.length} potential primary root-cause issue(s) (e.g. missing imports or unexported symbols). Prioritize fixing these first to resolve cascading ripple diagnostics.
+						</Tag>
+					);
+				}
+				return null;
+			})()}
+			{this.props.terminalErrors && this.props.terminalErrors.length > 0 && (
+				<Tag name='terminalErrors'>
+					{this.props.terminalErrors.map(tErr => (
+						<Tag name='terminal' attrs={{ name: tErr.terminalName, ...(tErr.fileUri ? { file: this.promptPathRepresentationService.getFilePath(tErr.fileUri), line: String(tErr.line ?? '') } : {}) }}>
+							{tErr.errorSnippet}
+						</Tag>
+					))}
+				</Tag>
+			)}
 			{diagnosticsGroups.map(d =>
 				<Tag name='errors' attrs={{ path: this.promptPathRepresentationService.getFilePath(d.uri) }}>
 					{d.diagnostics.length
@@ -357,3 +527,4 @@ export class DiagnosticToolOutput extends PromptElement<IDiagnosticToolOutputPro
 		</>;
 	}
 }
+

@@ -54,13 +54,10 @@ import { ICommandService } from '../../../../platform/commands/common/commands.j
 import { CONFIGURE_VOICE_INSTRUCTIONS_ACTION_ID } from '../../chat/browser/actions/configureVoiceInstructionsAction.js';
 import { IVoiceModeOnboardingService } from './voiceModeOnboarding.js';
 import { SHOW_VOICE_MODE_ONBOARDING_COMMAND } from '../../chat/browser/speechToText/micButtonMenuActions.js';
-import { IsSessionsWindowContext } from '../../../common/contextkeys.js';
 
 // --- Context Keys ---
 
 export const AGENTS_VOICE_WIDGET_FOCUSED = new RawContextKey<boolean>('agentsVoiceWidgetFocused', false);
-const AGENTS_VOICE_INITIATED_HERE = ContextKeyExpr.equals('agentsVoiceInitiatedHere', true);
-const VOICE_ACTIVE_ON_SURFACE = ContextKeyExpr.or(IsSessionsWindowContext.negate(), AGENTS_VOICE_INITIATED_HERE)!;
 
 // --- Context Key Binding ---
 
@@ -197,7 +194,6 @@ registerAction2(class extends Action2 {
 					ContextKeyExpr.notEquals(`config.${AgentsVoiceSettingId.ShowButton}`, false),
 					ChatContextKeys.location.isEqualTo(ChatAgentLocation.Chat),
 					AGENTS_VOICE_CONNECTING.isEqualTo(true),
-					VOICE_ACTIVE_ON_SURFACE,
 				),
 				group: 'navigation',
 				order: -10
@@ -340,7 +336,6 @@ registerAction2(class extends Action2 {
 					ChatContextKeys.location.isEqualTo(ChatAgentLocation.Chat),
 					ChatContextKeys.currentlyEditing.negate(),
 					AGENTS_VOICE_LISTENING.isEqualTo(true),
-					VOICE_ACTIVE_ON_SURFACE,
 				),
 				group: 'navigation',
 				order: -10
@@ -382,7 +377,6 @@ registerAction2(class extends Action2 {
 					ChatContextKeys.location.isEqualTo(ChatAgentLocation.Chat),
 					ChatContextKeys.currentlyEditing.negate(),
 					AGENTS_VOICE_CONNECTED.isEqualTo(true),
-					VOICE_ACTIVE_ON_SURFACE,
 					// The segmented voice pill's voice cell is itself the on/off toggle,
 					// so a separate disconnect button would be redundant there.
 					SegmentedVoiceInputModePillInactive,
@@ -400,7 +394,6 @@ registerAction2(class extends Action2 {
 					AGENTS_VOICE_ENABLED,
 					ChatContextKeys.inChatInput,
 					AGENTS_VOICE_CONNECTED.isEqualTo(true),
-					VOICE_ACTIVE_ON_SURFACE,
 					// Don't disconnect voice while a request is running — pressing
 					// Escape there is meant to interrupt/cancel that request, not
 					// tear down the voice session (which is especially disruptive

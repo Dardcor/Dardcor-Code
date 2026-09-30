@@ -15,7 +15,7 @@ import { TestInstantiationService } from '../../../instantiation/test/common/ins
 import { IConfigurationService, type IConfigurationChangeEvent } from '../../../configuration/common/configuration.js';
 import { IInstantiationService } from '../../../instantiation/common/instantiation.js';
 import { ILabelService, type ResourceLabelFormatter } from '../../../label/common/label.js';
-import { AgentsWindowRemoteAgentHostService, RemoteAgentHostService } from '../../browser/remoteAgentHostServiceImpl.js';
+import { RemoteAgentHostService } from '../../browser/remoteAgentHostServiceImpl.js';
 import { InitialAuthenticationError, type IAgentHostProtocolClientOptions } from '../../browser/agentHostProtocolClient.js';
 import { addSSHRemoteAgentHostEntry, addWebSocketRemoteAgentHostEntry, getEntryAddress, getEntryTypeConfig, parseRemoteAgentHostInput, removeWebSocketRemoteAgentHostEntry, RemoteAgentHostAutoConnectSettingId, RemoteAgentHostConnectionStatus, RemoteAgentHostEntryType, RemoteAgentHostsEnabledSettingId, RemoteAgentHostsSettingId, type IRawRemoteAgentHostEntry, type IRemoteAgentHostConnectionFactory, type IRemoteAgentHostCreatedConnection, type IRemoteAgentHostEntry, type IRemoteAgentHostProtocolClient } from '../../common/remoteAgentHostService.js';
 import { AGENT_HOST_SCHEME, agentHostAuthority } from '../../common/agentHostUri.js';
@@ -23,7 +23,7 @@ import { DeferredPromise } from '../../../../base/common/async.js';
 import { InMemoryStorageService, IStorageService, StorageScope, StorageTarget } from '../../../storage/common/storage.js';
 import type { StorageValue } from '../../../../base/parts/storage/common/storage.js';
 import type { Implementation } from '../../common/state/protocol/common/commands.js';
-import { agentsWindowAgentHostClientInfo, editorWindowAgentHostClientInfo } from '../../common/agentHostClientInfo.js';
+import { editorWindowAgentHostClientInfo } from '../../common/agentHostClientInfo.js';
 import { PROTOCOL_VERSION } from '../../common/state/protocol/version/registry.js';
 import { computeReconnectDelay } from '../../common/reconnectPolicy.js';
 import { AgentHostTransportFailureReason, NonReconnectableTransportError } from '../../common/state/sessionTransport.js';
@@ -378,17 +378,6 @@ suite('RemoteAgentHostService', () => {
 			connection: [{ address: 'host1:8080', name: 'Host 1' }],
 			clientInfo: [editorWindowAgentHostClientInfo],
 		});
-	});
-
-	test('agents window service identifies its protocol client', async () => {
-		service.dispose();
-		service = disposables.add(instantiationService.createInstance(AgentsWindowRemoteAgentHostService));
-		configService.setEntries([{ name: 'Host 1', connection: { type: RemoteAgentHostEntryType.WebSocket, address: 'ws://host1:8080' } }]);
-		await waitForCreatedClients(1);
-		createdClients[0].connectDeferred.complete();
-		await waitForConnected();
-
-		assert.deepStrictEqual(createdClientInfos, [agentsWindowAgentHostClientInfo]);
 	});
 
 	test('getConnection returns client after successful connect', async () => {

@@ -544,7 +544,7 @@ export class Chat {
 /**
  * Click the "Allow" button of a pending terminal tool confirmation if one is
  * present. No-op when there is no confirmation (e.g. the session auto-approved
- * its shell command). Shared by {@link Chat} and the Agents Window driver so
+ * its shell command). Shared by chat automation helpers so
  * shell-tool tests can drive the real confirmation flow without per-agent
  * special-casing.
  *

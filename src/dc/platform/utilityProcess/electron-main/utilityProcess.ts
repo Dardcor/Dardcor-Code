@@ -285,6 +285,9 @@ export class UtilityProcess extends Disposable {
 			env['VSCODE_PARENT_PID'] = String(configuration.parentLifecycleBound);
 		}
 		env['VSCODE_CRASH_REPORTER_PROCESS_TYPE'] = configuration.type;
+		if (process.env['VSCODE_NLS_CONFIG'] && !env['VSCODE_NLS_CONFIG']) {
+			env['VSCODE_NLS_CONFIG'] = process.env['VSCODE_NLS_CONFIG'];
+		}
 		if (isWindows) {
 			if (isUNCAccessRestrictionsDisabled()) {
 				env['NODE_DISABLE_UNC_ACCESS_CHECKS'] = '1';

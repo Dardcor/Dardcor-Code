@@ -187,15 +187,13 @@ export class ChatResponsePullRequestPart {
 
 
 export class ChatResponseAutoModeResolutionPart {
-	resolvedModel: string;
-	resolvedModelName: string;
-	predictedLabel: string;
-	confidence: number;
-	constructor(resolvedModel: string, resolvedModelName: string, predictedLabel: string, confidence: number) {
-		this.resolvedModel = resolvedModel;
-		this.resolvedModelName = resolvedModelName;
-		this.predictedLabel = predictedLabel;
-		this.confidence = confidence;
+	resolvedModel: { id: string; name: string } | undefined;
+	constructor(resolvedModel?: { id: string; name: string } | string, resolvedModelName?: string, _predictedLabel?: string, _confidence?: number) {
+		if (typeof resolvedModel === 'string') {
+			this.resolvedModel = { id: resolvedModel, name: resolvedModelName ?? resolvedModel };
+		} else {
+			this.resolvedModel = resolvedModel;
+		}
 	}
 }
 

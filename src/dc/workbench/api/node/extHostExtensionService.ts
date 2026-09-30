@@ -129,7 +129,7 @@ class NodeModuleRequireInterceptor extends RequireInterceptor {
 		};
 		const hooks = nodeModule.registerHooks({
 			resolve: (specifier, context, nextResolve) => {
-				if (specifier !== 'vscode' || !context.parentURL) {
+				if ((specifier !== 'vscode' && specifier !== 'dardcor') || !context.parentURL) {
 					return nextResolve(specifier, context);
 				}
 				const otherUrl = lookup(context.parentURL);

@@ -40,7 +40,6 @@
 	"nodejsArtifactFeed": "",
 	"electronArtifactFeed": "",
 	"urlProtocol": "dardcor-code",
-	"agentsTelemetryAppName": "agents",
 	"webviewContentExternalBaseUrlTemplate": "",
 	"builtInExtensions": [
 		{
@@ -133,7 +132,7 @@
 	},
 	"onboardingKeymaps": [
 		{
-			"id": "vscode",
+			"id": "dardcor",
 			"label": "Dardcor Code",
 			"description": "Default keyboard mapping"
 		},
@@ -209,12 +208,6 @@
 	"builtInExtensionsEnabledWithAutoUpdates": [
 		"dardcor.dardcor-ai"
 	],
-	"sessionsWindowAllowedExtensions": [
-		"github.dardcor-chat",
-		"dardcor.dardcor-ai",
-		"github.copilot-chat",
-		"google.google-antigravity"
-	],
 	"voiceWsUrl": "",
 	"extensionRecommendations": {
 		"ms-python.python": {
@@ -242,5 +235,7 @@
 	},
 	"quality": "stable",
 	"version": "1.132.0",
+	"dardcorVersion": "1.0.0",
+	"updateUrl": "https://github.com/Dardcor/Dardcor-Code/releases/latest/download/updater.json",
 	"win32AppUserModelId": "Dardcor.DardcorCode"
 }

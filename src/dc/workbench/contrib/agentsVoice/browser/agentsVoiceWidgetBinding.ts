@@ -15,8 +15,7 @@ import { IWorkbenchEnvironmentService } from '../../../services/environment/comm
 import { IChatService } from '../../chat/common/chatService/chatService.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { AgentsVoiceWidget } from './agentsVoiceWidget.js';
-import { getRepositoryName } from '../../chat/browser/agentSessions/agentSessionsViewer.js';
-import type { SessionGroupData, SessionRowData } from './components/sessionListComponent.js';
+import type { SessionRowData } from './components/sessionListComponent.js';
 
 export interface IWidgetBindingServices {
 	readonly voiceSessionController: IVoiceSessionController;
@@ -140,7 +139,7 @@ function _updateStatusCounts(widget: AgentsVoiceWidget, { agentSessionsService }
 }
 
 function _updateSessionData(widget: AgentsVoiceWidget, services: IWidgetBindingServices): void {
-	const { agentSessionsService, voiceSessionController, voicePlaybackService, environmentService, chatService } = services;
+	const { agentSessionsService, voiceSessionController, voicePlaybackService, chatService } = services;
 
 	// Show all non-archived sessions so the user can target any for transcription.
 	const sessions = agentSessionsService.model.sessions.filter(s => !s.isArchived());
@@ -210,36 +209,5 @@ function _updateSessionData(widget: AgentsVoiceWidget, services: IWidgetBindingS
 
 	widget.setSessions(sessionRows);
 
-	// In sessions window, group by repository
-	if (environmentService.isSessionsWindow) {
-		const repoMap = new Map<string, SessionRowData[]>();
-		const otherRows: SessionRowData[] = [];
-
-		for (let i = 0; i < sorted.length; i++) {
-			const repoName = getRepositoryName(sorted[i]);
-			const row = sessionRows[i];
-			if (repoName) {
-				let group = repoMap.get(repoName);
-				if (!group) {
-					group = [];
-					repoMap.set(repoName, group);
-				}
-				group.push(row);
-			} else {
-				otherRows.push(row);
-			}
-		}
-
-		const groups: SessionGroupData[] = [];
-		for (const [label, rows] of repoMap) {
-			groups.push({ label, sessions: rows });
-		}
-		if (otherRows.length > 0) {
-			groups.push({ label: localize('agentsVoice.otherSessions', "Other"), sessions: otherRows });
-		}
-
-		widget.setSessionGroups(groups.length > 0 ? groups : undefined);
-	} else {
-		widget.setSessionGroups(undefined);
-	}
+	widget.setSessionGroups(undefined);
 }

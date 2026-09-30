@@ -339,7 +339,7 @@ function cleanMessageText(text: string): string {
 }
 
 function formatModelDisplayName(modelId: string): string {
-	const cleaned = modelId.replace(/^(ag|oc|ds|opencode|gemini|grok|claude|openai)\//i, '');
+	const cleaned = (modelId || '').replace(/^(ag|oc|ds|gemini|grok|claude|openai)\//i, '');
 	return cleaned
 		.split(/[-_]/)
 		.map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -347,13 +347,14 @@ function formatModelDisplayName(modelId: string): string {
 }
 
 function inferProviderFromModel(modelId: string): string {
-	const lower = modelId.toLowerCase();
+	const lower = (modelId || '').toLowerCase();
+	if (!lower) return 'Dardcor Router';
 	if (lower.startsWith('antigravity/') || lower.startsWith('ag/')) return 'Antigravity';
 	if (lower.startsWith('codex/') || lower.startsWith('cx/') || lower.includes('sol') || lower.includes('terra') || lower.includes('luna')) return 'OpenAI Codex';
 	if (lower.startsWith('gemini-cli/') || lower.startsWith('gc/')) return 'Gemini CLI';
 	if (lower.startsWith('grok-cli/') || lower.startsWith('gcli/') || lower.startsWith('gb/') || lower.includes('grok-build')) return 'Grok CLI (Grok Build)';
-	if (lower.startsWith('ocg/') || lower.includes('opencode-go')) return 'OpenCode Go';
-	if (lower.startsWith('oc/') || lower.includes('opencode') || lower.includes('pickle')) return 'OpenCode Free';
+	if (lower.startsWith('ocg/')) return 'Cloud Go';
+	if (lower.startsWith('oc/') || lower.includes('pickle')) return 'Free Tier';
 	if (lower.startsWith('claude') || lower.includes('sonnet') || lower.includes('opus') || lower.includes('haiku')) return 'Anthropic (Claude)';
 	if (lower.startsWith('gemini') || lower.includes('flash') || lower.includes('pro-exp')) return 'Google Gemini';
 	if (lower.startsWith('gpt') || lower.startsWith('o1') || lower.startsWith('o3') || lower.includes('openai')) return 'OpenAI';
@@ -369,8 +370,6 @@ function formatProviderDisplayName(provider?: string): string {
 	if (lower.includes('codex') || lower.includes('cx')) return 'OpenAI Codex';
 	if (lower.includes('gemini-cli') || lower.includes('gc')) return 'Gemini CLI';
 	if (lower.includes('grok-cli') || lower.includes('gcli') || lower.includes('grok-build') || lower.includes('gb')) return 'Grok CLI (Grok Build)';
-	if (lower.includes('opencode-go') || lower.includes('ocg')) return 'OpenCode Go';
-	if (lower.includes('opencode') || lower.includes('oc')) return 'OpenCode Free';
 	if (lower.includes('claude') || lower.includes('anthropic')) return 'Anthropic (Claude)';
 	if (lower.includes('gemini') || lower.includes('google')) return 'Google Gemini';
 	if (lower.includes('openai')) return 'OpenAI';

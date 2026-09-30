@@ -107,21 +107,15 @@ suite('CodexAccountService', () => {
 		}
 
 		assert.deepStrictEqual({
-			agentsDisabled: shouldShowCodexAccount(configuration(false, false), true),
-			agentsEnabled: shouldShowCodexAccount(configuration(true, false), true),
-			agentsAIHidden: shouldShowCodexAccount(configuration(true, false, true), true),
-			editorCodexDisabled: shouldShowCodexAccount(configuration(false, true), false),
-			editorPreferenceDisabled: shouldShowCodexAccount(configuration(true, false), false),
-			editorEnabled: shouldShowCodexAccount(configuration(true, true), false),
-			editorAIHidden: shouldShowCodexAccount(configuration(true, true, true), false),
+			codexDisabled: shouldShowCodexAccount(configuration(false, true)),
+			preferenceDisabled: shouldShowCodexAccount(configuration(true, false)),
+			enabled: shouldShowCodexAccount(configuration(true, true)),
+			aiHidden: shouldShowCodexAccount(configuration(true, true, true)),
 		}, {
-			agentsDisabled: false,
-			agentsEnabled: true,
-			agentsAIHidden: false,
-			editorCodexDisabled: false,
-			editorPreferenceDisabled: false,
-			editorEnabled: true,
-			editorAIHidden: false,
+			codexDisabled: false,
+			preferenceDisabled: false,
+			enabled: true,
+			aiHidden: false,
 		});
 	});
 

@@ -6,6 +6,8 @@
 # Symlink bin command to /usr/bin
 rm -f /usr/bin/@@NAME@@
 ln -s /usr/share/@@NAME@@/bin/@@NAME@@ /usr/bin/@@NAME@@
+rm -f /usr/bin/dc
+ln -s /usr/share/@@NAME@@/bin/dc /usr/bin/dc
 
 # Register code in the alternatives system
 # Priority of 0 should never make code the default editor in auto mode as most

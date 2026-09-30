@@ -91,13 +91,13 @@ export async function main(argv: string[]): Promise<void> {
 
 	// Help (general)
 	if (args.help) {
-		const executable = `${product.applicationName}${isWindows ? '.exe' : ''}`;
+		const executable = 'dc';
 		console.log(buildHelpMessage(product.nameLong, executable, product.version, OPTIONS));
 	}
 
 	// Help (chat)
 	else if (args.chat?.help) {
-		const executable = `${product.applicationName}${isWindows ? '.exe' : ''}`;
+		const executable = 'dc';
 		console.log(buildHelpMessage(product.nameLong, executable, product.version, OPTIONS.chat.options, { isChat: true }));
 	}
 
@@ -250,17 +250,14 @@ export async function main(argv: string[]): Promise<void> {
 			const tempExtensionsDir = join(tempParentDir, 'extensions');
 			const tempSharedDataDir = join(tempParentDir, 'shared');
 			const tempAgentPluginsDir = join(tempParentDir, 'agent-plugins');
-			const tempAgentsUserDataDir = join(tempParentDir, 'agents-data');
-			const tempAgentsExtensionsDir = join(tempParentDir, 'agents-extensions');
 
 			addArg(argv, '--user-data-dir', tempUserDataDir);
 			addArg(argv, '--extensions-dir', tempExtensionsDir);
 			addArg(argv, '--shared-data-dir', tempSharedDataDir);
 			addArg(argv, '--agent-plugins-dir', tempAgentPluginsDir);
-			addArg(argv, '--agents-user-data-dir', tempAgentsUserDataDir);
-			addArg(argv, '--agents-extensions-dir', tempAgentsExtensionsDir);
 
-			console.log(`State is temporarily stored. Relaunch this state with: ${product.applicationName} --user-data-dir "${tempUserDataDir}" --extensions-dir "${tempExtensionsDir}" --shared-data-dir "${tempSharedDataDir}" --agent-plugins-dir "${tempAgentPluginsDir}" --agents-user-data-dir "${tempAgentsUserDataDir}" --agents-extensions-dir "${tempAgentsExtensionsDir}"`);
+			console.log(`State is temporarily stored. Relaunch this state with: dc --user-data-dir "${tempUserDataDir}" --extensions-dir "${tempExtensionsDir}" --shared-data-dir "${tempSharedDataDir}" --agent-plugins-dir "${tempAgentPluginsDir}"`);
+
 		}
 
 		const hasReadStdinArg = args._.some(arg => arg === '-') || args.chat?._.some(arg => arg === '-');
@@ -323,7 +320,7 @@ export async function main(argv: string[]): Promise<void> {
 				// if we detect that data flows into via stdin after a certain timeout.
 				processCallbacks.push(_ => stdinDataListener(1000).then(dataReceived => {
 					if (dataReceived) {
-						console.log(buildStdinMessage(product.applicationName, !!args.chat));
+						console.log(buildStdinMessage('dc', !!args.chat));
 					}
 				}));
 			}

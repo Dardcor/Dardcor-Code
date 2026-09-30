@@ -17,6 +17,7 @@
 		],
 	},
 	"include": [
-		"vscode-dts/vscode.d.ts"
+		"vscode-dts/vscode.d.ts",
+		"dardcor-dts/dardcor.d.ts"
 	]
 }

@@ -31,8 +31,14 @@ export const REMOTE_USER_CONFIG_ID = 'usrremote';
 export const WORKSPACE_CONFIG_ID = 'workspace';
 export const WORKSPACE_FOLDER_CONFIG_ID_PREFIX = 'ws';
 
+export const enum WorkspaceMcpConfigKind {
+	Root = 'root',
+	LegacyVscode = 'legacyVscode',
+}
+
 export interface IWorkbencMcpServerInstallOptions extends InstallOptions {
 	target?: ConfigurationTarget | IWorkspaceFolder;
+	workspaceConfig?: WorkspaceMcpConfigKind;
 }
 
 export const enum LocalMcpServerScope {

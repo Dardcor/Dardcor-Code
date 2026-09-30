@@ -36,7 +36,6 @@ import { ServicesAccessor } from '../../../platform/instantiation/common/instant
 import { isFolderBackupInfo, isWorkspaceBackupInfo } from '../../../platform/backup/common/backup.js';
 import { getActiveElement, getActiveWindow, isHTMLElement } from '../../../base/browser/dom.js';
 import { IWorkbenchEnvironmentService } from '../../services/environment/common/environmentService.js';
-import { isEqual } from '../../../base/common/resources.js';
 
 export const inRecentFilesPickerContextKey = 'inRecentFilesPicker';
 
@@ -168,7 +167,6 @@ abstract class BaseOpenRecentAction extends Action2 {
 		const firstEntry = recentlyOpened.workspaces[0];
 		const autoFocusSecondEntry: boolean = firstEntry && (
 			contextService.isCurrentWorkspace(isRecentWorkspace(firstEntry) ? firstEntry.workspace : firstEntry.folderUri)
-			|| (isRecentWorkspace(firstEntry) && isEqual(firstEntry.workspace.configPath, environmentService.agentSessionsWorkspace))
 		);
 
 		let keyMods: IKeyMods | undefined;
@@ -255,9 +253,7 @@ abstract class BaseOpenRecentAction extends Action2 {
 			fullLabel = recent.label || labelService.getUriLabel(resource, { appendWorkspaceSuffix: true });
 		}
 
-		const { name, parentPath } = isRecentWorkspace(recent) && isEqual(recent.workspace.configPath, environmentService.agentSessionsWorkspace)
-			? { name: fullLabel, parentPath: undefined }
-			: splitRecentLabel(fullLabel);
+		const { name, parentPath } = splitRecentLabel(fullLabel);
 
 		const buttons: IQuickInputButton[] = [];
 		if (kind.isDirty) {

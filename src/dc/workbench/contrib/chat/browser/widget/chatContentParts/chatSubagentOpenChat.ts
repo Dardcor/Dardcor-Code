@@ -28,7 +28,6 @@ import { IMarkdownRendererService } from '../../../../../../platform/markdown/br
 import { INotificationService } from '../../../../../../platform/notification/common/notification.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../../common/contributions.js';
 import { ACTIVE_GROUP } from '../../../../../services/editor/common/editorService.js';
-import { IWorkbenchEnvironmentService } from '../../../../../services/environment/common/environmentService.js';
 import { formatElapsedTime } from '../../../common/chatProgressFormatting.js';
 import { formatCopilotCreditsLabel } from '../../../common/chatService/chatService.js';
 import { CHAT_OPEN_AGENT_HOST_CHAT_COMMAND_ID, CHAT_SUBAGENT_RESOURCE_QUERY_PARAM, ChatConfiguration } from '../../../common/constants.js';
@@ -733,12 +732,8 @@ class EditorOpenSubagentChatActionViewItemContribution extends Disposable implem
 
 	constructor(
 		@IActionViewItemService actionViewItemService: IActionViewItemService,
-		@IWorkbenchEnvironmentService environmentService: IWorkbenchEnvironmentService,
 	) {
 		super();
-		if (environmentService.isSessionsWindow) {
-			return;
-		}
 		const onDidRegister = this._register(new Emitter<void>());
 		this._register(actionViewItemService.register(MenuId.ChatSubagentContent, CHAT_OPEN_AGENT_HOST_CHAT_COMMAND_ID, (action, options, instantiationService) => {
 			if (!(action instanceof MenuItemAction)) {

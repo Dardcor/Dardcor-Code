@@ -12,7 +12,7 @@ import {
 	EditorPartMultipleEditorGroupsContext, ActiveEditorDirtyContext, ActiveEditorGroupLockedContext, ActiveEditorCanSplitInGroupContext, SideBySideEditorActiveContext,
 	EditorTabsVisibleContext, ActiveEditorLastInGroupContext, EditorPartMaximizedEditorGroupContext, MultipleEditorGroupsContext, InEditorZenModeContext,
 	IsAuxiliaryWindowContext, ActiveCompareEditorCanSwapContext, MultipleEditorsSelectedInGroupContext, SplitEditorsVertically, ActiveEditorCannotCloseContext,
-	IsSessionsWindowContext, ActiveCustomEditorDiffCanToggleLayoutContext, ActiveCustomEditorTextDiffContext, EditorPartModalContext
+	ActiveCustomEditorDiffCanToggleLayoutContext, ActiveCustomEditorTextDiffContext, EditorPartModalContext
 } from '../../../common/contextkeys.js';
 import { SideBySideEditorInput, SideBySideEditorInputSerializer } from '../../../common/editor/sideBySideEditorInput.js';
 import { TextResourceEditor } from './textResourceEditor.js';
@@ -473,7 +473,7 @@ appendEditorToolItem(
 		title: localize('splitEditorRight', "Split Editor Right"),
 		icon: Codicon.splitHorizontal
 	},
-	ContextKeyExpr.and(SplitEditorsVertically.negate(), IsSessionsWindowContext.toNegated()),
+	SplitEditorsVertically.negate(),
 	SPLIT_ORDER,
 	{
 		id: SPLIT_EDITOR_DOWN,
@@ -488,7 +488,7 @@ appendEditorToolItem(
 		title: localize('splitEditorDown', "Split Editor Down"),
 		icon: Codicon.splitVertical
 	},
-	ContextKeyExpr.and(SplitEditorsVertically, IsSessionsWindowContext.toNegated()),
+	SplitEditorsVertically,
 	SPLIT_ORDER,
 	{
 		id: SPLIT_EDITOR_RIGHT,
@@ -496,30 +496,6 @@ appendEditorToolItem(
 		icon: Codicon.splitHorizontal
 	}
 );
-
-// Agents window: show Split Editor in the editor title overflow (...) menu
-// instead of as a primary toolbar icon. Mirror the orientation handling of the
-// primary toolbar items so the label/icon match the configured split direction.
-MenuRegistry.appendMenuItem(MenuId.EditorTitle, {
-	command: {
-		id: SPLIT_EDITOR,
-		title: localize('splitEditorRight', "Split Editor Right"),
-		icon: Codicon.splitHorizontal
-	},
-	group: '4_split',
-	order: 10,
-	when: ContextKeyExpr.and(IsSessionsWindowContext, SplitEditorsVertically.negate())
-});
-MenuRegistry.appendMenuItem(MenuId.EditorTitle, {
-	command: {
-		id: SPLIT_EDITOR,
-		title: localize('splitEditorDown', "Split Editor Down"),
-		icon: Codicon.splitVertical
-	},
-	group: '4_split',
-	order: 10,
-	when: ContextKeyExpr.and(IsSessionsWindowContext, SplitEditorsVertically)
-});
 
 // Side by side: layout
 appendEditorToolItem(
@@ -730,8 +706,7 @@ MenuRegistry.appendMenuItem(MenuId.MenubarFileMenu, {
 	title: localize('miShare', "Share"),
 	submenu: MenuId.MenubarShare,
 	group: '45_share',
-	order: 1,
-	when: IsSessionsWindowContext.negate()
+	order: 1
 });
 
 // Layout menu
@@ -739,8 +714,7 @@ MenuRegistry.appendMenuItem(MenuId.MenubarViewMenu, {
 	group: '2_appearance',
 	title: localize({ key: 'miEditorLayout', comment: ['&& denotes a mnemonic'] }, "Editor &&Layout"),
 	submenu: MenuId.MenubarLayoutMenu,
-	order: 2,
-	when: IsSessionsWindowContext.negate()
+	order: 2
 });
 
 MenuRegistry.appendMenuItem(MenuId.MenubarLayoutMenu, {

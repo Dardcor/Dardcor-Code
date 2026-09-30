@@ -45,7 +45,7 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../../pla
 import { IPreferencesService } from '../../../../services/preferences/common/preferences.js';
 import { disposableTimeout } from '../../../../../base/common/async.js';
 import { MarkdownString } from '../../../../../base/common/htmlContent.js';
-import { IsSessionsWindowContext, ResourceContextKey } from '../../../../common/contextkeys.js';
+import { ResourceContextKey } from '../../../../common/contextkeys.js';
 import { Schemas } from '../../../../../base/common/network.js';
 
 const CONTEXT_BROWSER_EDITOR_OPEN = new RawContextKey<boolean>('browserEditorOpen', false, localize('browser.editorOpen', "Whether any browser editor is currently open"));
@@ -533,19 +533,6 @@ MenuRegistry.appendMenuItem(MenuId.MenubarViewMenu, {
 // Register as "Close All Browser Tabs" action in editor title menu to align with the regular "Close All" action
 MenuRegistry.appendMenuItem(MenuId.EditorTitleContext, { command: { id: BrowserViewCommandId.CloseAllInGroup, title: localize('browser.closeAllInGroupShort', "Close All Browser Tabs") }, group: '1_close', order: 55, when: BROWSER_EDITOR_ACTIVE });
 
-// Agents window: surface New Tab as a primary editor title toolbar icon so the
-// browser editor title bar isn't left showing only the overflow (...) menu.
-MenuRegistry.appendMenuItem(MenuId.EditorTitle, {
-	command: {
-		id: BrowserViewCommandId.NewTab,
-		title: localize2('browser.newTabAction', "New Tab"),
-		icon: Codicon.add
-	},
-	group: 'navigation',
-	order: 1,
-	when: ContextKeyExpr.and(BROWSER_EDITOR_ACTIVE, IsSessionsWindowContext)
-});
-
 registerAction2(QuickOpenBrowserAction);
 registerAction2(OpenIntegratedBrowserAction);
 registerAction2(OpenFileInIntegratedBrowserAction);
@@ -656,7 +643,6 @@ class LinkOpenedHintPill extends BrowserEditorContribution {
 		@IHoverService private readonly hoverService: IHoverService,
 		@IStorageService private readonly storageService: IStorageService,
 		@IPreferencesService private readonly preferencesService: IPreferencesService,
-		@IContextKeyService private readonly contextKeyService: IContextKeyService
 	) {
 		super(editor);
 
@@ -707,11 +693,6 @@ class LinkOpenedHintPill extends BrowserEditorContribution {
 	}
 
 	protected override onModelAttached(_model: IBrowserViewModel, _store: DisposableStore, isNew: boolean): void {
-		if (IsSessionsWindowContext.getValue(this.contextKeyService)) {
-			this._setVisible(false);
-			return;
-		}
-
 		const input = this.editor.input;
 		if (input instanceof BrowserEditorInput && input.isDefaultLinkOpen) {
 			const dismissed = this.storageService.getBoolean(LOCALHOST_HINT_DISMISSED_KEY, StorageScope.APPLICATION, false);
@@ -932,7 +913,6 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
 				{ comment: ['This is the description for a setting.'], key: 'browser.openLocalhostLinks' },
 				'When enabled, localhost links (`localhost`, `127.0.0.1`, `[::1]`) and all-interfaces links (`0.0.0.0`, `[0:0:0:0:0:0:0:0]`, `[::]`) from the terminal, chat, and other sources will open in the Integrated Browser instead of the system browser.'
 			),
-			agentsWindow: { default: true },
 		},
 		[BrowserNewTabPlacementSettingId]: {
 			type: 'string',

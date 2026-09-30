@@ -3,12 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// *********************************************************************
-// *                                                                   *
-// *  We need this to redirect to node_modules from the remote-folder. *
-// *  This ONLY applies when running out of source.                   *
-// *                                                                   *
-// *********************************************************************
+// Redirect to node_modules from the remote folder when running out of sources.
 
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promises } from 'node:fs';

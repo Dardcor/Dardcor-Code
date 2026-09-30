@@ -419,3 +419,5 @@ export function findElements(element: IElement, fn: (element: IElement) => boole
 
 	return result;
 }
+
+export { Code as DardcorCode };

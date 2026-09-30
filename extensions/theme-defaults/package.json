@@ -76,14 +76,19 @@
     ],
     "iconThemes": [
       {
+        "id": "dardcor-minimal",
+        "label": "%minimalIconThemeLabel%",
+        "path": "./fileicons/dardcor_minimal-icon-theme.json"
+      },
+      {
         "id": "vs-minimal",
         "label": "%minimalIconThemeLabel%",
-        "path": "./fileicons/vs_minimal-icon-theme.json"
+        "path": "./fileicons/dardcor_minimal-icon-theme.json"
       }
     ]
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/microsoft/vscode.git"
+    "url": "https://github.com/dardcor/dardcor-code.git"
   }
 }

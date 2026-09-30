@@ -570,7 +570,6 @@ configurationRegistry.registerConfiguration({
 			markdownDescription: nls.localize('task.NotifyWindowOnTaskCompletion', 'Controls the minimum task runtime in milliseconds before showing an OS notification when the task finishes while the window is not in focus. Set to -1 to disable notifications. Set to 0 to always show notifications. This includes a window badge as well as notification toast.'),
 			default: 60000,
 			minimum: -1,
-			agentsWindow: { default: -1 },
 		},
 		[TaskSettingId.VerboseLogging]: {
 			type: 'boolean',

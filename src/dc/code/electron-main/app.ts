@@ -1690,15 +1690,6 @@ export class CodeApplication extends Disposable {
 		const context = isLaunchedFromCli(process.env) ? OpenContext.CLI : OpenContext.DESKTOP;
 		const args = this.environmentMainService.args;
 
-		// Handle agents window first based on context
-		if (args['agents']) {
-			return windowsMainService.openAgentsWindow({
-				context,
-				cli: args,
-				initialStartup: true
-			});
-		}
-
 		// Then check for windows from protocol links to open
 		if (initialProtocolUrls) {
 

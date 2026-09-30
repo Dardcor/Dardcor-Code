@@ -28,7 +28,6 @@ import { isDark } from '../../../../platform/theme/common/theme.js';
 import { IThemeService, Themable } from '../../../../platform/theme/common/themeService.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
-import { getWorkspaceIdentifier } from '../../../../platform/workspaces/common/workspaceIdentifier.js';
 import { VirtualWorkspaceContext } from '../../../common/contextkeys.js';
 import { ICreateTerminalOptions, IDetachedTerminalInstance, IDetachedXTermOptions, IRequestAddInstanceToGroupEvent, ITerminalConfigurationService, ITerminalEditorService, ITerminalGroup, ITerminalGroupService, ITerminalInstance, ITerminalInstanceHost, ITerminalInstanceService, ITerminalLocationOptions, ITerminalService, ITerminalServiceNativeDelegate, TerminalConnectionState, TerminalEditorLocation } from './terminal.js';
 import { getCwdForSplit } from './terminalActions.js';
@@ -289,10 +288,7 @@ export class TerminalService extends Disposable implements ITerminalService {
 
 		if (this._primaryBackend) {
 			this._register(this._primaryBackend.onDidRequestDetach(async (e) => {
-				const sessionsWorkspaceId = getWorkspaceIdentifier(this._environmentService.agentSessionsWorkspace).id;
-				// Prevent cross-window detaching if this is a sessions window or involves sessions workspace.
-				// Workspace Agent and Workspace Editor are isolated systems and must not share or steal terminals.
-				if (this._environmentService.isSessionsWindow || e.workspaceId === sessionsWorkspaceId || e.workspaceId !== this._workspaceContextService.getWorkspace().id) {
+				if (e.workspaceId !== this._workspaceContextService.getWorkspace().id) {
 					await this._primaryBackend?.acceptDetachInstanceReply(e.requestId, undefined);
 					return;
 				}
@@ -894,10 +890,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 
 		// Terminal from a different window
 		if (!sourceInstance) {
-			const sessionsWorkspaceId = getWorkspaceIdentifier(this._environmentService.agentSessionsWorkspace).id;
-			if (terminalIdentifier.workspaceId === sessionsWorkspaceId || this._environmentService.isSessionsWindow) {
-				return;
-			}
 			const attachPersistentProcess = await this._primaryBackend?.requestDetachInstance(terminalIdentifier.workspaceId, terminalIdentifier.instanceId);
 			if (attachPersistentProcess && !attachPersistentProcess.hideFromUser && !attachPersistentProcess.isFeatureTerminal) {
 				sourceInstance = await this.createTerminal({ config: { attachPersistentProcess }, resource: e.uri });
@@ -1288,10 +1280,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 	}
 
 	private _evaluateLocalCwd(shellLaunchConfig: IShellLaunchConfig) {
-		if (this._environmentService.isSessionsWindow) {
-			return;
-		}
-
 		// Add welcome message and title annotation for local terminals launched within remote or
 		// virtual workspaces
 		if (!isString(shellLaunchConfig.cwd) && shellLaunchConfig.cwd?.scheme === Schemas.file) {

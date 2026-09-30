@@ -117,7 +117,7 @@ suite('EditorRemoteAgentHostServiceClient', () => {
 			[IRemoteAgentService, remoteAgentService],
 			[IAgentHostEnablementService, { _serviceBrand: undefined, enabled: agentHostEnabled, managedSandboxEnforced: constObservable(false) }],
 			[ILogService, new NullLogService()],
-			[IWorkbenchEnvironmentService, { isSessionsWindow: false }],
+			[IWorkbenchEnvironmentService, {}],
 			[IAgentHostFileSystemService, {
 				_serviceBrand: undefined,
 				registerAuthority: (authority: string) => {
@@ -181,7 +181,7 @@ suite('EditorRemoteAgentHostServiceClient', () => {
 			[IRemoteAgentService, remoteAgentService],
 			[IAgentHostEnablementService, { _serviceBrand: undefined, enabled: constObservable(false), managedSandboxEnforced: constObservable(false) }],
 			[ILogService, new NullLogService()],
-			[IWorkbenchEnvironmentService, { isSessionsWindow: false }],
+			[IWorkbenchEnvironmentService, {}],
 			[IAgentHostFileSystemService, {
 				_serviceBrand: undefined,
 				registerAuthority: () => Disposable.None,

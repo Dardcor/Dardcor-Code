@@ -6,6 +6,9 @@ import { extractCodexAccountInfo, fetchKiroProfileArn } from "../providerHelpers
 
 import claude from "./claude.js";
 import codex from "./codex.js";
+import chatgptWeb from "./chatgpt-web.js";
+import deepseekWeb from "./deepseek-web.js";
+import geminiWeb from "./gemini-web.js";
 import xai from "./xai.js";
 import grokCli from "./grok-cli.js";
 import geminiCli from "./gemini-cli.js";
@@ -30,6 +33,13 @@ import zed from "./zed.js";
 const PROVIDERS = {
   claude,
   codex,
+  "chatgpt-web": chatgptWeb,
+  cgw: chatgptWeb,
+  chatgpt: chatgptWeb,
+  "deepseek-web": deepseekWeb,
+  dsw: deepseekWeb,
+  "gemini-web": geminiWeb,
+  gmw: geminiWeb,
   xai,
   "grok-cli": grokCli,
   "gemini-cli": geminiCli,

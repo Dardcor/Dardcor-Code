@@ -47,7 +47,7 @@
 
 ```mermaid
 graph TB
-    subgraph UI["UI / provider layer (sessions window)"]
+    subgraph UI["Workbench chat UI / provider layer"]
         caps["ISessionCapabilities → context keys<br/>(sessionContextKeys.ts)"]
         smgt["ISessionsManagementService"]
     end

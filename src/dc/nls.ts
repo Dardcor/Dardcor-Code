@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 export function getNLSMessages(): string[] {
-	return (globalThis as any)._VSCODE_NLS_MESSAGES;
+	return (globalThis as any)._DCCODE_NLS_MESSAGES ?? (globalThis as any)._VSCODE_NLS_MESSAGES;
 }
 
 export function getNLSLanguage(): string | undefined {
-	return (globalThis as any)._VSCODE_NLS_LANGUAGE;
+	return (globalThis as any)._DCCODE_NLS_LANGUAGE ?? (globalThis as any)._VSCODE_NLS_LANGUAGE;
 }
 
 declare const document: { location?: { hash?: string } } | undefined;
@@ -100,7 +100,8 @@ function lookupMessage(index: number, fallback: string | null): string {
 		if (typeof fallback === 'string') {
 			return fallback;
 		}
-		throw new Error(`!!! NLS MISSING: ${index} !!!`);
+		console.warn(`[DCCODE NLS] Missing message index ${index}`);
+		return '';
 	}
 	return message;
 }

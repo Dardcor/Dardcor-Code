@@ -258,7 +258,7 @@ export class WorkbenchThemeService extends Disposable implements IWorkbenchTheme
 		if (this.storageService.getBoolean(WorkbenchThemeService.NEW_THEME_NOTIFICATION_KEY, StorageScope.APPLICATION)) {
 			return; // already shown
 		}
-		if (!(await this.hostService.hadLastFocus()) || this.environmentService.isSessionsWindow) {
+		if (!(await this.hostService.hadLastFocus())) {
 			return;
 		}
 		try {

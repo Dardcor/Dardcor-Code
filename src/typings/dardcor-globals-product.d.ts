@@ -5,9 +5,15 @@
 
 // AMD2ESM migration relevant
 
+declare var _DCCODE_FILE_ROOT: string;
 declare var _VSCODE_FILE_ROOT: string;
+declare var _DCCODE_CSS_LOAD: (module: string) => void;
 declare var _VSCODE_CSS_LOAD: (module: string) => void;
+declare var _DCCODE_PRODUCT_JSON: Record<string, any>;
 declare var _VSCODE_PRODUCT_JSON: Record<string, any>;
+declare var _DCCODE_PACKAGE_JSON: Record<string, any>;
 declare var _VSCODE_PACKAGE_JSON: Record<string, any>;
+declare var _DCCODE_DISABLE_CSS_IMPORT_MAP: boolean | undefined;
 declare var _VSCODE_DISABLE_CSS_IMPORT_MAP: boolean | undefined;
+declare var _DCCODE_USE_RELATIVE_IMPORTS: boolean | undefined;
 declare var _VSCODE_USE_RELATIVE_IMPORTS: boolean | undefined;

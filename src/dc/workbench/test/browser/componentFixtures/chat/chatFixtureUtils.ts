@@ -279,7 +279,6 @@ export function registerChatFixtureServices(reg: ServiceRegistration, options: I
 	reg.defineInstance(IWorkbenchEnvironmentService, new class extends mock<IWorkbenchEnvironmentService>() {
 		override readonly isExtensionDevelopment = false;
 		override readonly isBuilt = true;
-		override readonly isSessionsWindow = false;
 	}());
 	reg.defineInstance(IChatSessionsService, new class extends mock<IChatSessionsService>() {
 		override getAllChatSessionContributions() { return []; }

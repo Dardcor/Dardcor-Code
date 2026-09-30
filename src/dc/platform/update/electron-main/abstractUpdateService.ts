@@ -15,9 +15,10 @@ import { IMeteredConnectionService } from '../../meteredConnection/common/metere
 import { IConfigurationService } from '../../configuration/common/configuration.js';
 import { IEnvironmentMainService } from '../../environment/electron-main/environmentMainService.js';
 import { ILifecycleMainService, LifecycleMainPhase } from '../../lifecycle/electron-main/lifecycleMainService.js';
+import * as semver from '../../../base/common/semver/semver.js';
 import { ILogService } from '../../log/common/log.js';
 import { IProductService } from '../../product/common/productService.js';
-import { IRequestService } from '../../request/common/request.js';
+import { asJson, IRequestService } from '../../request/common/request.js';
 import { StorageScope, StorageTarget } from '../../storage/common/storage.js';
 import { IApplicationStorageMainService } from '../../storage/electron-main/storageMainService.js';
 import { ITelemetryService } from '../../telemetry/common/telemetry.js';
@@ -30,7 +31,20 @@ export interface IUpdateURLOptions {
 	readonly internalOrg?: string;
 }
 
+export function isVersionNewer(remoteVersion: string, currentVersion: string): boolean {
+	const cleanRemote = semver.clean(remoteVersion) ?? semver.coerce(remoteVersion)?.version;
+	const cleanCurrent = semver.clean(currentVersion) ?? semver.coerce(currentVersion)?.version;
+	if (cleanRemote && cleanCurrent) {
+		return semver.gt(cleanRemote, cleanCurrent);
+	}
+	return remoteVersion !== currentVersion;
+}
+
 export function createUpdateURL(baseUpdateUrl: string, platform: string, quality: string, commit: string, options?: IUpdateURLOptions): string {
+	if (baseUpdateUrl.endsWith('.json')) {
+		return baseUpdateUrl;
+	}
+
 	const url = new URL(`${baseUpdateUrl}/api/update/${platform}/${quality}/${commit}`);
 
 	if (options?.background) {
@@ -186,7 +200,8 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 			return;
 		}
 
-		if (!this.productService.updateUrl || !this.productService.commit) {
+		const hasCommitOrVersion = Boolean(this.productService.commit || this.productService.dardcorVersion || this.productService.version);
+		if (!this.productService.updateUrl || !hasCommitOrVersion) {
 			this.setDisabledPermanently(DisablementReason.MissingConfiguration);
 			this.logService.info('update#ctor - updates are disabled as there is no update URL');
 			return;
@@ -233,7 +248,8 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 			return;
 		}
 
-		if (!this.buildUpdateFeedUrl(quality, this.productService.commit!)) {
+		const commitOrVersion = this.productService.commit ?? this.productService.dardcorVersion ?? this.productService.version;
+		if (!this.buildUpdateFeedUrl(quality, commitOrVersion!)) {
 			this.setDisabledPermanently(DisablementReason.InvalidConfiguration);
 			this.logService.info('update#ctor - updates are disabled as the update URL is badly formed');
 			return;
@@ -537,7 +553,8 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 			return undefined;
 		}
 
-		const url = this.buildUpdateFeedUrl(this.quality, commit ?? this.productService.commit!, { internalOrg: this.getInternalOrg() });
+		const commitOrVersion = commit ?? this.productService.commit ?? this.productService.dardcorVersion ?? this.productService.version;
+		const url = this.buildUpdateFeedUrl(this.quality, commitOrVersion!, { internalOrg: this.getInternalOrg() });
 
 		if (!url) {
 			return undefined;
@@ -550,6 +567,18 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 			const context = await this.requestService.request({ url, headers, callSite: 'updateService.isLatestVersion' }, token);
 			const statusCode = context.res.statusCode;
 			this.logService.trace('update#isLatestVersion() - response', { statusCode });
+			if (url.endsWith('.json')) {
+				const manifest = await asJson<any>(context);
+				if (!manifest) {
+					return true;
+				}
+				const remoteVersion = manifest.version ?? manifest.productVersion;
+				const currentVersion = this.productService.dardcorVersion ?? this.productService.version;
+				if (remoteVersion && currentVersion) {
+					return !isVersionNewer(remoteVersion, currentVersion);
+				}
+				return true;
+			}
 			// The update server replies with 204 (No Content) when no update is available.
 			return statusCode === 204;
 

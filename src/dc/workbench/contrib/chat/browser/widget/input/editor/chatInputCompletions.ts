@@ -57,6 +57,7 @@ import { isToolSet } from '../../../../common/tools/languageModelToolsService.js
 import { IChatSessionsService, isAgentHostTarget } from '../../../../common/chatSessionsService.js';
 import { ICustomizationHarnessService } from '../../../../common/customizationHarnessService.js';
 import { matchesSessionType } from '../../../../common/promptSyntax/service/promptsService.js';
+import { PromptsType } from '../../../../common/promptSyntax/promptTypes.js';
 import { ChatSubmitAction, IChatExecuteActionContext } from '../../../actions/chatExecuteActions.js';
 import { IChatWidget, IChatWidgetService } from '../../../chat.js';
 import { resizeImage } from '../../../chatImageUtils.js';
@@ -261,6 +262,7 @@ class SlashCommandCompletions extends Disposable {
 
 				const userInvocableCommands = promptCommands
 					.filter(c => c.userInvocable)
+					.filter(c => c.type === PromptsType.skill)
 					.filter(c => matchesSessionType(c.sessionTypes, currentSessionType));
 				if (userInvocableCommands.length === 0) {
 					return null;

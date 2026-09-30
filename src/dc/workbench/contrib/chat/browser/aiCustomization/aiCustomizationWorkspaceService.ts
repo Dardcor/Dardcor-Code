@@ -63,8 +63,6 @@ class AICustomizationWorkspaceService implements IAICustomizationWorkspaceServic
 		AICustomizationManagementSection.HarnessSettings,
 	];
 
-	readonly isSessionsWindow = false;
-
 	readonly welcomePageFeatures = {
 		showGettingStartedBanner: true,
 	};

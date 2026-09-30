@@ -177,13 +177,6 @@ if: ${{ inputs.electron_tests && inputs.smoke_tests }}
         timeout-minutes: 20
         run: npm run smoketest-no-compile -- --tracing
         continue-on-error: true
-        if: ${{ inputs.electron_tests && inputs.smoke_tests }}
-        run: brew list squid >/dev/null 2>&1 || brew install squid
-        continue-on-error: true
-        if: ${{ inputs.electron_tests && inputs.smoke_tests }}
-        timeout-minutes: 40
-        run: bash test/smoke/scripts/run-agents-window-network-proxy.sh
-        continue-on-error: true
         if: ${{ inputs.browser_tests && inputs.smoke_tests }}
         timeout-minutes: 20
         run: npm run smoketest-no-compile -- --web --tracing --headless

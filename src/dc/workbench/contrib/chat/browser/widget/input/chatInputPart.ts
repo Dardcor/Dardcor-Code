@@ -140,7 +140,6 @@ import { AgentHostChatInputPicker, AgentHostChatInputPickerActionViewItem } from
 import { getAgentHostPickerProperty, OpenAgentHostAutoApprovePickerAction, OpenAgentHostCodexApprovalsPickerAction, OpenAgentHostModePickerAction, OpenAgentHostPermissionModePickerAction, OpenAgentHostFolderPickerAction } from '../../agentSessions/agentHost/agentHostChatInputPicker.contribution.js';
 import { AgentHostGenericConfigChips } from '../../agentSessions/agentHost/agentHostGenericConfigChips.js';
 import { AgentHostFolderPickerActionItem } from '../../agentSessions/agentHost/agentHostFolderPickerActionItem.js';
-import { IChatPhoneInputPresenter, MobileChatInputCombinedPickerActionItem } from './chatPhoneInputPresenter.js';
 import { IChatContextService } from '../../contextContrib/chatContextService.js';
 import { IDisposableReference } from '../chatContentParts/chatCollections.js';
 import { ChatPlanReviewPart, IChatPlanReviewPartOptions } from '../chatContentParts/chatPlanReviewPart.js';
@@ -332,11 +331,6 @@ export interface IChatInputPartOptions {
 	 * Note: `switchToNextModel` keybindings still persist globally.
 	 */
 	suppressModelPersistence?: boolean;
-	/**
-	 * Whether we are running in the sessions window.
-	 * When true, the secondary toolbar (permissions picker) is hidden.
-	 */
-	isSessionsWindow?: boolean;
 	/**
 	 * Total horizontal gutter (in pixels) reserved outside the input box when
 	 * computing the editor width. Defaults account for the `.interactive-input-part`
@@ -952,7 +946,6 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		@IViewDescriptorService private readonly viewDescriptorService: IViewDescriptorService,
 		@IChatAttachmentWidgetRegistry private readonly _chatAttachmentWidgetRegistry: IChatAttachmentWidgetRegistry,
 		@IChatInputNotificationService private readonly chatInputNotificationService: IChatInputNotificationService,
-		@IChatPhoneInputPresenter private readonly chatPhoneInputPresenter: IChatPhoneInputPresenter,
 		@IVoiceModeOnboardingService private readonly voiceModeOnboardingService: IVoiceModeOnboardingService,
 		@IChatWidgetService private readonly chatWidgetService: IChatWidgetService,
 		@IVoiceSessionController private readonly voiceSessionController: IVoiceSessionController,
@@ -1401,30 +1394,11 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 	}
 
 	public openModelPicker(): void {
-		if (this.chatPhoneInputPresenter.enabled.get()) {
-			this._showCombinedPhonePickerSheet();
-			return;
-		}
 		this.modelWidget?.show();
 	}
 
 	public openModePicker(): void {
-		if (this.chatPhoneInputPresenter.enabled.get()) {
-			this._showCombinedPhonePickerSheet();
-			return;
-		}
 		this.modeWidget?.show();
-	}
-
-	private _showCombinedPhonePickerSheet(): void {
-		const target = this.inputActionsToolbar.getElement();
-		this.chatPhoneInputPresenter
-			.showCombinedModeAndModelSheet(target, {
-				kind: 'delegates',
-				modeDelegate: this._createModePickerDelegate(),
-				modelDelegate: this._createModelPickerDelegate(),
-			})
-			.catch(err => this.logService.error('[ChatInputPart] phone picker sheet failed', err));
 	}
 
 	private _createModelPickerDelegate(): IModelPickerDelegate {
@@ -1454,7 +1428,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			showUnavailableFeatured: useRichPicker,
 			showFeatured: useRichPicker,
 			showAutoModel: this._showAutoModel(),
-			showModelIcon: this.options.isSessionsWindow || !this._usesHarnessProviderIcon(),
+			showModelIcon: !this._usesHarnessProviderIcon(),
 		};
 	}
 
@@ -3201,10 +3175,6 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 	}
 
 	private updateDeferredNotificationsEligibility(e?: IChatWidgetViewModelChangeEvent): void {
-		if (this.environmentService.isSessionsWindow) {
-			this._deferredNotificationsEnabled.set(true, undefined);
-			return;
-		}
 
 		this._isFirstWorkbenchSession ??= !this.chatService.hasSessions();
 		if (
@@ -3761,26 +3731,6 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 				getOverflowAction: (action, getAnchor) => getOverflowAction(action, inputToolbarMenu, inputOverflowPickerHandlers, getAnchor, toolbarsContainer),
 			},
 			actionViewItemProvider: (action, options) => {
-				// Phone-layout branch: when an agents-window phone presenter
-				// is active, replace the desktop Mode + Model pickers with a
-				// single chip that opens a unified bottom sheet. The Mode
-				// action is hidden so its slot is not duplicated; the chip
-				// (mounted on the Model action's slot) opens both pickers
-				// from one tap. Mirrors the empty new-chat experience in
-				// `dc/sessions` (see `MobileChatInputConfigPicker`).
-				if (this.chatPhoneInputPresenter.enabled.get()) {
-					if (action.id === OpenModelPickerAction.ID && action instanceof MenuItemAction) {
-						if (!this._currentLanguageModel.get()) {
-							this.setCurrentLanguageModelToDefault();
-						}
-						const modelDelegate = this._createModelPickerDelegate();
-						const modeDelegate = this._createModePickerDelegate();
-						return this.instantiationService.createInstance(MobileChatInputCombinedPickerActionItem, action, modeDelegate, modelDelegate);
-					} else if (action.id === OpenModePickerAction.ID && action instanceof MenuItemAction) {
-						return new HiddenActionViewItem(action);
-					}
-				}
-
 				if (action.id === OpenModelPickerAction.ID && action instanceof MenuItemAction) {
 					if (!this._currentLanguageModel.get()) {
 						this._modelSelectionDiagnostics.report('no-model-at-toolbar-build', {}, 'info');
@@ -3845,18 +3795,6 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			}
 			if (this.cachedWidth && typeof this.cachedInputToolbarWidth === 'number' && this.cachedInputToolbarWidth !== this.inputActionsToolbar.getItemsWidth()) {
 				this._toolbarRelayoutScheduler.schedule();
-			}
-		}));
-		// When the phone-input presenter flips between enabled/disabled (e.g.
-		// device rotation crossing the phone breakpoint), the action view item
-		// provider above will return different items. Force the toolbar to
-		// re-evaluate its items so the chip / desktop pickers swap in.
-		let lastPhoneEnabled = this.chatPhoneInputPresenter.enabled.get();
-		this._register(autorun(reader => {
-			const enabled = this.chatPhoneInputPresenter.enabled.read(reader);
-			if (enabled !== lastPhoneEnabled) {
-				lastPhoneEnabled = enabled;
-				this.inputActionsToolbar.refresh();
 			}
 		}));
 		this.executeToolbar = this._register(this.instantiationService.createInstance(MenuWorkbenchToolBar, toolbarsContainer, this.options.menus.executeToolbar, {
@@ -4085,9 +4023,6 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 					});
 					return widget;
 				} else if (agentHostPickerProperty && action instanceof MenuItemAction) {
-					// if (this.options.isSessionsWindow) {
-					// 	return new HiddenActionViewItem(action);
-					// }
 					getCompactState(secondaryPickerCompactStates, action.id);
 					const createPicker = () => this.instantiationService.createInstance(AgentHostChatInputPicker, widget, agentHostPickerProperty);
 					secondaryOverflowPickerHandlers.set(action.id, anchor => {
@@ -4097,9 +4032,6 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 					});
 					return new AgentHostChatInputPickerActionViewItem(action, createPicker());
 				} else if (action.id === OpenAgentHostFolderPickerAction.ID && action instanceof MenuItemAction) {
-					// if (this.options.isSessionsWindow) {
-					// 	return new HiddenActionViewItem(action);
-					// }
 					const createPicker = () => this.instantiationService.createInstance(AgentHostFolderPickerActionItem, action, widget, getSecondaryPickerOptions(action.id));
 					secondaryOverflowPickerHandlers.set(action.id, anchor => showOverflowPicker(createPicker, anchor));
 					return createPicker();
@@ -5461,12 +5393,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 
 		return {
 			editorBorder: 2,
-			// The sessions window pads `.interactive-input-part` by 32px on each side
-			// (vs the default 12px margin) so the input box aligns with the chat
-			// content cards. The editor width is computed here, so it must account
-			// for the same 64px total horizontal gutter or the editor overflows its
-			// container and renders wider than the message content above it.
-			inputPartHorizontalPadding: this.options.inputPartHorizontalPadding ?? (this.options.renderStyle === 'compact' ? 16 : (this.options.isSessionsWindow ? 64 : 24)),
+			inputPartHorizontalPadding: this.options.inputPartHorizontalPadding ?? (this.options.renderStyle === 'compact' ? 16 : 24),
 			inputPartHorizontalPaddingInside: this.options.renderStyle === 'compact' ? 12 : 10,
 			toolbarsWidth: this.options.renderStyle === 'compact' ? getToolbarsWidthCompact() : 0,
 			sideToolbarWidth: inputSideToolbarWidth > 0 ? inputSideToolbarWidth + 4 /*gap*/ : 0,

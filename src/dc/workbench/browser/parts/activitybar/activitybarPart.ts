@@ -32,7 +32,6 @@ import { GlobalCompositeBar } from '../globalCompositeBar.js';
 import { IStorageService } from '../../../../platform/storage/common/storage.js';
 import { Action2, IMenuService, MenuId, MenuRegistry, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { ContextKeyExpr, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
-import { IsSessionsWindowContext } from '../../../common/contextkeys.js';
 import { Categories } from '../../../../platform/action/common/actionCommonCategories.js';
 import { getContextMenuActions } from '../../../../platform/actions/browser/menuEntryActionViewItem.js';
 import { IViewDescriptorService, ViewContainerLocation, ViewContainerLocationToString } from '../../../common/views.js';
@@ -525,7 +524,7 @@ registerAction2(class extends Action2 {
 				order: 1
 			}, {
 				id: MenuId.CommandPalette,
-				when: ContextKeyExpr.and(ContextKeyExpr.notEquals(`config.${LayoutSettings.ACTIVITY_BAR_LOCATION}`, ActivityBarPosition.DEFAULT), IsSessionsWindowContext.negate()),
+				when: ContextKeyExpr.notEquals(`config.${LayoutSettings.ACTIVITY_BAR_LOCATION}`, ActivityBarPosition.DEFAULT),
 			}]
 		});
 	}
@@ -551,7 +550,7 @@ registerAction2(class extends Action2 {
 				order: 2
 			}, {
 				id: MenuId.CommandPalette,
-				when: ContextKeyExpr.and(ContextKeyExpr.notEquals(`config.${LayoutSettings.ACTIVITY_BAR_LOCATION}`, ActivityBarPosition.TOP), IsSessionsWindowContext.negate()),
+				when: ContextKeyExpr.notEquals(`config.${LayoutSettings.ACTIVITY_BAR_LOCATION}`, ActivityBarPosition.TOP),
 			}]
 		});
 	}
@@ -577,7 +576,7 @@ registerAction2(class extends Action2 {
 				order: 3
 			}, {
 				id: MenuId.CommandPalette,
-				when: ContextKeyExpr.and(ContextKeyExpr.notEquals(`config.${LayoutSettings.ACTIVITY_BAR_LOCATION}`, ActivityBarPosition.BOTTOM), IsSessionsWindowContext.negate()),
+				when: ContextKeyExpr.notEquals(`config.${LayoutSettings.ACTIVITY_BAR_LOCATION}`, ActivityBarPosition.BOTTOM),
 			}]
 		});
 	}
@@ -603,7 +602,7 @@ registerAction2(class extends Action2 {
 				order: 4
 			}, {
 				id: MenuId.CommandPalette,
-				when: ContextKeyExpr.and(ContextKeyExpr.notEquals(`config.${LayoutSettings.ACTIVITY_BAR_LOCATION}`, ActivityBarPosition.HIDDEN), IsSessionsWindowContext.negate()),
+				when: ContextKeyExpr.notEquals(`config.${LayoutSettings.ACTIVITY_BAR_LOCATION}`, ActivityBarPosition.HIDDEN),
 			}]
 		});
 	}
@@ -617,8 +616,7 @@ MenuRegistry.appendMenuItem(MenuId.MenubarAppearanceMenu, {
 	submenu: MenuId.ActivityBarPositionMenu,
 	title: localize('positionActivituBar', "Activity Bar Position"),
 	group: '3_workbench_layout_move',
-	order: 2,
-	when: IsSessionsWindowContext.negate()
+	order: 2
 });
 
 MenuRegistry.appendMenuItem(MenuId.ViewContainerTitleContext, {

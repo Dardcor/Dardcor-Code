@@ -24,7 +24,6 @@ import { ILogger, ILoggerService } from '../../../../platform/log/common/log.js'
 import { Lazy } from '../../../../base/common/lazy.js';
 import { IViewsService } from '../common/viewsService.js';
 import { windowLogGroup } from '../../log/common/logConstants.js';
-import { IWorkbenchEnvironmentService } from '../../environment/common/environmentService.js';
 
 interface IViewsCustomizations {
 	viewContainerLocations: IStringDictionary<ViewContainerLocation>;
@@ -70,7 +69,6 @@ export class ViewDescriptorService extends Disposable implements IViewDescriptor
 	get viewContainers(): ReadonlyArray<ViewContainer> { return this.viewContainersRegistry.all.filter(vc => this.isViewContainerEnabled(vc)); }
 
 	private readonly logger: Lazy<ILogger>;
-	private readonly isSessionsWindow: boolean;
 
 	constructor(
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
@@ -79,12 +77,10 @@ export class ViewDescriptorService extends Disposable implements IViewDescriptor
 		@IExtensionService private readonly extensionService: IExtensionService,
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
 		@ILoggerService loggerService: ILoggerService,
-		@IWorkbenchEnvironmentService environmentService: IWorkbenchEnvironmentService,
 	) {
 		super();
 
 		this.logger = new Lazy(() => loggerService.createLogger(VIEWS_LOG_ID, { name: VIEWS_LOG_NAME, group: windowLogGroup }));
-		this.isSessionsWindow = environmentService.isSessionsWindow;
 
 		this.activeViewContextKeys = new Map<string, IContextKey<boolean>>();
 		this.movableViewContextKeys = new Map<string, IContextKey<boolean>>();
@@ -336,9 +332,6 @@ export class ViewDescriptorService extends Disposable implements IViewDescriptor
 	}
 
 	private isEnabled(enablement: WindowEnablement | undefined): boolean {
-		if (this.isSessionsWindow) {
-			return enablement === WindowEnablement.Sessions || enablement === WindowEnablement.Both;
-		}
 		return !enablement || enablement === WindowEnablement.Editor || enablement === WindowEnablement.Both;
 	}
 
@@ -348,7 +341,7 @@ export class ViewDescriptorService extends Disposable implements IViewDescriptor
 	}
 
 	canMoveViews(): boolean {
-		return !this.isSessionsWindow;
+		return true;
 	}
 
 	moveViewContainerToLocation(viewContainer: ViewContainer, location: ViewContainerLocation, requestedIndex?: number, reason?: string): void {
@@ -709,16 +702,10 @@ export class ViewDescriptorService extends Disposable implements IViewDescriptor
 	}
 
 	private getStoredViewCustomizationsValue(): string {
-		if (this.isSessionsWindow) {
-			return '{}';
-		}
 		return this.storageService.get(ViewDescriptorService.VIEWS_CUSTOMIZATIONS, StorageScope.PROFILE, '{}');
 	}
 
 	private setStoredViewCustomizationsValue(value: string): void {
-		if (this.isSessionsWindow) {
-			return;
-		}
 		this.storageService.store(ViewDescriptorService.VIEWS_CUSTOMIZATIONS, value, StorageScope.PROFILE, StorageTarget.USER);
 	}
 

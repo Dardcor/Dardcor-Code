@@ -21,6 +21,7 @@ export namespace Schemas {
 	 * A schema that is used for setting files
 	 */
 	export const vscode = 'vscode';
+	export const dardcor = 'dardcor';
 
 	/**
 	 * A schema that is used for internal private files
@@ -124,6 +125,7 @@ export namespace Schemas {
 	 * files with our custom protocol handler (desktop only).
 	 */
 	export const vscodeFileResource = 'vscode-file';
+	export const dardcorFileResource = 'dardcor-file';
 
 	/**
 	 * Scheme used for temporary resources

@@ -21,19 +21,6 @@ import { generateUuid } from '../../../base/common/uuid.js';
 import { escapeRegExpCharacters } from '../../../base/common/strings.js';
 import { isString, Mutable } from '../../../base/common/types.js';
 
-export const AGENTS_WINDOW_PROFILE_ID = 'agents';
-
-const AGENTS_WINDOW_PROFILE_FLAGS: UseDefaultProfileFlags = {
-	settings: true,
-	keybindings: true,
-	prompts: true,
-	mcp: true,
-	languageModels: true,
-	snippets: true,
-	tasks: true,
-	extensions: true,
-};
-
 export const enum ProfileResourceType {
 	Settings = 'settings',
 	Keybindings = 'keybindings',
@@ -74,7 +61,6 @@ export interface IUserDataProfile {
 	readonly useDefaultFlags?: UseDefaultProfileFlags;
 	readonly isInternal?: boolean;
 	readonly isTransient?: boolean;
-	readonly isAgentsWindowProfile?: boolean;
 	readonly workspaces?: readonly URI[];
 }
 
@@ -180,13 +166,11 @@ export function reviveProfile(profile: UriDto<IUserDataProfile>, scheme: string)
 		useDefaultFlags: profile.useDefaultFlags,
 		isTransient: profile.isTransient,
 		isInternal: profile.isInternal,
-		isAgentsWindowProfile: profile.isAgentsWindowProfile,
 		workspaces: profile.workspaces?.map(w => URI.revive(w)),
 	};
 }
 
 export function toUserDataProfile(id: string, name: string, location: URI, profilesCacheHome: URI, options?: IUserDataProfileOptions, defaultProfile?: IUserDataProfile): IUserDataProfile {
-	const isAgentsWindowProfile = id === AGENTS_WINDOW_PROFILE_ID;
 	return {
 		id,
 		name,
@@ -206,8 +190,7 @@ export function toUserDataProfile(id: string, name: string, location: URI, profi
 		cacheHome: joinPath(profilesCacheHome, id),
 		useDefaultFlags: options?.useDefaultFlags,
 		isTransient: options?.transient,
-		isInternal: isAgentsWindowProfile || options?.transient,
-		isAgentsWindowProfile,
+		isInternal: options?.transient,
 		workspaces: options?.workspaces,
 	};
 }
@@ -297,7 +280,7 @@ export class UserDataProfilesService extends Disposable implements IUserDataProf
 						this.profilesCacheHome,
 						{
 							icon: storedProfile.icon,
-							useDefaultFlags: id === AGENTS_WINDOW_PROFILE_ID ? AGENTS_WINDOW_PROFILE_FLAGS : storedProfile.useDefaultFlags,
+							useDefaultFlags: storedProfile.useDefaultFlags,
 						},
 						defaultProfile));
 				}
@@ -386,7 +369,7 @@ export class UserDataProfilesService extends Disposable implements IUserDataProf
 		if (!profileCreationPromise) {
 			profileCreationPromise = (async () => {
 				try {
-					const existing = this.profiles.find(p => p.id === id || (id !== AGENTS_WINDOW_PROFILE_ID && !p.isTransient && !options?.transient && p.name === name));
+					const existing = this.profiles.find(p => p.id === id || (!p.isTransient && !options?.transient && p.name === name));
 					if (existing) {
 						throw new Error(`Profile with ${name} name already exists`);
 					}
@@ -399,9 +382,9 @@ export class UserDataProfilesService extends Disposable implements IUserDataProf
 					const profile = toUserDataProfile(
 						id,
 						name,
-						this.uriIdentityService.extUri.joinPath(this.profilesHome, ...(id === AGENTS_WINDOW_PROFILE_ID ? [SYSTEM_PROFILES_HOME, id] : [id])),
+						this.uriIdentityService.extUri.joinPath(this.profilesHome, id),
 						this.profilesCacheHome,
-						id === AGENTS_WINDOW_PROFILE_ID ? {} : options,
+						options,
 						this.defaultProfile);
 					await this.fileService.createFolder(profile.location);
 
@@ -429,10 +412,6 @@ export class UserDataProfilesService extends Disposable implements IUserDataProf
 	}
 
 	async updateProfile(profile: IUserDataProfile, options: IUserDataProfileUpdateOptions): Promise<IUserDataProfile> {
-		if (profile.isAgentsWindowProfile) {
-			throw new Error('Cannot update agents window profile');
-		}
-
 		const profilesToUpdate: IUserDataProfile[] = [];
 		for (const existing of this.profiles) {
 			let profileToUpdate: Mutable<IUserDataProfile> | undefined;
@@ -594,10 +573,6 @@ export class UserDataProfilesService extends Disposable implements IUserDataProf
 
 	getProfileForWorkspace(workspaceIdentifier: IAnyWorkspaceIdentifier): IUserDataProfile | undefined {
 		const workspace = this.getWorkspace(workspaceIdentifier);
-
-		if (URI.isUri(workspace) && this.uriIdentityService.extUri.isEqual(workspace, this.environmentService.agentSessionsWorkspace)) {
-			return this.profiles.find(p => p.isAgentsWindowProfile);
-		}
 
 		return URI.isUri(workspace)
 			? this.profiles.find(p => p.workspaces?.some(w => this.uriIdentityService.extUri.isEqual(w, workspace)))

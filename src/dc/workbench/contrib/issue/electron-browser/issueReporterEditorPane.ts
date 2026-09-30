@@ -207,7 +207,7 @@ export class IssueReporterEditorPane extends EditorPane {
 		// Restore attachments mirrored onto the input before a move, and keep the
 		// input in sync as attachments change so they survive the wizard being
 		// rebuilt when the editor moves between the main editor area and a modal
-		// editor part in the Agents Window.
+		// editor part that causes the wizard to be rebuilt.
 		this.restoreAttachmentsFromInput(input);
 		this.inputDisposables.add(this.wizard.onDidChangeAttachments(() => {
 			input.savedScreenshots = this.wizard?.getScreenshots().slice();

@@ -71,7 +71,6 @@ import { ILogService } from '../../../../../../platform/log/common/log.js';
 import { IUriIdentityService } from '../../../../../../platform/uriIdentity/common/uriIdentity.js';
 import { IWorkspaceContextService, IWorkspaceFoldersChangeEvent, WorkbenchState } from '../../../../../../platform/workspace/common/workspace.js';
 import { IWorkspaceTrustManagementService } from '../../../../../../platform/workspace/common/workspaceTrust.js';
-import { IWorkbenchEnvironmentService } from '../../../../../services/environment/common/environmentService.js';
 import { ChatConfiguration, getChatPermissionLevelFromDefaultConfiguration, type IChatDefaultConfiguration } from '../../../common/constants.js';
 import { isUntitledChatSession } from '../../../common/model/chatUri.js';
 import { IChatService } from '../../../common/chatService/chatService.js';
@@ -284,7 +283,6 @@ export class AgentHostUntitledProvisionalSessionService extends Disposable imple
 		@ILogService private readonly _logService: ILogService,
 		@IChatService chatService: IChatService,
 		@IConfigurationService private readonly _configurationService: IConfigurationService,
-		@IWorkbenchEnvironmentService private readonly _environmentService: IWorkbenchEnvironmentService,
 		@IAgentHostNewSessionFolderService private readonly _newSessionFolderService: IAgentHostNewSessionFolderService,
 		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
 		@IWorkspaceTrustManagementService private readonly _workspaceTrustManagementService: IWorkspaceTrustManagementService,
@@ -447,8 +445,7 @@ export class AgentHostUntitledProvisionalSessionService extends Disposable imple
 
 	getInitialSessionMetadata(sessionResource?: URI): Record<string, unknown> | undefined {
 		const workspace = this._workspaceContextService.getWorkspace();
-		const workspaceMetadata = this._environmentService.isSessionsWindow
-			|| this._workspaceContextService.getWorkbenchState() !== WorkbenchState.WORKSPACE
+		const workspaceMetadata = this._workspaceContextService.getWorkbenchState() !== WorkbenchState.WORKSPACE
 			|| !URI.isUri(workspace.configuration)
 			? undefined
 			: withSessionMultiRootMetadata(undefined, {
@@ -1054,14 +1051,8 @@ export class AgentHostUntitledProvisionalSessionService extends Disposable imple
 	 *   `approvals` properties). The approval seed is clamped to `'default'`
 	 *   when the `chat.tools.global.autoApprove` policy is off. The local-only
 	 *   `chat.permissions.default` setting is NOT used.
-	 *
-	 * Skipped entirely in the Agents window, where the sessions provider
-	 * supplies config via `request.agentHostSessionConfig` instead.
 	 */
 	private _getInitialConfig(): Record<string, unknown> | undefined {
-		if (this._environmentService.isSessionsWindow) {
-			return undefined;
-		}
 		const config: Record<string, unknown> = { [SessionConfigKey.Isolation]: 'folder' };
 
 		const configuredDefaults = this._configurationService.getValue<IChatDefaultConfiguration>(ChatConfiguration.DefaultConfiguration);

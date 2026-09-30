@@ -101,7 +101,6 @@ export const terminalChatAgentToolsConfiguration: IStringDictionary<IConfigurati
 				}
 			}
 		},
-		agentsWindow: { default: true },
 	},
 	[TerminalChatAgentToolsSettingId.AutoApprove]: {
 		restricted: true,
