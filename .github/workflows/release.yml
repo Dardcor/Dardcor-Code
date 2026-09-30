@@ -383,6 +383,9 @@ jobs:
       - name: Generate Structured updater.json
         run: |
           node build/generate-updater-json.cjs release_assets "${{ github.repository }}" "${{ github.ref_name }}"
+          TAG="${{ github.ref_name }}"
+          CLEAN_VER=$(echo "$TAG" | sed -E 's/^(Dardcor-Code-v?|v)//')
+          echo "RELEASE_TITLE=Dardcor Code v${CLEAN_VER}" >> $GITHUB_ENV
 
       - name: Verify Total 25 Assets Count
         run: |
@@ -416,7 +419,7 @@ jobs:
       - name: Upload All 25 Assets to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Dardcor Code ${{ startsWith(github.ref_name, 'v') && github.ref_name || format('v{0}', github.ref_name) }}"
+          name: ${{ env.RELEASE_TITLE }}
           tag_name: ${{ github.ref_name }}
           files: release_assets/*
         env:
