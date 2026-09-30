@@ -172,6 +172,7 @@ const minifyDardcorTask = task.define('minify-dardcor', task.series(
 ));
 task.task(minifyDardcorTask);
 task.task(task.define('minify-vscode', minifyDardcorTask));
+const minifyVSCodeTask = minifyDardcorTask;
 
 task.task(task.define('core-ci-old', task.series(
 	task.task('compile-build-with-mangling') as task.Task,
