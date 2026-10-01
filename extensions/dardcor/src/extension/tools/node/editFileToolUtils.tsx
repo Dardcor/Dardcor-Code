@@ -37,6 +37,8 @@ import { ServicesAccessor } from '../../../util/dardcor/platform/instantiation/c
 import { EndOfLine, Position, Range, TextEdit } from '../../../dardcorTypes';
 import { IBuildPromptContext } from '../../prompt/common/intents';
 import { formatUriForFileWidget } from '../common/toolUtils';
+import { withFileLock } from '../smartEdit/fileLock';
+import { smartReplaceOne } from '../smartEdit/replacerPipeline';
 
 // Simplified Hunk type for the patch
 interface Hunk {
@@ -259,12 +261,32 @@ export function findAndReplaceOne(
 		return similarityResult;
 	}
 
+	// Strategy 5: Smart Edit Engine (9-Layer Heuristic Pipeline with Levenshtein & Safety Guards)
+	const smartResult = smartReplaceOne(text, oldStr, newStr);
+	if (smartResult.success && smartResult.matchSpan) {
+		return {
+			text: smartResult.text,
+			type: 'smart-' + smartResult.strategy,
+			editPosition: [smartResult.matchSpan],
+		};
+	}
+	if (smartResult.multipleMatches) {
+		return {
+			text,
+			type: 'multiple',
+			editPosition: [],
+			matchPositions: [],
+			strategy: 'fuzzy',
+			suggestion: smartResult.errorMessage || 'Multiple matches found. Make your search string more unique.'
+		};
+	}
+
 	// No matches found with any strategy
 	return {
 		text,
 		type: 'none',
 		editPosition: [],
-		suggestion: `Try making your search string more specific or checking for whitespace/formatting differences.`
+		suggestion: smartResult.errorMessage || `Try making your search string more specific or checking for whitespace/formatting differences.`
 	};
 }
 
@@ -575,14 +597,15 @@ export async function applyEdit(
 	languageModel: LanguageModelChat | undefined,
 	opts?: { replaceAll?: boolean },
 ): Promise<{ patch: Hunk[]; updatedFile: string; edits: TextEdit[] }> {
-	let originalFile: string;
-	let updatedFile: string;
-	const edits: TextEdit[] = [];
-	const filePath = uri.toString();
+	return withFileLock(uri.fsPath || uri.path, async () => {
+		let originalFile: string;
+		let updatedFile: string;
+		const edits: TextEdit[] = [];
+		const filePath = uri.toString();
 
-	try {
-		// Use VS Code workspace API to get the document content
-		const document = notebookService.hasSupportedNotebooks(uri) ?
+		try {
+			// Use VS Code workspace API to get the document content
+			const document = notebookService.hasSupportedNotebooks(uri) ?
 			await workspaceService.openNotebookDocumentAndSnapshot(uri, alternativeNotebookContent.getFormat(languageModel)) :
 			await workspaceService.openTextDocumentAndSnapshot(uri);
 		originalFile = document.getText();
@@ -707,6 +730,7 @@ export async function applyEdit(
 			throw new EditError(`Failed to edit file: ${error.stack || error.message}`, 'unknownError');
 		}
 	}
+	});
 }
 
 const ALWAYS_CHECKED_EDIT_PATTERNS: Readonly<Record<string, boolean>> = {

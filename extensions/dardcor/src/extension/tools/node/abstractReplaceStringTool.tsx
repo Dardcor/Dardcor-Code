@@ -45,6 +45,8 @@ import { EditFileResult, IEditedFile } from './editFileToolResult';
 import { applyEdit, canExistingFileBeEdited, createEditConfirmation, EditError, formatDiffAsUnified, getDisallowedEditUriError, logEditToolResult, NoChangeError, NoMatchError, openDocumentAndSnapshot } from './editFileToolUtils';
 import { sendEditNotebookTelemetry } from './editNotebookTool';
 import { assertFileNotContentExcluded, resolveToolInputPath } from './toolUtils';
+import { DoomLoopDetector } from '../../agent/doomLoopDetector';
+import { GitCheckpointEngine } from '../../checkpoint/gitCheckpoint';
 
 export interface IAbstractReplaceStringInput {
 	filePath: string;
@@ -113,6 +115,19 @@ export abstract class AbstractReplaceStringTool<T extends { explanation: string 
 	}
 
 	private async _prepareEdits(options: vscode.LanguageModelToolInvocationOptions<T> | vscode.LanguageModelToolInvocationPrepareOptions<T>, input: IAbstractReplaceStringInput[], token: vscode.CancellationToken) {
+		const doomCheck = DoomLoopDetector.getInstance().recordAndCheck(this.toolName(), input);
+		if (doomCheck.isDoomLoop) {
+			throw new Error(doomCheck.message);
+		}
+
+		try {
+			const workspaceFolders = this.workspaceService.getWorkspaceFolders();
+			const rootPath = workspaceFolders?.[0]?.fsPath || process.cwd();
+			void GitCheckpointEngine.getInstance(rootPath).capture(`AI edit via ${this.toolName()}`);
+		} catch {
+			// Non-blocking fallback
+		}
+
 		const results = await Promise.all(input.map(i => this._prepareEditsForFile(options, i, token)));
 		this._errorConflictingEdits(results);
 		return results;
