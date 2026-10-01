@@ -36,16 +36,31 @@ export class ContextMentionsResolverTool implements ICopilotTool<IContextMention
 }
 
 /**
- * Expands slash-based context mentions into prompt blocks.
- * Supports /problems, /terminal, /git-changes, /file:<path>, /url:<link>, and /<commit-hash>.
+ * Expands slash-based and @-based context mentions into rich prompt blocks.
+ * Supports @problems, @terminal, @git-changes, @selection, @file:<path>, @folder:<path>, and / equivalent.
  */
 export async function resolveDardcorContextMentions(text: string): Promise<string> {
 	let result = text;
 	const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
 
-	// /problems and /problems:errors
-	if (result.includes('/problems')) {
-		const errorsOnly = result.includes('/problems:errors');
+	// @selection / /selection
+	if (result.includes('@selection') || result.includes('/selection')) {
+		let selectionContent = 'No active text selection in editor.';
+		const editor = vscode.window.activeTextEditor;
+		if (editor && !editor.selection.isEmpty) {
+			const selectedText = editor.document.getText(editor.selection);
+			const relPath = vscode.workspace.asRelativePath(editor.document.uri);
+			const startLine = editor.selection.start.line + 1;
+			const endLine = editor.selection.end.line + 1;
+			selectionContent = `File: ${relPath} (lines ${startLine}-${endLine})\n\`\`\`\n${selectedText}\n\`\`\``;
+		}
+		const selectionBlock = `\n\n<context_mention type="@selection">\n${selectionContent}\n</context_mention>\n`;
+		result = result.replace(/[@\/]selection\b/g, selectionBlock);
+	}
+
+	// @problems / /problems
+	if (result.match(/[@\/]problems(?::errors)?\b/)) {
+		const errorsOnly = result.includes('@problems:errors') || result.includes('/problems:errors');
 		const diagnostics = vscode.languages.getDiagnostics();
 		const problemsList: string[] = [];
 
@@ -69,14 +84,14 @@ export async function resolveDardcorContextMentions(text: string): Promise<strin
 
 		const countDesc = errorsOnly ? 'compiler errors' : 'compiler errors & warnings';
 		const problemsOutput = problemsList.length > 0
-			? `\n\n<context_mention type="/problems">\n${problemsList.slice(0, 150).join('\n')}\n</context_mention>\n`
-			: `\n\n<context_mention type="/problems">\nNo workspace ${countDesc} detected.\n</context_mention>\n`;
+			? `\n\n<context_mention type="@problems">\n${problemsList.slice(0, 150).join('\n')}\n</context_mention>\n`
+			: `\n\n<context_mention type="@problems">\nNo workspace ${countDesc} detected.\n</context_mention>\n`;
 
-		result = result.replace(/\/problems(?::errors)?\b/g, problemsOutput);
+		result = result.replace(/[@\/]problems(?::errors)?\b/g, problemsOutput);
 	}
 
-	// /terminal
-	if (result.includes('/terminal')) {
+	// @terminal / /terminal
+	if (result.match(/[@\/]terminal\b/)) {
 		let terminalOutput = 'No active terminal output available.';
 		const activeTerminals = vscode.window.terminals;
 		if (activeTerminals.length > 0) {
@@ -84,12 +99,12 @@ export async function resolveDardcorContextMentions(text: string): Promise<strin
 			terminalOutput = `Active Terminal: "${active.name}" (Shell Path: ${active.creationOptions && 'shellPath' in active.creationOptions ? active.creationOptions.shellPath : 'default'})`;
 		}
 
-		const terminalBlock = `\n\n<context_mention type="/terminal">\n${terminalOutput}\n</context_mention>\n`;
-		result = result.replace(/\/terminal\b/g, terminalBlock);
+		const terminalBlock = `\n\n<context_mention type="@terminal">\n${terminalOutput}\n</context_mention>\n`;
+		result = result.replace(/[@\/]terminal\b/g, terminalBlock);
 	}
 
-	// /git-changes
-	if (result.includes('/git-changes')) {
+	// @git-changes / @git / /git-changes
+	if (result.match(/[@\/](?:git-changes|git)\b/)) {
 		let gitOutput = '';
 		try {
 			const { stdout: statusOut } = await execAsync('git status --short', { cwd: workspaceRoot });
@@ -105,12 +120,37 @@ export async function resolveDardcorContextMentions(text: string): Promise<strin
 			gitOutput = 'No active git repository found in workspace.';
 		}
 
-		const gitBlock = `\n\n<context_mention type="/git-changes">\n${gitOutput}\n</context_mention>\n`;
-		result = result.replace(/\/git-changes\b/g, gitBlock);
+		const gitBlock = `\n\n<context_mention type="@git-changes">\n${gitOutput}\n</context_mention>\n`;
+		result = result.replace(/[@\/](?:git-changes|git)\b/g, gitBlock);
 	}
 
-	// /file:<path> with optional line range (#L10-L40 or :10-40)
-	const fileMentionRegex = /\/file:(?:"([^"]+)"|'([^']+)'|([^\s\n]+))/g;
+	// @folder:<path> / /folder:<path>
+	const folderMentionRegex = /[@\/]folder:(?:"([^"]+)"|'([^']+)'|([^\s\n]+))/g;
+	let folderMatch: RegExpExecArray | null;
+	while ((folderMatch = folderMentionRegex.exec(result)) !== null) {
+		const targetFolder = folderMatch[1] || folderMatch[2] || folderMatch[3];
+		let folderListing = '';
+		try {
+			const resolvedUri = path.isAbsolute(targetFolder)
+				? vscode.Uri.file(targetFolder)
+				: vscode.Uri.joinPath(vscode.Uri.file(workspaceRoot), targetFolder);
+
+			const entries = await vscode.workspace.fs.readDirectory(resolvedUri);
+			const lines = entries.slice(0, 100).map(([name, type]) => {
+				const isDir = (type & vscode.FileType.Directory) !== 0;
+				return `${isDir ? '📁' : '📄'} ${name}`;
+			});
+			folderListing = lines.join('\n');
+		} catch (err: any) {
+			folderListing = `Error reading folder ${targetFolder}: ${err.message}`;
+		}
+
+		const folderBlock = `\n\n<context_mention type="@folder" path="${targetFolder}">\n${folderListing}\n</context_mention>\n`;
+		result = result.replace(folderMatch[0], folderBlock);
+	}
+
+	// @file:<path> / /file:<path>
+	const fileMentionRegex = /[@\/]file:(?:"([^"]+)"|'([^']+)'|([^\s\n]+))/g;
 	let fileMatch: RegExpExecArray | null;
 	while ((fileMatch = fileMentionRegex.exec(result)) !== null) {
 		let rawTarget = fileMatch[1] || fileMatch[2] || fileMatch[3];
@@ -149,12 +189,12 @@ export async function resolveDardcorContextMentions(text: string): Promise<strin
 		}
 
 		const rangeLabel = startLine !== undefined ? ` (lines ${startLine}-${endLine ?? 'end'})` : '';
-		const fileBlock = `\n\n<context_mention type="/file" path="${rawTarget}"${rangeLabel}>\n\`\`\`\n${fileContent}\n\`\`\`\n</context_mention>\n`;
+		const fileBlock = `\n\n<context_mention type="@file" path="${rawTarget}"${rangeLabel}>\n\`\`\`\n${fileContent}\n\`\`\`\n</context_mention>\n`;
 		result = result.replace(fileMatch[0], fileBlock);
 	}
 
-	// /url:<link>
-	const urlMentionRegex = /\/url:(https?:\/\/[^\s\n>]+)/g;
+	// @url:<link> / /url:<link>
+	const urlMentionRegex = /[@\/]url:(https?:\/\/[^\s\n>]+)/g;
 	let urlMatch: RegExpExecArray | null;
 	while ((urlMatch = urlMentionRegex.exec(result)) !== null) {
 		const targetUrl = urlMatch[1];
@@ -169,7 +209,7 @@ export async function resolveDardcorContextMentions(text: string): Promise<strin
 			fetchedText = `Error fetching URL ${targetUrl}: ${err.message}`;
 		}
 
-		const urlBlock = `\n\n<context_mention type="/url" target="${targetUrl}">\n${fetchedText}\n</context_mention>\n`;
+		const urlBlock = `\n\n<context_mention type="@url" target="${targetUrl}">\n${fetchedText}\n</context_mention>\n`;
 		result = result.replace(urlMatch[0], urlBlock);
 	}
 

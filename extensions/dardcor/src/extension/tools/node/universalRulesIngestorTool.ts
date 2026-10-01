@@ -127,23 +127,29 @@ export class UniversalRulesIngestorTool implements ICopilotTool<IUniversalRulesP
 		await checkFile('AGENTS.md', 'agent');
 		await checkFile('.github/copilot-instructions.md', 'copilot');
 
-		try {
-			const cursorRulesDir = path.join(root, '.cursor', 'rules');
-			const files = await fs.readdir(cursorRulesDir);
-			for (const f of files) {
-				if (f.endsWith('.md') || f.endsWith('.mdc') || f.endsWith('.txt')) {
-					const fullPath = path.join(cursorRulesDir, f);
-					const raw = await fs.readFile(fullPath, 'utf8');
-					entries.push({
-						name: `.cursor/rules/${f}`,
-						path: fullPath,
-						type: 'cursor',
-						enabled: !UniversalRulesIngestorTool.disabledRules.has(fullPath),
-						contentSnippet: raw.substring(0, 120).replace(/[\r\n]+/g, ' ')
-					});
+		const scanDir = async (dirName: string, type: IRuleEntry['type']) => {
+			try {
+				const fullDir = path.join(root, dirName);
+				const files = await fs.readdir(fullDir);
+				for (const f of files) {
+					if (f.endsWith('.md') || f.endsWith('.mdc') || f.endsWith('.txt') || f.endsWith('.rule')) {
+						const fullPath = path.join(fullDir, f);
+						const raw = await fs.readFile(fullPath, 'utf8');
+						entries.push({
+							name: `${dirName}/${f}`,
+							path: fullPath,
+							type,
+							enabled: !UniversalRulesIngestorTool.disabledRules.has(fullPath),
+							contentSnippet: raw.substring(0, 120).replace(/[\r\n]+/g, ' ')
+						});
+					}
 				}
-			}
-		} catch { }
+			} catch { }
+		};
+
+		await scanDir(path.join('.dardcor', 'rules'), 'dardcor');
+		await scanDir(path.join('.dc', 'rules'), 'dardcor');
+		await scanDir(path.join('.cursor', 'rules'), 'cursor');
 
 		return entries;
 	}
