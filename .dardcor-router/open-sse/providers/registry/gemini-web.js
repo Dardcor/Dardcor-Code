@@ -1,0 +1,66 @@
+export default {
+  id: "gemini-web",
+  priority: 33,
+  alias: "gemini-web",
+  aliases: [
+    "gmw",
+    "gemini-chat-web",
+  ],
+  uiAlias: "gmw",
+  display: {
+    name: "Gemini Web",
+    icon: "auto_awesome",
+    color: "#1A73E8",
+    textIcon: "GM",
+    website: "https://gemini.google.com",
+    notice: {
+      signupUrl: "https://gemini.google.com",
+    },
+    kindNotice: {
+      image: "Supports chat completions with Gemini Web account cookie session.",
+    },
+  },
+  category: "oauth",
+  authType: "cookie",
+  authModes: ["oauth"],
+  authHint: "Paste your __Secure-1PSID cookie or use 1-Click Bookmarklet from https://gemini.google.com",
+  thinkingConfig: {
+    options: [
+      "auto",
+      "none",
+      "low",
+      "medium",
+      "high",
+    ],
+    defaultMode: "auto",
+  },
+  transport: {
+    baseUrl: "https://gemini.google.com/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate",
+    format: "gemini-web",
+    forceStream: true,
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
+      "Origin": "https://gemini.google.com",
+      "Referer": "https://gemini.google.com/",
+      "x-same-domain": "1",
+    },
+  },
+  models: [
+    { id: "gemini-3.5-flash", name: "Gemini 3.5 Flash (Free / Default)", upstreamModelId: "gemini-3.5-flash" },
+    { id: "gemini-3.8-flash", name: "Gemini 3.8 Flash (Free Active)", upstreamModelId: "gemini-3.8-flash" },
+    { id: "gemini-3.7-flash", name: "Gemini 3.7 Flash", upstreamModelId: "gemini-3.7-flash" },
+    { id: "gemini-flash", name: "Gemini Flash (Free)", upstreamModelId: "gemini-3.5-flash" },
+    { id: "auto", name: "Gemini Auto (Free / Default)", upstreamModelId: "gemini-3.5-flash" },
+    { id: "gemini-3.1-pro", name: "Gemini 3.1 Pro (Google AI Pro - 1M Context)", upstreamModelId: "gemini-3.1-pro" },
+    { id: "gemini-pro", name: "Gemini Pro (Google AI Pro)", upstreamModelId: "gemini-3.1-pro" },
+    { id: "gemini-thinking", name: "Gemini Thinking / Deep Think (Pro)", upstreamModelId: "gemini-3.8-live" },
+    { id: "gemini-3.8-live", name: "Gemini 3.8 Live (Pro Extended)", upstreamModelId: "gemini-3.8-live" },
+    { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro (Legacy Pro)", upstreamModelId: "gemini-2.5-pro" },
+    { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash (Legacy)", upstreamModelId: "gemini-2.5-flash" },
+  ],
+  passthroughModels: true,
+  serviceKinds: ["llm"],
+  features: {
+    usage: true,
+  },
+};

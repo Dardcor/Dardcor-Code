@@ -1,0 +1,95 @@
+{
+  "settings": {
+    "mitmRouterBaseUrl": "http://localhost:20128",
+    "headroomUrl": "http://localhost:8787",
+    "tunnelUrl": "http://127.0.0.1:20128",
+    "outboundProxyUrl": "http://localhost:20128",
+    "requireLogin": true,
+    "sessionVersion": 3,
+    "zenFreeOnly": false,
+    "cloudUrl": "https://9router.com/sync"
+  },
+  "providerConnections": [
+    {
+      "id": "conn-0001",
+      "provider": "openrouter",
+      "authType": "apikey",
+      "name": "OpenRouter main",
+      "email": null,
+      "priority": 1,
+      "isActive": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-02-01T00:00:00.000Z",
+      "apiKey": "sk-or-legacy-secret-value-0001",
+      "providerSpecificData": {
+        "baseUrl": "http://127.0.0.1:20128/v1",
+        "extra": { "header": "x-9router-token-saver" }
+      }
+    },
+    {
+      "id": "conn-0002",
+      "provider": "claude",
+      "authType": "oauth",
+      "name": "Claude Pro",
+      "email": "user@example.com",
+      "priority": 2,
+      "isActive": true,
+      "createdAt": "2026-01-02T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "accessToken": "sk-ant-legacy-access-token-abc",
+      "refreshToken": "refresh-legacy-token-xyz",
+      "expiresAt": 9999999999,
+      "tokenType": "Bearer",
+      "scope": "read write"
+    }
+  ],
+  "providerNodes": [
+    {
+      "id": "node-0001",
+      "type": "openai",
+      "name": "Legacy local gateway",
+      "createdAt": "2026-01-03T00:00:00.000Z",
+      "updatedAt": "2026-01-03T00:00:00.000Z",
+      "baseUrl": "http://localhost:20128/v1",
+      "prefix": "lgw"
+    }
+  ],
+  "proxyPools": [],
+  "apiKeys": [
+    {
+      "id": "key-0001",
+      "key": "sk-9router-legacy-hmac-crc0001",
+      "name": "Work",
+      "machineId": "machine-0001",
+      "isActive": true,
+      "createdAt": "2026-01-04T00:00:00.000Z"
+    }
+  ],
+  "combos": [
+    {
+      "id": "combo-0001",
+      "name": "free-stack",
+      "kind": "fallback",
+      "models": ["9router/kr/claude-sonnet-4.5", "glm/glm-4.7"],
+      "createdAt": "2026-01-05T00:00:00.000Z",
+      "updatedAt": "2026-01-05T00:00:00.000Z"
+    }
+  ],
+  "modelAliases": {
+    "sonnet": "9router/kr/claude-sonnet-4.5"
+  },
+  "customModels": [
+    {
+      "providerAlias": "9router",
+      "id": "kr/claude-sonnet-4.5",
+      "type": "llm",
+      "name": "Kiro Sonnet"
+    }
+  ],
+  "mitmAlias": {
+    "antigravity": { "gemini-pro-agent": "9router/kr/claude-sonnet-4.5" }
+  },
+  "pricing": {
+    "glm": { "glm/glm-4.7": { "input": 0.6, "output": 0.6 } }
+  }
+}

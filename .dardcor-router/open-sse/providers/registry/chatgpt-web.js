@@ -1,0 +1,65 @@
+export default {
+  id: "chatgpt-web",
+  priority: 31,
+  alias: "chatgpt-web",
+  aliases: [
+    "chatgpt",
+    "cgw",
+  ],
+  uiAlias: "cgw",
+  display: {
+    name: "ChatGPT Web",
+    icon: "smart_toy",
+    color: "#10A37F",
+    textIcon: "CG",
+    website: "https://chatgpt.com",
+    notice: {
+      signupUrl: "https://chatgpt.com",
+    },
+    kindNotice: {
+      image: "Supports chat completions with ChatGPT Web account token.",
+    },
+  },
+  category: "oauth",
+  authType: "access_token",
+  authModes: ["oauth"],
+  authHint: "Paste your Access Token or Session JSON from https://chatgpt.com/api/auth/session",
+  thinkingConfig: {
+    options: [
+      "auto",
+      "none",
+      "low",
+      "medium",
+      "high",
+    ],
+    defaultMode: "auto",
+  },
+  transport: {
+    baseUrl: "https://chatgpt.com/backend-api/conversation",
+    format: "chatgpt-web",
+    forceStream: true,
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
+      Origin: "https://chatgpt.com",
+      Referer: "https://chatgpt.com/",
+    },
+  },
+  models: [
+    { id: "gpt-5.6-luna", name: "GPT-5.6 Luna (Reasoning)", upstreamModelId: "gpt-5.6-luna" },
+    { id: "gpt-5.6-terra", name: "GPT-5.6 Terra", upstreamModelId: "gpt-5.6-terra" },
+    { id: "gpt-5.5", name: "GPT-5.5", upstreamModelId: "gpt-5.5" },
+    { id: "auto", name: "ChatGPT Auto (Default)", upstreamModelId: "auto" },
+    { id: "gpt-4o", name: "GPT-4o", upstreamModelId: "gpt-4o" },
+    { id: "gpt-4o-mini", name: "GPT-4o Mini", upstreamModelId: "gpt-4o-mini" },
+    { id: "o1", name: "OpenAI o1", upstreamModelId: "o1" },
+    { id: "o1-mini", name: "OpenAI o1 Mini", upstreamModelId: "o1-mini" },
+    { id: "o3-mini", name: "OpenAI o3 Mini", upstreamModelId: "o3-mini" },
+    { id: "o1-pro", name: "OpenAI o1 Pro", upstreamModelId: "o1-pro" },
+    { id: "gpt-4.5", name: "GPT 4.5", upstreamModelId: "gpt-4.5" },
+  ],
+  passthroughModels: true,
+  serviceKinds: ["llm"],
+  features: {
+    usage: false,
+  },
+};

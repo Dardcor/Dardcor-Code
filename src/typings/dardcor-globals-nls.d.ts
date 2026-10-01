@@ -1,0 +1,25 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+// AMD2ESM migration relevant
+
+/**
+ * NLS Globals: these need to be defined in all contexts that make
+ * use of our `nls.localize` and `nls.localize2` functions. This includes:
+ * - Electron main process
+ * - Electron window (renderer) process
+ * - Utility Process
+ * - Node.js
+ * - Browser
+ * - Web worker
+ *
+ * That is because during build time we strip out all english strings from
+ * the resulting JS code and replace it with a <number> that is then looked
+ * up from the `_VSCODE_NLS_MESSAGES` array.
+ */
+declare var _DCCODE_NLS_MESSAGES: string[];
+declare var _VSCODE_NLS_MESSAGES: string[];
+declare var _DCCODE_NLS_LANGUAGE: string | undefined;
+declare var _VSCODE_NLS_LANGUAGE: string | undefined;

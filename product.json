@@ -1,0 +1,241 @@
+{
+	"nameShort": "Dardcor Code",
+	"nameLong": "Dardcor Code",
+	"applicationName": "dardcor-code",
+	"dataFolderName": ".dardcor-code",
+	"sharedDataFolderName": ".dardcor-code-shared",
+	"win32MutexName": "dardcorcode",
+	"licenseName": "MIT",
+	"licenseUrl": "https://github.com/dardcor/dardcor-code/blob/main/LICENSE.txt",
+	"serverLicenseUrl": "https://github.com/dardcor/dardcor-code/blob/main/LICENSE.txt",
+	"serverGreeting": [],
+	"serverLicense": [],
+	"serverLicensePrompt": "",
+	"serverApplicationName": "dardcor-code-server",
+	"serverDataFolderName": ".dardcor-code-server",
+	"tunnelApplicationName": "dardcor-code-tunnel",
+	"win32DirName": "Dardcor Code",
+	"win32NameVersion": "Dardcor Code",
+	"win32RegValueName": "DardcorCode",
+	"win32x64AppId": "{{D77B7E06-80BA-4137-BCF4-654B95CCEBC5}",
+	"win32arm64AppId": "{{D1ACE434-89C5-48D1-88D3-E2991DF85475}",
+	"win32x64UserAppId": "{{CC6B787D-37A0-49E8-AE24-8559A032BE0C}",
+	"win32arm64UserAppId": "{{3AEBF0C8-F733-4AD4-BADE-FDB816D53D7B}",
+	"win32ShellNameShort": "Dardcor Code",
+	"win32TunnelServiceMutex": "dardcorcode-tunnelservice",
+	"win32TunnelMutex": "dardcorcode-tunnel",
+	"darwinBundleIdentifier": "com.dardcor.code",
+	"darwinIcon": "dardcor-code.icns",
+	"win32Icon": "dardcor-code.ico",
+	"linuxIconName": "dardcor-code",
+	"licenseFileName": "LICENSE.txt",
+	"reportIssueUrl": "https://github.com/dardcor/dardcor-code/issues/new",
+	"extensionsGallery": {
+		"serviceUrl": "https://marketplace.visualstudio.com/_apis/public/gallery",
+		"itemUrl": "https://marketplace.visualstudio.com/items",
+		"publisherUrl": "https://marketplace.visualstudio.com/publishers",
+		"resourceUrlTemplate": "https://{publisher}.vscode-assets.net/vscode/{name}/{version}/{path}",
+		"controlUrl": "https://az764295.vo.msecnd.net/extensions/marketplace.json"
+	},
+	"nodejsArtifactFeed": "",
+	"electronArtifactFeed": "",
+	"urlProtocol": "dardcor-code",
+	"webviewContentExternalBaseUrlTemplate": "",
+	"builtInExtensions": [
+		{
+			"name": "ms-vscode.js-debug-companion",
+			"version": "1.1.3",
+			"sha256": "7380a890787452f14b2db7835dfa94de538caf358ebc263f9d46dd68ac52de93",
+			"repo": "https://github.com/microsoft/vscode-js-debug-companion"
+		},
+		{
+			"name": "ms-vscode.js-debug",
+			"version": "1.117.0",
+			"sha256": "854eeb8a785b1f41ba2bd02d7ccd4fdbe10021b61473293973c7e96d036c7fb8",
+			"repo": "https://github.com/microsoft/vscode-js-debug"
+		},
+		{
+			"name": "ms-vscode.vscode-js-profile-table",
+			"version": "1.0.10",
+			"sha256": "7361748ddf9fd09d8a2ed1f2a2d7376a2cf9aae708692820b799708385c38e08",
+			"repo": "https://github.com/microsoft/vscode-js-profile-visualizer"
+		}
+	],
+	"defaultChatAgent": {
+		"extensionId": "github.dardcor-chat",
+		"chatExtensionId": "github.dardcor-chat",
+		"chatExtensionOutputId": "dardcor.dardcor-ai.Dardcor Code.log",
+		"chatExtensionOutputExtensionStateCommand": "dardcor.debug.extensionState",
+		"documentationUrl": "https://github.com/dardcor/dardcor-code",
+		"termsStatementUrl": "https://github.com/dardcor/dardcor-code",
+		"privacyStatementUrl": "https://github.com/dardcor/dardcor-code",
+		"skusDocumentationUrl": "https://github.com/dardcor/dardcor-code",
+		"optimizeUsageDocumentationUrl": "https://github.com/dardcor/dardcor-code",
+		"publicCodeMatchesUrl": "https://github.com/dardcor/dardcor-code",
+		"managePlanUrl": "https://github.com/dardcor/dardcor-code",
+		"upgradePlanUrl": "https://github.com/dardcor/dardcor-code",
+		"signUpUrl": "https://github.com/dardcor/dardcor-code",
+		"provider": {
+			"default": {
+				"id": "dardcor",
+				"name": "Dardcor"
+			},
+			"enterprise": {
+				"id": "dardcor-enterprise",
+				"name": "Dardcor Enterprise"
+			},
+			"google": {
+				"id": "google",
+				"name": "Google"
+			},
+			"apple": {
+				"id": "apple",
+				"name": "Apple"
+			}
+		},
+		"entitlementUrl": "http://127.0.0.1:25128/v1/user",
+		"entitlementSignupLimitedUrl": "http://127.0.0.1:25128/v1/user",
+		"chatQuotaExceededContext": "dardcor.chat.quotaExceeded",
+		"completionsQuotaExceededContext": "dardcor.completions.quotaExceeded",
+		"walkthroughCommand": "dardcor.open.walkthrough",
+		"completionsMenuCommand": "dardcor.toggleStatusMenu",
+		"chatRefreshTokenCommand": "dardcor.refreshToken",
+		"generateCommitMessageCommand": "dardcor.git.generateCommitMessage",
+		"resolveMergeConflictsCommand": "dardcor.git.resolveMergeConflicts",
+		"completionsAdvancedSetting": "dardcor.advanced",
+		"completionsEnablementSetting": "dardcor.enable",
+		"nextEditSuggestionsSetting": "dardcor.nextEditSuggestions.enabled",
+		"tokenEntitlementUrl": "http://127.0.0.1:25128/v1/token",
+		"mcpRegistryDataUrl": "http://127.0.0.1:25128/v1/mcp_registry",
+		"managedSettingsUrl": "http://127.0.0.1:25128/v1/managed_settings"
+	},
+	"trustedExtensionAuthAccess": {
+		"github": [
+			"github.dardcor-chat",
+			"dardcor.dardcor-ai"
+		],
+		"github-enterprise": [
+			"github.dardcor-chat",
+			"dardcor.dardcor-ai"
+		]
+	},
+	"extensionUntrustedWorkspaceSupport": {
+		"github.dardcor-chat": {
+			"default": true
+		},
+		"github.copilot-chat": {
+			"default": true
+		},
+		"dardcor.dardcor-ai": {
+			"default": true
+		}
+	},
+	"onboardingKeymaps": [
+		{
+			"id": "dardcor",
+			"label": "Dardcor Code",
+			"description": "Default keyboard mapping"
+		},
+		{
+			"id": "sublime",
+			"label": "Sublime Text",
+			"extensionId": "ms-vscode.sublime-keybindings",
+			"description": "Keyboard mapping from Sublime Text"
+		},
+		{
+			"id": "intellij",
+			"label": "IntelliJ / JetBrains",
+			"extensionId": "k--kato.intellij-idea-keybindings",
+			"description": "Keyboard mapping from IntelliJ IDEA"
+		},
+		{
+			"id": "vim",
+			"label": "Vim",
+			"extensionId": "vscodevim.vim",
+			"description": "Vim modal editing"
+		},
+		{
+			"id": "eclipse",
+			"label": "Eclipse",
+			"extensionId": "alphabotsec.vscode-eclipse-keybindings",
+			"description": "Keyboard mapping from Eclipse"
+		},
+		{
+			"id": "notepadpp",
+			"label": "Notepad++",
+			"extensionId": "ms-vscode.notepadplusplus-keybindings",
+			"description": "Keyboard mapping from Notepad++"
+		}
+	],
+	"onboardingThemes": [
+		{
+			"id": "dark-2026",
+			"label": "Dark 2026",
+			"themeId": "Dark 2026",
+			"type": "dark"
+		},
+		{
+			"id": "hc-dark",
+			"label": "Dark High Contrast",
+			"themeId": "Default High Contrast",
+			"type": "hcDark"
+		},
+		{
+			"id": "solarized-dark",
+			"label": "Solarized Dark",
+			"themeId": "Solarized Dark",
+			"type": "dark"
+		},
+		{
+			"id": "light-2026",
+			"label": "Light 2026",
+			"themeId": "Light 2026",
+			"type": "light"
+		},
+		{
+			"id": "hc-light",
+			"label": "Light High Contrast",
+			"themeId": "Default High Contrast Light",
+			"type": "hcLight"
+		},
+		{
+			"id": "solarized-light",
+			"label": "Solarized Light",
+			"themeId": "Solarized Light",
+			"type": "light"
+		}
+	],
+	"builtInExtensionsEnabledWithAutoUpdates": [
+		"dardcor.dardcor-ai"
+	],
+	"voiceWsUrl": "",
+	"extensionRecommendations": {
+		"ms-python.python": {
+			"onFileOpen": [
+				"**/*.py"
+			]
+		},
+		"ms-vscode.cpptools": {
+			"onFileOpen": [
+				"**/*.c",
+				"**/*.cpp",
+				"**/*.h"
+			]
+		}
+	},
+	"mcpRegistryDataUrl": "http://127.0.0.1:25128/v1/mcp_registry",
+	"mcpGallery": {
+		"serviceUrl": "http://127.0.0.1:25128/v1/mcp_registry",
+		"itemWebUrl": "",
+		"publisherUrl": "",
+		"supportUrl": "",
+		"privacyPolicyUrl": "",
+		"termsOfServiceUrl": "",
+		"reportUrl": ""
+	},
+	"quality": "stable",
+	"version": "1.132.0",
+	"dardcorVersion": "1.0.0",
+	"updateUrl": "https://github.com/Dardcor/Dardcor-Code/releases/latest/download/updater.json",
+	"win32AppUserModelId": "Dardcor.DardcorCode"
+}

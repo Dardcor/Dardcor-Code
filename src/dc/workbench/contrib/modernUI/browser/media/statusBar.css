@@ -1,0 +1,56 @@
+
+
+.modern-ui .part.statusbar > .items-container > .statusbar-item,
+.modern-ui .part.statusbar > .items-container > .statusbar-item > .statusbar-item-label {
+	border-radius: var(--vscode-cornerRadius-small);
+}
+
+.modern-ui .part.statusbar > .items-container > .statusbar-item.compact-left,
+.modern-ui .part.statusbar > .items-container > .statusbar-item.compact-left > .statusbar-item-label {
+	border-top-left-radius: 0;
+	border-bottom-left-radius: 0;
+}
+
+.modern-ui .part.statusbar > .items-container > .statusbar-item.compact-right,
+.modern-ui .part.statusbar > .items-container > .statusbar-item.compact-right > .statusbar-item-label {
+	border-top-right-radius: 0;
+	border-bottom-right-radius: 0;
+}
+
+.modern-ui .part.statusbar > .left-items > .statusbar-item.visible-background-color-neighbor {
+	margin-left: var(--vscode-spacing-size40);
+}
+
+.modern-ui .part.statusbar > .right-items > .statusbar-item.visible-background-color-neighbor {
+	margin-right: var(--vscode-spacing-size40);
+}
+
+.modern-ui.modern-ui-compact .part.statusbar > .items-container > .statusbar-item > .statusbar-item-label {
+	margin-left: var(--vscode-spacing-size20);
+	margin-right: var(--vscode-spacing-size20);
+	padding-left: var(--vscode-spacing-size40);
+	padding-right: var(--vscode-spacing-size40);
+}
+
+.modern-ui.modern-ui-compact .part.statusbar > .left-items > .statusbar-item.visible-background-color-neighbor {
+	margin-left: var(--vscode-spacing-size20);
+}
+
+.modern-ui.modern-ui-compact .part.statusbar > .right-items > .statusbar-item.visible-background-color-neighbor {
+	margin-right: var(--vscode-spacing-size20);
+}
+
+.modern-ui .part.statusbar > .items-container > .statusbar-item:is(.compact-left, .compact-right) > a.statusbar-item-label:hover:not(.disabled) {
+	background-image: linear-gradient(var(--vscode-statusBarItem-compactHoverBackground), var(--vscode-statusBarItem-compactHoverBackground));
+}
+
+.modern-ui .part.statusbar > .items-container > .statusbar-item.left.first-visible-item > .statusbar-item-label,
+.modern-ui .part.statusbar > .items-container > .statusbar-item.right.last-visible-item > .statusbar-item-label {
+	padding: 0 var(--vscode-spacing-size60);
+}
+
+.modern-ui.modern-ui-compact .part.statusbar > .items-container > .statusbar-item.left.first-visible-item > .statusbar-item-label,
+.modern-ui.modern-ui-compact .part.statusbar > .items-container > .statusbar-item.right.last-visible-item > .statusbar-item-label {
+	padding-left: var(--vscode-spacing-size40);
+	padding-right: var(--vscode-spacing-size40);
+}

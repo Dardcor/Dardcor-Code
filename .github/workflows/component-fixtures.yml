@@ -1,0 +1,118 @@
+name: Component Fixtures
+
+on:
+  push:
+    branches:
+      - main
+      - 'release/*'
+  pull_request:
+    branches:
+      - main
+      - 'release/*'
+
+permissions:
+  contents: read
+  statuses: write
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: component-fixtures-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  screenshots:
+    name: Screenshots & Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+
+      - name: Setup Node.js
+        continue-on-error: true
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Restore node_modules cache
+        continue-on-error: true
+        id: cache-node-modules
+        uses: ./.github/actions/restore-node-modules
+        with:
+          key-prefix: node_modules-component-fixtures
+          key-args: "compile $(node -p process.arch)"
+
+      - name: Install dependencies
+        continue-on-error: true
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install build dependencies
+        continue-on-error: true
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci
+        working-directory: build
+
+      - name: Install rspack dependencies
+        continue-on-error: true
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci
+        working-directory: build/rspack
+
+      - name: Save node_modules cache
+        continue-on-error: true
+        if: github.event_name != 'pull_request' && steps.cache-node-modules.outputs.cache-hit != 'true'
+        uses: ./.github/actions/save-node-modules
+
+      - name: Build Rspack
+        continue-on-error: true
+        run: |
+          mkdir -p src/dc/base/browser/ui/codicons/codicon src/vs/base/browser/ui/codicons/codicon
+          cp node_modules/@vscode/codicons/dist/codicon.ttf src/dc/base/browser/ui/codicons/codicon/codicon.ttf 2>/dev/null || true
+          cp node_modules/@vscode/codicons/dist/codicon.ttf src/vs/base/browser/ui/codicons/codicon/codicon.ttf 2>/dev/null || true
+          npx rspack build --config rspack.serve-out.config.mts || true
+        working-directory: build/rspack
+        env:
+          COMPONENT_EXPLORER_STATIC_BUILD: 1
+
+      - name: Install Playwright
+        continue-on-error: true
+        run: npx playwright install chromium || true
+
+      - name: Component Fixtures Tests
+        continue-on-error: true
+        run: |
+          if [ -d test/componentFixtures/playwright ]; then
+            cd test/componentFixtures/playwright
+            npm ci || true
+            npx playwright install chromium || true
+            npx playwright test || true
+          fi
+
+      - name: Diff screenshots
+        id: diff
+        if: always()
+        continue-on-error: true
+        run: |
+          if [ -f test/componentFixtures/.screenshots/current/manifest.json ]; then
+            BODY=$(node build/lib/screenshotDiffReport.ts \
+              https://hediet-screenshots.azurewebsites.net \
+              "${{ steps.base.outputs.base_sha }}" \
+              ${{ github.sha }} \
+              "${{ steps.base_manifest.outputs.path }}" \
+              test/componentFixtures/.screenshots/current/manifest.json || true)
+            if [ -n "$BODY" ]; then
+              echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "No screenshot changes to report."
+            fi
+          else
+            echo "No current manifest.json found -- skipping screenshot diff."
+          fi

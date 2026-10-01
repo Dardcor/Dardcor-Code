@@ -1,0 +1,30 @@
+services:
+  dardcor-router:
+    image: dardcor/dardcor-router:latest
+    container_name: dardcor-router
+    restart: always
+    ports:
+      - "21128:21128"
+    volumes:
+      - dardcor-router-data:/app/data
+    env_file:
+      - .env
+    environment:
+      DATA_DIR: /app/data
+      PORT: "21128"
+      HOSTNAME: "0.0.0.0"
+      NODE_ENV: production
+      HEADROOM_URL: http://headroom:8787
+    depends_on:
+      - headroom
+
+  headroom:
+    image: ghcr.io/chopratejas/headroom:latest
+    container_name: headroom
+    restart: always
+    ports:
+      - "8787:8787"
+
+volumes:
+  dardcor-router-data:
+    name: dardcor-router-data

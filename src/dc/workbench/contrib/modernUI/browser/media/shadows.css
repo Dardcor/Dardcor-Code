@@ -1,0 +1,27 @@
+
+
+.modern-ui.monaco-workbench {
+	
+	--vscode-shadow-active-tab: 0 0 0 0 transparent;
+	--vscode-shadow-depth-x: 0 0 0 0 transparent;
+	--vscode-shadow-depth-y: 0 0 0 0 transparent;
+	--vscode-shadow-sm: 0 0 0 0 transparent;
+}
+
+.modern-ui.monaco-workbench .part.titlebar,
+.modern-ui.monaco-workbench .part.activitybar,
+.modern-ui.monaco-workbench.nosidebar .part.activitybar,
+.modern-ui.monaco-workbench.activitybar-right .part.activitybar,
+.modern-ui.monaco-workbench .part.editor .tabs-container > .tab,
+.modern-ui.monaco-workbench .part.editor .tabs-container > .tab:hover:not(.active),
+.modern-ui.monaco-workbench .part.editor .tabs-container > .tab.active {
+	box-shadow: none !important;
+}
+
+.modern-ui.monaco-workbench:not(.hc-black):not(.hc-light) .terminal-resize-overlay {
+	box-shadow: var(--vscode-shadow-lg);
+}
+
+.modern-ui.monaco-workbench .monaco-diff-editor.side-by-side .editor.modified {
+	border-left: 1px solid var(--vscode-surface-border);
+}

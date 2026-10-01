@@ -1,0 +1,16 @@
+{
+  "name": "dardcor-code-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Unit tests for dardcor-code embeddings endpoint",
+  "scripts": {
+    "test": "vitest run --reporter=verbose",
+    "test:watch": "vitest --reporter=verbose"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,292 @@
+# KATALOG FITUR & SISTEM BARU: HASIL ANALISIS OPENCODE & CLINE UNTUK DARDCOR CODE
+Dokumen ini mencatat setiap alat (tools), arsitektur, dan sistem canggih yang dianalisis secara berulang (iteratif) dari proyek Opencode dan Cline. Catatan ini berfungsi sebagai cetak biru (blueprint) dalam merevolusi Dardcor Code menjadi asisten AI berkemampuan "Super Intelligent".
+
+================================================================================
+1. OPENCODE: LSP TOOL (Language Server Protocol Direct Integration)
+================================================================================
+- Sumber: packages/opencode/src/tool/lsp.ts & packages/opencode/src/lsp/
+- Deskripsi & Fungsi:
+  Fitur ini memberikan kemampuan langsung kepada Agen LLM untuk berkomunikasi dengan Language Server Protocol (LSP) yang sedang aktif di editor/workspace (seperti TypeScript Language Server, Pyright/Pylance, Rust-Analyzer, Clangd, gopls, dll).
+- Operasi yang didukung:
+  1. goToDefinition: Melompat langsung ke definisi simbol/fungsi/tipe yang tepat secara semantik (bukan tebakan regex).
+  2. findReferences: Menemukan semua referensi pemanggilan fungsi/variabel di seluruh codebase secara akurat.
+  3. hover: Mengambil informasi tipe data, dokumentasi jsdoc/docstring, dan signature lengkap dari suatu posisi kode.
+  4. documentSymbol: Mengambil struktur hierarki simbol (kelas, fungsi, properti) dalam satu file dokumen.
+  5. workspaceSymbol: Mencari simbol di seluruh workspace berbasis query nama.
+  6. goToImplementation: Menemukan implementasi konkret dari suatu interface/abstract class.
+  7. prepareCallHierarchy, incomingCalls, outgoingCalls: Melacak pohon pemanggilan fungsi (siapa yang memanggil fungsi ini, dan fungsi apa saja yang dipanggil olehnya).
+- Cara Kerja:
+  Ketika agen menerima instruksi analisis atau refactoring, daripada menebak-nebak menggunakan grep/findTextInFiles yang berisik, agen memanggil tool LSP dengan parameter `{ operation, filePath, line, character }`. Tool ini berinteraksi dengan LSP client backend, menyentuh file dokumen, mengeksekusi request LSP, dan mengembalikan hasil navigasi presisi (URI, rentang baris, dan deskripsi simbol).
+- Nilai Tambah untuk Dardcor Code:
+  Dardcor Code berjalan di atas VSCode Core / Electron, yang sudah memiliki `vscode.commands.executeCommand('vscode.executeDefinitionProvider', ...)` dan language feature providers bawaan. Mengintegrasikan LSP Tool ini langsung ke Agent Tools Dardcor Code akan membuat kemampuan navigasi dan refactoring agen menjadi 100x lebih akurat daripada sekadar text search.
+
+================================================================================
+2. OPENCODE: INTERACTIVE QUESTION TOOL (Klarifikasi Cerdas Interaktif)
+================================================================================
+- Sumber: packages/opencode/src/tool/question.ts & packages/opencode/src/question/index.ts
+- Deskripsi & Fungsi:
+  Alat ini memungkinkan Agen LLM untuk menghentikan asumsi sepihak (guessing/hallucination) saat instruksi pengguna ambigu atau memiliki beberapa alternatif desain arsitektur. Agen dapat memunculkan form/modal pertanyaan interaktif kepada pengguna secara terstruktur.
+- Parameter & Format Data:
+  Agen mengirimkan array pertanyaan dengan struktur:
+  - `question`: Kalimat pertanyaan inti yang diajukan ke user.
+  - `options`: Pilihan opsi jawaban yang disiapkan (single-choice atau multi-choice).
+  - Dukungan jawaban kustom: Pengguna dapat memilih opsi atau mengetik jawaban kustom mereka sendiri.
+- Cara Kerja:
+  1. Agen mendeteksi ambiguitas atau titik keputusan arsitektural penting.
+  2. Agen memanggil `question` tool dengan daftar opsi pertanyaan.
+  3. Sistem membuat `Deferred Promise` dan memancarkan event ke UI (modal/chat widget).
+  4. Eksekusi agen ditangguhkan (paused) secara asinkron tanpa membuang token atau melakukan loop polling.
+  5. Pengguna menjawab melalui dialog/modal di UI.
+  6. Jawaban pengguna meng-resolve Promise, dan respon dikembalikan ke agen sebagai tool result untuk melanjutkan tugas dengan kepastian 100%.
+- Nilai Tambah untuk Dardcor Code:
+  Menjadikan Dardcor Code sangat profesional dan ramah pengguna (human-in-the-loop). Agen tidak akan merusak codebase dengan asumsi salah, melainkan mengajukan pertanyaan klarifikasi UI yang elegan saat menemui cabang keputusan besar.
+
+================================================================================
+3. OPENCODE: CODE-MODE (Confined Orchestration Script Interpreter)
+================================================================================
+- Sumber: packages/opencode/src/tool/code-mode.ts & packages/codemode/
+- Deskripsi & Fungsi:
+  Alih-alih agen LLM melakukan puluhan kali round-trip tool call secara terpisah (yang memboroskan ribuan token, kuota API, dan waktu tunggu round-trip jaringan yang lambat), CodeMode menyediakan runtime sandbox JavaScript terisolasi di mana agen dapat menulis skrip orkestrasi kecil untuk memanggil banyak tools secara berurutan atau paralel dalam satu langkah eksekusi tunggal.
+- Fitur Utama & Batasan Keamanan:
+  1. Isolated Sandbox Interpreter: Mengeksekusi subset JavaScript aman tanpa akses ke objek global berbahaya (tidak ada eval tak terbatas atau akses memori liar).
+  2. Multi-Tool Chaining: Agen dapat memanggil beberapa tool sekaligus di dalam skrip, memfilter data di dalam sandbox, dan hanya mengembalikan hasil ringkasan akhir ke LLM.
+  3. Resource Limits Enforcement: Memiliki batasan ketat:
+     - `timeoutMs`: Batas waktu eksekusi skrip agar tidak hang/infinite loop.
+     - `maxToolCalls`: Batas maksimal pemanggilan tool dalam satu skrip.
+     - `maxOutputBytes`: Pemotongan otomatis jika output data melebihi batas byte agar konteks token model tidak meledak.
+  4. Diagnostics & Syntax Check: Memvalidasi AST kode sebelum dieksekusi (ParseError, UnsupportedSyntax, UnknownTool).
+- Nilai Tambah untuk Dardcor Code:
+  Mengubah arsitektur Dardcor Code menjadi "Super Intelligent Batch Orchestrator". Untuk tugas-tugas massal seperti memeriksa 50 file, memfilter dependensi, atau mentransformasikan puluhan modul, agen dapat menyelesaikan seluruh pipeline dalam 1 turn tunggal!
+
+================================================================================
+4. OPENCODE: SHADOW SNAPSHOT & WORKTREE ISOLATION ENGINE
+================================================================================
+- Sumber: packages/opencode/src/snapshot/index.ts & packages/opencode/src/worktree/index.ts
+- Deskripsi & Fungsi:
+  Sistem keamanan dan rollback tingkat dewa untuk manipulasi kode skala besar. Menggunakan Git internal bayangan (Shadow Git) yang terpisah dari direktori `.git` utama pengguna, sehingga agen dapat membuat checkpoint snapshot instan sebelum melakukan modifikasi file berisiko tinggi.
+- Fitur & Arsitektur Utama:
+  1. External Git Directory Shadowing:
+     - `gitdir` disimpan di luar repositori proyek (misal di folder app data snapshot cache).
+     - `--work-tree` tetap mengarah ke workspace pengguna.
+     - Repositori Git resmi milik pengguna tetap bersih 100%, tidak ada commit sampah atau branch kotor yang dibuat.
+  2. Granular Snapshot & Revert:
+     - `track()`: Mengambil snapshot hash status terkini sebelum tool file editing dipanggil.
+     - `restore(snapshotHash)`: Mengembalikan seluruh workspace ke snapshot tertentu jika terjadi kesalahan atau kegagalan kompilasi.
+     - `revert(patches)`: Membatalkan patch spesifik tanpa membatalkan modifikasi lainnya.
+     - `diffFull(from, to)`: Menghasilkan rincian diff terstruktur per file untuk ditampilkan di UI.
+  3. Isolated Git Worktree:
+     - Agen dapat menduplikasi workspace ke folder terisolasi (`opencode/<branch-name>`) menggunakan `git worktree add`.
+     - Agen dapat menjalankan pengujian unit, kompilasi build, atau refactoring eksperimental di worktree tersebut secara paralel tanpa mengganggu file yang sedang diketik oleh pengguna di editor utama.
+- Nilai Tambah untuk Dardcor Code:
+  Memberikan perlindungan "Zero-Risk Coding" pada Dardcor Code. Pengguna tidak perlu takut agen merusak kodingan mereka karena ada tombol "Instant Rollback" satu-klik berbasis Shadow Snapshot, dan pekerjaan besar dapat dicoba di background worktree terlebih dahulu sebelum dimerge.
+
+================================================================================
+5. OPENCODE: ASYNC SUBAGENT TASK ENGINE (Foreground & Background Delegation)
+================================================================================
+- Sumber: packages/opencode/src/tool/task.ts & packages/opencode/src/agent/
+- Deskripsi & Fungsi:
+  Sistem orkestrasi sub-agen independen yang memungkinkan agen utama (Parent Agent) mendelegasikan tugas khusus ke agen spesialis (Subagent) baik secara foreground (sinkron/menunggu hasil) maupun background (asinkron berjalan di latar belakang).
+- Fitur & Arsitektur Utama:
+  1. Dual-Mode Execution (Foreground vs Background):
+     - `background=false`: Agen induk menunggu hasil kerja sub-agen sebelum melanjutkan langkah berikutnya. Cocok untuk sub-tugas yang hasilnya menjadi prasyarat langkah selanjutnya.
+     - `background=true`: Sub-agen langsung dilepas bekerja di background thread, sementara agen induk dapat langsung merespons pengguna atau mengerjakan file lain. Saat sub-agen selesai, sistem memberikan event notifikasi reaktif otomatis (tanpa loop polling yang boros).
+  2. Resumable Session with `task_id`:
+     - Sub-agen memiliki `sessionID` persisten. Agen induk dapat mengirimkan instruksi lanjutan atau koreksi ke sub-agen yang sama cukup dengan menyertakan `task_id` yang sudah ada, tanpa perlu membuat sesi baru dari nol.
+  3. Structured Output Encapsulation:
+     - Hasil sub-agen dibungkus rapi dalam format XML `<task id="..." state="completed"><summary>...</summary><task_result>...</task_result></task>`, menjaga konteks chat tetap bersih dan terstruktur.
+  4. Derived Permission Sandboxing:
+     - Sub-agen mewarisi aturan izin (permission rules) dari sesi induk sehingga tidak bisa melakukan tindakan berbahaya di luar hak akses yang diberikan pengguna.
+- Nilai Tambah untuk Dardcor Code:
+  Memungkinkan Dardcor Code menjalankan arsitektur Multi-Agent Swarm nyata di mana agen arsitek, koder, tester, dan security auditor dapat bekerja secara paralel dan terkoordinasi penuh.
+
+================================================================================
+6. OPENCODE: TWO-PHASE LIFECYCLE (Plan Mode vs Build Mode Transition)
+================================================================================
+- Sumber: packages/opencode/src/tool/plan.ts & packages/opencode/src/agent/
+- Deskripsi & Fungsi:
+  Pemisahan fase yang ketat antara "Perencanaan" (Plan Mode) dan "Implementasi" (Build Mode) untuk mencegah agen melakukan modifikasi file secara gegabah sebelum arsitektur dipikirkan secara matang.
+- Cara Kerja:
+  1. Dalam Plan Mode: Agen dilarang menyentuh atau mengedit file kode utama. Agen hanya diizinkan membaca kode (read/grep/lsp), menganalisis arsitektur, dan menyusun file rencana eksekusi formal (`plan.md`).
+  2. Plan Finalization & User Gating: Setelah agen selesai menyusun rencana, agen memanggil tool `plan_exit`.
+  3. Interactive Confirmation: Tool `plan_exit` memunculkan konfirmasi interaktif ke pengguna: "Plan is complete. Would you like to switch to build agent and start implementing?".
+  4. State Transition: Jika disetujui, sesi beralih ke `build` agent dengan izin penuh untuk menulis kode dan mengeksekusi rencana langkah demi langkah. Jika ditolak, agen tetap dalam Plan Mode untuk menyempurnakan rencana berdasarkan masukan pengguna.
+- Nilai Tambah untuk Dardcor Code:
+  Menjamin Dardcor Code bertindak seperti Senior Software Architect terlebih dahulu sebelum menjadi Coder. Ini menghilangkan bug fatal akibat agen yang "terburu-buru mengedit kode" tanpa pemahaman mendalam.
+
+================================================================================
+7. CLINE: BROWSER AUTOMATION & LIVE VISUAL INSPECTION SERVICE
+================================================================================
+- Sumber: apps/vscode/src/services/browser/BrowserSession.ts & BrowserDiscovery.ts
+- Deskripsi & Fungsi:
+  Sistem interaksi peramban (browser) otomatis yang menghubungkan agen LLM dengan instance Google Chrome/Chromium secara headless atau non-headless. Agen dapat melihat tampilan antarmuka web, berinteraksi dengan elemen DOM, dan menangkap error runtime console secara langsung.
+- Fitur & Arsitektur Utama:
+  1. Puppeteer / Chrome DevTools Protocol (CDP) Bridge:
+     - Mampu mendeteksi Chrome lokal pengguna, Chromium bawaan, atau menghubungkan diri ke browser Chrome yang sudah terbuka dengan port debug `--remote-debugging-port=9222`.
+  2. Live Action Suite:
+     - `launch`: Membuka tab browser baru pada URL lokal (misal: `http://localhost:3000`) atau web publik.
+     - `click`, `type`, `scroll`: Melakukan klik pada koordinat atau elemen DOM, mengetikkan teks, atau menggulir halaman.
+     - `close`: Menutup sesi browser dengan aman.
+  3. Real-Time Console & Page Error Interception:
+     - Mendengarkan event `console.log`, `console.error`, dan `window.onerror`. Setiap error runtime JavaScript di web app langsung dikirim kembali ke agen sebagai tool result!
+  4. Automatic Visual Screenshot (WebP / PNG):
+     - Setelah setiap tindakan dieksekusi dan log console stabil (settled), sistem mengambil tangkapan layar (screenshot base64) lalu menyajikannya ke model multimodal. Agen dapat memverifikasi layout, warna, dan responsivitas UI secara visual.
+- Nilai Tambah untuk Dardcor Code:
+  Memberikan Dardcor Code "Mata & Tangan" untuk menguji aplikasi frontend (React, Vue, Svelte, Next.js, HTML/CSS). Agen tidak hanya menulis kode, tapi bisa langsung membuka browser, mengeklik tombol, memverifikasi tidak ada error di console, dan melihat hasil render UI layaknya developer sungguhan!
+
+================================================================================
+8. CLINE: CONTEXT MENTIONS ENGINE (@problems, @terminal, @git-changes, @url)
+================================================================================
+- Sumber: apps/vscode/src/core/mentions/index.ts
+- Deskripsi & Fungsi:
+  Sistem injeksi konteks dinamis berbasis simbol `@` (mentions). Memungkinkan pengguna maupun agen menyematkan sumber data editor langsung ke dalam prompt percakapan tanpa harus copy-paste manual.
+- Tipe Mentions yang Didukung:
+  1. `@problems`: Otomatis mengekstrak seluruh error diagnostik, peringatan compiler TypeScript/ESLint/Linter dari panel Problems VSCode ke dalam konteks model.
+  2. `@terminal`: Menarik output teks terkini dari terminal aktif (termasuk trace error build atau runtime crash).
+  3. `@git-changes`: Menarik status Git saat ini beserta unified diff dari seluruh file yang sedang diubah (working tree changes).
+  4. `@[commit-hash]`: Menarik metadata commit, pesan commit, dan diff commit tertentu berdasarkan hash Git.
+  5. `@/path/to/file` atau folder: Menyematkan isi file atau ringkasan struktur folder secara instan.
+  6. `@https://...`: Melakukan fetch otomatis terhadap konten halaman web publik dan mengubahnya menjadi format markdown bersih yang siap dibaca model.
+- Cara Kerja:
+  Parser mendeteksi regex `@\S+`, mengekstrak data dari HostProvider (VSCode API atau terminal runner), dan menempelkannya di bagian bawah prompt pesan sebagai blok referensi terstruktur sebelum dikirim ke LLM.
+- Nilai Tambah untuk Dardcor Code:
+  Membuat pengalaman chatting di Dardcor Code sangat responsif dan kontekstual. User cukup mengetik `@problems perbaiki error ini` atau `@terminal kenapa server crash?`, dan Dardcor Code langsung memiliki konteks 100% tanpa bertanya lagi.
+
+================================================================================
+9. CLINE: EXTENSIBLE MARKETPLACE ENGINE (MCP, Skills, & Plugins Registry)
+================================================================================
+- Sumber: apps/vscode/src/core/controller/marketplace/
+- Deskripsi & Fungsi:
+  Sistem registry dan marketplace terpadu untuk mengekstensi kemampuan agen secara instan tanpa perlu coding manual. Mendukung instalasi 1-klik untuk server Model Context Protocol (MCP), Skills khusus, dan Plugins eksternal.
+- Fitur & Arsitektur Utama:
+  1. Multi-Primitive Support:
+     - `mcp`: Mengunduh dan mendaftarkan MCP Server (seperti database PostgreSQL, GitHub API, Puppeteer, Slack, Jira) langsung ke konfigurasi JSON sistem.
+     - `skill`: Paket instruksi tugas spesifik dan template prompt cerdas.
+     - `plugin`: Ekstensi modular yang menambahkan tool baru ke agent engine.
+  2. Automated Installation & Environment Lifecycle:
+     - Menjalankan perintah instalasi (`npm`, `npx`, `uvx`, `docker`) secara otomatis dengan timeout protection (`120s`).
+     - Menyediakan form konfigurasi environment variable dan API key di UI sebelum aktivasi.
+  3. Secret Masking & Security Sanitizer:
+     - Regex otomatis (`SECRET_PATTERN`) mendeteksi dan menyensor token, password, atau credential berbahaya agar tidak bocor ke log atau LLM prompt.
+  4. Local & Remote Discovery:
+     - Mendeteksi plugins lokal yang ada di workspace serta katalog global dari repository remote.
+- Nilai Tambah untuk Dardcor Code:
+  Menjadikan Dardcor Code memiliki ekosistem yang hidup dan tak terbatas. Pengguna atau agen dapat memperluas kapabilitas Dardcor Code secara dinamis cukup dengan mengklik atau merekomendasikan MCP/Plugin dari katalog.
+
+================================================================================
+10. CLINE: PLAN/ACT MODE COORDINATOR & TURN STATE TRACKER
+================================================================================
+- Sumber: apps/vscode/src/sdk/sdk-mode-coordinator.ts & core/controller/state/togglePlanActModeProto.ts
+- Deskripsi & Fungsi:
+  Sistem sinkronisasi status (turn state tracker) dan koordinator pergantian mode antara Plan Mode dan Act Mode dengan transmisi `<mode_notice>` yang mulus, menjaga stabilitas tombol aksi UI (Approve/Reject/Thinking) dan konsistensi riwayat percakapan.
+- Fitur & Arsitektur Utama:
+  1. Authoritative Turn Phases:
+     - Melacak siklus hidup respons model dalam fase diskrit: `streaming` (sedang berpikir/menghasilkan teks), `resumable` (siap dilanjutkan), `awaiting_approval` (menunggu persetujuan pengguna atas tool call), dan `awaiting_followup` (menunggu input prompt berikutnya).
+     - Menghilangkan bug "tombol mati" atau status loading abadi saat pengguna mengganti mode di tengah jalan.
+  2. Mode Switch Notice Tracker:
+     - Ketika mode beralih dari `plan` ke `act` (atau sebaliknya), sistem menyematkan tag `<mode_notice from="plan" to="act">` ke dalam pesan berikutnya sehingga LLM sadar akan perubahan batasan perannya tanpa merusak struktur konteks sebelumnya.
+  3. Dynamic Continuation Prompts:
+     - Mendukung auto-continue otomatis (`ACT_MODE_CONTINUATION_PROMPT`) ketika rencana telah disetujui, sehingga transisi dari perencanaan ke koding berjalan instan tanpa interupsi canggung.
+- Nilai Tambah untuk Dardcor Code:
+  Menyediakan UI/UX obrolan yang sangat kokoh dan anti-macet. Pergantian mode agen terasa sehalus sutra, dan fase berpikir/eksekusi agen selalu terprediksi dengan akurat di UI.
+
+================================================================================
+11. CLINE: OSC 633 SHELL INTEGRATION STREAM PARSER
+================================================================================
+- Sumber: apps/vscode/src/hosts/vscode/terminal/osc633Parser.ts & VscodeTerminalProcess.ts
+- Deskripsi & Fungsi:
+  Parser escape sequence canggih berbasis standar OSC 633 (VSCode Terminal Shell Integration Protocol). Memungkinkan agen menangkap output eksekusi terminal, mendeteksi akhir proses, dan mengekstrak exit code secara presisi matematis 100% tanpa sampah ANSI atau string prompt palsu.
+- Masalah Klasik Terminal Agent:
+  Pada terminal biasa, agen sering bingung karena output mentah bercampur dengan escape sequence warna, teks prompt terminal (`PS C:\... >`), echo perintah pengguna, atau pemotongan chunk TCP/stream yang acak.
+- Solusi & Cara Kerja OSC 633:
+  Protokol shell integration menyisipkan marker escape sequence khusus:
+  - `633;A`: Prompt shell aktif.
+  - `633;B`: Perintah mulai diketik.
+  - `633;C`: Perintah mulai dieksekusi (tepat di titik ini output asli perintah dimulai).
+  - `633;D;<exitCode>`: Perintah selesai, lengkap dengan status kode keluar (0 untuk sukses, non-0 untuk error).
+  - `633;P;Cwd=<Value>`: Shell berpindah direktori (update cwd instan).
+  Parser ini menangani "boundary splitting" (ketika sequence terpotong di antara dua buffer stream) dan menyaring teks bersih murni hanya antara marker `C` dan `D`.
+- Nilai Tambah untuk Dardcor Code:
+  Memberikan alat eksekusi terminal (`dardcorCmdTool`) tingkat keandalan tertinggi di kelasnya. Agen langsung tahu pasti apakah `npm test`, `git commit`, atau compiler build sukses atau gagal, serta memperoleh pesan error bersih tanpa karakter ANSI yang mengotori konteks token model.
+
+================================================================================
+12. CLINE: UNIVERSAL RULES & HOOKS INGESTION ENGINE
+================================================================================
+- Sumber: apps/vscode/src/core/controller/file/refreshRules.ts & core/context/instructions/
+- Deskripsi & Fungsi:
+  Sistem pemindaian dan injeksi aturan (rules) lintas editor secara otomatis. Memungkinkan agen mengenali, mematuhi, dan mengaktifkan/menonaktifkan (toggle) aturan proyek yang ditulis untuk editor lain (seperti Cursor, Windsurf, Claude Code) secara transparan.
+- Tipe Aturan yang Didukung:
+  1. `.cursorrules` & `.cursor/rules/*.mdc`: Aturan standar dari Cursor IDE.
+  2. `.windsurfrules`: Aturan standar dari Windsurf IDE.
+  3. `.clinerules` / `.dardcorrules`: Aturan spesifik lokal maupun global.
+  4. `.agents/rules/`: Aturan agen modular.
+  5. Workflows & Lifecycle Hooks: Skrip hook yang berjalan sebelum/sesudah tool dieksekusi (pre-tool & post-tool execution hooks).
+- Cara Kerja:
+  Saat workspace dibuka, controller memindai root folder untuk mendeteksi file aturan eksternal. File-file tersebut dikompilasi menjadi toggles yang dapat diatur pengguna melalui panel pengaturan UI, lalu diinjeksikan secara kondisional ke dalam system prompt agen.
+- Nilai Tambah untuk Dardcor Code:
+  Membuat Dardcor Code memiliki kompatibilitas 100% dengan ekosistem AI modern. Pengguna yang memindahkan proyek dari Cursor, Windsurf, atau Cline ke Dardcor Code tidak perlu mengkonfigurasi ulang aturan proyek mereka — semuanya langsung bekerja otomatis!
+
+================================================================================
+13. CLINE: ACTIVE FILE CONTEXT TRACKER & STALE CONTEXT GUARD
+================================================================================
+- Sumber: apps/vscode/src/core/context/context-tracking/FileContextTracker.ts
+- Deskripsi & Fungsi:
+  Sistem pencegah konflik dan edit basi (stale context protection) yang mengawasi file-file aktif yang sedang dibahas dalam percakapan menggunakan sistem file watcher (chokidar).
+- Masalah yang Dipecahkan:
+  Seringkali pengguna mengedit file di editor secara manual sementara agen sedang berpikir. Saat agen mencoba menerapkan perubahan (patch/diff), perubahan tersebut gagal atau menimpa ketikan pengguna karena snapshot kode di memori agen sudah usang (stale).
+- Cara Kerja:
+  1. File Watcher Binding: Setiap kali sebuah file dibaca (`read_tool`), dimention (`@file`), atau diedit oleh agen, sistem langsung memasang watcher presisi pada file tersebut.
+  2. Differentiating Actor: Sistem membedakan secara cerdas:
+     - Jika perubahan dilakukan oleh agen (`agent_edited`), event diabaikan.
+     - Jika perubahan dilakukan oleh pengguna atau proses eksternal (`user_edited`), file langsung ditandai berstatus `stale`.
+  3. Pre-Edit Guard & Auto Reload: Sebelum agen mengeksekusi operasi modifikasi (seperti `replaceString` atau `applyPatch`), sistem mengecek flag status file. Jika berstatus `stale`, agen dipaksa untuk membaca ulang isi file terbaru terlebih dahulu.
+- Nilai Tambah untuk Dardcor Code:
+  Menghilangkan 100% kegagalan edit file dan konflik overwrite. Pengguna bebas mengedit kode kapan saja tanpa takut ditimpa secara ceroboh oleh Dardcor Code.
+
+================================================================================
+ARSITEKTUR BESAR: DARDCOR CODE SUPER INTELLIGENT AGENT (SIA-ENGINE)
+================================================================================
+Berdasarkan sintesis dan fusi keunggulan dari Opencode dan Cline, berikut adalah rancangan arsitektur tingkat tinggi untuk membawa Dardcor Code melampaui semua alat asisten coding AI saat ini menjadi sistem "Super Intelligent":
+
+1. PILAR KECERDASAN & NAVIGASI KODE (Code Intelligence & Navigation)
+   - Integrasi LSP Tool bawaan ke dalam `extensions/dardcor/src/extension/tools/node/lspTool.ts`.
+   - Menghubungkan langsung ke VSCode Language Feature Providers (`vscode.executeDefinitionProvider`, `vscode.executeReferenceProvider`, `vscode.executeHoverProvider`, `vscode.executeDocumentSymbolProvider`, `vscode.executeWorkspaceSymbolProvider`).
+   - Agen tidak lagi meraba-raba dengan grep teks biasa, melainkan memiliki pemahaman AST dan semantic graph 100% presisi.
+
+2. PILAR KEAMANAN, ROLLBACK & PREVENSI KONFLIK (Safety, Rollback & Concurrency)
+   - Shadow Git Snapshot Engine: Membuat riwayat snapshot tersembunyi di app data tanpa mengotori commit Git pengguna. Tombol "Restore Checkpoint" tersedia di setiap langkah obrolan.
+   - Active File Context Tracker & Stale Guard: Menghubungkan file watcher pada setiap file yang dibaca/disebutkan agen. Jika pengguna mengedit file di editor secara manual, agen otomatis dicegah dari overwrite dan dipaksa memuat konteks mutakhir.
+   - Shadow Worktree Sandbox: Refactoring skala besar dan pengujian kompilasi dapat dieksekusi di isolated worktree sebelum di-merge ke branch utama pengguna.
+
+3. PILAR INTERAKSI PENGGUNA & KONTROL MODE (Human Alignment & Mode Transition)
+   - Interactive Question Clarifier: Form UI interaktif (pilihan ganda / kustom) saat mendeteksi ambiguitas arsitektural.
+   - Two-Phase Plan/Act Lifecycle: Pemisahan tegas mode Perencanaan (Read-only Architect) dan mode Eksekusi (Build Coder) dengan transisi mulus dan status turn yang andal (`streaming`, `awaiting_approval`, `resumable`).
+   - Rich Context Mentions Engine: Dukungan simbol `@problems`, `@terminal`, `@git-changes`, `@file`, `@url` langsung di input chat Dardcor Code.
+
+4. PILAR EKSEKUSI TERMINAL & ORKESTRASI BATCH (Precision Execution & High-Speed Batching)
+   - OSC 633 Stream Integration: Terminal command tool (`dardcorCmdTool`) yang menggunakan parser urutan escape OSC 633 untuk pemisahan eksak antara input, output, dan exit code.
+   - CodeMode Batch Orchestration: Kemampuan agen mengeksekusi skrip mini JavaScript dalam sandbox untuk memanggil beberapa tool secara paralel/berurutan dalam satu turn tunggal tanpa latency jaringan berulang.
+   - Async Subagent Swarm: Pembagian tugas ke sub-agen spesialis (misal: Sentinel Auditor, Test Runner, Documentation Builder) dengan eksekusi latar belakang non-blocking.
+
+5. PILAR PERSEPSI VISUAL & PENGUJIAN FRONTEND (Visual Perception & Runtime Testing)
+   - Live Browser Service: Puppeteer CDP session yang terhubung ke Chrome (lokal/remote) dengan kemampuan navigasi, klik, ketik, scroll, screenshot WebP otomatis, dan penangkap error console runtime web secara instan.
+
+6. PILAR EKOSISTEM & KOMPATIBILITAS UNIVERSAL (Extensibility & Rules)
+   - Universal Rules Ingestion: Otomatis membaca konfigurasi `.cursorrules`, `.windsurfrules`, `.clinerules`, dan `.agents/` dari root proyek mana pun.
+   - Extensible MCP & Skills Marketplace: Manajemen katalog satu-klik untuk memasang dan mengonfigurasi tool MCP baru dan skrip skill langsung dari editor.
+
+================================================================================
+KESIMPULAN:
+Dengan memadukan 13 inovasi dari Opencode dan Cline di atas ke dalam fondasi Dardcor Code, Dardcor Code bertransformasi menjadi AI Coding Environment generasi terbaru yang tercepat, teraman, dan paling cerdas di dunia.
+
+
+
+
+
+
+
+
+
+
+
+
+

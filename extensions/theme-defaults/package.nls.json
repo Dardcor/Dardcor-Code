@@ -1,0 +1,15 @@
+{
+	"displayName": "Default Themes",
+	"description": "The default Dardcor Code light and dark themes",
+	"light2026ThemeLabel": "Light 2026",
+	"dark2026ThemeLabel": "Dark 2026",
+	"darkPlusColorThemeLabel": "Dark+",
+	"darkModernThemeLabel": "Dark Modern",
+	"lightPlusColorThemeLabel": "Light+",
+	"lightModernThemeLabel": "Light Modern",
+	"darkColorThemeLabel": "Dark (Dardcor Classic)",
+	"lightColorThemeLabel": "Light (Dardcor Classic)",
+	"hcColorThemeLabel": "Dark High Contrast",
+	"lightHcColorThemeLabel": "Light High Contrast",
+	"minimalIconThemeLabel": "Minimal (Dardcor Code)"
+}

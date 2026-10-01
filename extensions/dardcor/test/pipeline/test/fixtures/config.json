@@ -1,0 +1,8 @@
+{
+	"github.dardcor.chat.inlineEdits.xtabProvider.modelConfiguration": {
+		"modelName": "test-model",
+		"promptingStrategy": "patchBased02",
+		"includeTagsInCurrentFile": true,
+		"lintOptions": null
+	}
+}

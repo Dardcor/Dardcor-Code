@@ -1,0 +1,92 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.chat-diff-change-content-widget {
+	opacity: 0;
+	transition: opacity 0.2s ease-in-out;
+	display: flex;
+	box-shadow: var(--vscode-shadow-md);
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.chat-diff-change-content-widget.hover {
+	opacity: 1;
+}
+
+.chat-diff-change-content-widget .monaco-action-bar {
+	padding: 4px 4px;
+	border-radius: 6px;
+	background-color: var(--vscode-editorWidget-background);
+	color: var(--vscode-foreground);
+	border: 1px solid var(--vscode-editorWidget-border);
+	overflow: hidden;
+}
+
+.chat-diff-change-content-widget .monaco-action-bar .actions-container {
+	gap: 4px;
+}
+
+.chat-diff-change-content-widget .monaco-action-bar .action-item .action-label {
+	border-radius: 4px;
+	font-size: 11px;
+	line-height: 14px;
+	padding: 4px 6px;
+}
+
+.chat-diff-change-content-widget .monaco-action-bar .action-item.primary .action-label {
+	background-color: var(--vscode-button-background);
+	color: var(--vscode-button-foreground);
+}
+
+.monaco-workbench .chat-diff-change-content-widget .monaco-action-bar .action-item.primary .action-label:hover {
+	background-color: var(--vscode-button-hoverBackground);
+}
+
+.chat-diff-change-content-widget .monaco-action-bar .action-item .action-label.codicon:not(.separator) {
+	width: 22px; /* align with default icon button dimensions */
+	height: 22px;
+	padding: 0;
+	font-size: 16px;
+	line-height: 22px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.chat-diff-change-content-widget .monaco-action-bar .action-item .action-label.codicon[class*='codicon-'] {
+	font-size: 16px;
+}
+
+/* Inline Chat Editing Diff Highlighting */
+.monaco-editor .char-insert,
+.monaco-editor .line-insert {
+	background-color: rgba(34, 197, 94, 0.22) !important;
+	border-bottom: 1px solid rgba(34, 197, 94, 0.45);
+}
+
+.monaco-editor .char-insert.diff-range-empty {
+	border-left: 2px solid #22c55e !important;
+}
+
+.monaco-editor .chat-editing-original-zone,
+.monaco-editor .line-delete {
+	background-color: rgba(239, 68, 68, 0.18) !important;
+}
+
+.monaco-editor .chat-editing-original-zone .view-line {
+	background-color: rgba(239, 68, 68, 0.15) !important;
+}
+
+.monaco-editor .char-delete {
+	background-color: rgba(239, 68, 68, 0.35) !important;
+	text-decoration: line-through;
+	color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.monaco-editor .char-delete.diff-range-empty {
+	border-left: 2px solid #ef4444 !important;
+}
+
