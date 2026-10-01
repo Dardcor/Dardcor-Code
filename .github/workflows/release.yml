@@ -359,26 +359,34 @@ jobs:
     needs: [build-win32, build-linux, build-darwin]
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Repository for Scripts
+        uses: actions/checkout@v4
+
       - name: Download Windows Artifacts
         uses: actions/download-artifact@v4
         with:
           name: win_assets
           path: release_assets/
+          merge-multiple: true
 
       - name: Download Linux Artifacts
         uses: actions/download-artifact@v4
         with:
           name: linux_assets
           path: release_assets/
+          merge-multiple: true
 
       - name: Download macOS Artifacts
         uses: actions/download-artifact@v4
         with:
           name: mac_assets
           path: release_assets/
+          merge-multiple: true
 
-      - name: Checkout Repository for Scripts
-        uses: actions/checkout@v4
+      - name: Flatten Artifact Directories If Nested
+        run: |
+          find release_assets/ -mindepth 2 -type f -exec mv -t release_assets/ {} + 2>/dev/null || true
+          find release_assets/ -mindepth 1 -type d -empty -delete 2>/dev/null || true
 
       - name: Generate Structured updater.json
         run: |

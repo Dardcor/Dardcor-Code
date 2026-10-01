@@ -20,6 +20,9 @@ jobs:
     name: Publish GitHub Release (25 Assets)
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Repository for Scripts
+        uses: actions/checkout@v4
+
       - name: Download Windows Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -27,6 +30,7 @@ jobs:
           path: release_assets/
           run-id: ${{ inputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          merge-multiple: true
 
       - name: Download Linux Artifacts
         uses: actions/download-artifact@v4
@@ -35,6 +39,7 @@ jobs:
           path: release_assets/
           run-id: ${{ inputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          merge-multiple: true
 
       - name: Download macOS Artifacts
         uses: actions/download-artifact@v4
@@ -43,9 +48,12 @@ jobs:
           path: release_assets/
           run-id: ${{ inputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          merge-multiple: true
 
-      - name: Checkout Repository for Scripts
-        uses: actions/checkout@v4
+      - name: Flatten Artifact Directories If Nested
+        run: |
+          find release_assets/ -mindepth 2 -type f -exec mv -t release_assets/ {} + 2>/dev/null || true
+          find release_assets/ -mindepth 1 -type d -empty -delete 2>/dev/null || true
 
       - name: Generate Structured updater.json
         run: |
