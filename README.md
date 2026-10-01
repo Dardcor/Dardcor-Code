@@ -6,11 +6,11 @@
 
 **Desktop Code Editor Powered by Electron, Monaco Editor & Local AI Routing**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-111118?style=for-the-badge&labelColor=0a0a0f&color=4f8ff7)](LICENSE.txt)
-[![Latest Release](https://img.shields.io/badge/Release-v1.0.0-7c3aed?style=for-the-badge&labelColor=1a1a24)](https://github.com/Dardcor/Dardcor-Code/releases/latest)
-[![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?style=for-the-badge&logo=nodedotjs&logoColor=white&labelColor=1a1a24)](https://nodejs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0%2B-3178C6?style=for-the-badge&logo=typescript&logoColor=ffffff&labelColor=1a1a24)](https://typescriptlang.org)
-[![Electron](https://img.shields.io/badge/Electron-30%2B-47848F?style=for-the-badge&logo=electron&logoColor=ffffff&labelColor=1a1a24)](https://electronjs.org)
+[![License: MIT](public/badges/license.svg)](LICENSE.txt)
+[![Latest Release](public/badges/release.svg)](https://github.com/Dardcor/Dardcor-Code/releases/latest)
+[![Node.js](public/badges/nodejs.svg)](https://nodejs.org)
+[![TypeScript](public/badges/typescript.svg)](https://typescriptlang.org)
+[![Electron](public/badges/electron.svg)](https://electronjs.org)
 
 **Monaco Code Engine · Local AI Router · Native PTY Terminal · Git Integration · Multi-OS**
 
