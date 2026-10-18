@@ -197,13 +197,41 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p mac_assets
+          create_dmg() {
+            local app_dir="$1"
+            local final_dmg="$2"
+            local attempt_dmg
+            local attempt
+
+            for attempt in 1 2 3; do
+              attempt_dmg="${final_dmg%.dmg}.attempt-${attempt}.dmg"
+              rm -f "$attempt_dmg"
+
+              if hdiutil create -volname "Dardcor Code" -srcfolder "$app_dir" -ov -format UDZO "$attempt_dmg" \
+                && [[ -s "$attempt_dmg" ]] \
+                && hdiutil verify "$attempt_dmg"; then
+                mv "$attempt_dmg" "$final_dmg"
+                return 0
+              fi
+
+              rm -f "$attempt_dmg"
+              if [[ "$attempt" -lt 3 ]]; then
+                echo "DMG creation attempt $attempt failed; retrying after a short delay."
+                sleep "$((attempt * 5))"
+              fi
+            done
+
+            echo "Failed to create a valid DMG for $app_dir after 3 attempts." >&2
+            return 1
+          }
+
           for arch in x64 arm64; do
             npm run gulp -- "vscode-darwin-$arch"
             app="../Dardcor-Code-darwin-$arch/Dardcor Code.app"
             test -d "$app"
             dmg="mac_assets/Dardcor-Code_${RELEASE_VERSION}_${arch}.dmg"
             zip="mac_assets/Dardcor-Code_${RELEASE_VERSION}_${arch}.zip"
-            hdiutil create -volname "Dardcor Code" -srcfolder "$app" -ov -format UDZO "$dmg"
+            create_dmg "$app" "$dmg"
             ditto -c -k --sequesterRsrc --keepParent "$app" "$zip"
             shasum -a 256 "$dmg" | awk '{print $1}' > "$dmg.sha256"
             shasum -a 256 "$zip" | awk '{print $1}' > "$zip.sha256"

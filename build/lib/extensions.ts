@@ -126,23 +126,7 @@ function fromLocalNormal(extensionPath: string): Stream {
 
 	vsce.listFiles({ cwd: extensionPath, packageManager: vsce.PackageManager.Npm })
 		.then(fileNames => {
-			const files = fileNames
-				.map(fileName => path.join(extensionPath, fileName))
-				.filter(filePath => {
-					try {
-						return fs.statSync(filePath).isFile();
-					} catch {
-						return false;
-					}
-				})
-				.map(filePath => new File({
-					path: filePath,
-					stat: fs.statSync(filePath),
-					base: extensionPath,
-					contents: fs.createReadStream(filePath)
-				}));
-
-			es.readArray(files).pipe(result);
+			gulp.src(fileNames, { cwd: extensionPath, base: extensionPath, allowEmpty: true }).pipe(result);
 		})
 		.catch(err => result.emit('error', err));
 
@@ -198,23 +182,7 @@ function fromLocalEsbuild(extensionPath: string, esbuildConfigFileName: string):
 			fileNames = Array.from(new Set([...fileNames, ...packagedDependencyFileNames]));
 		}
 
-		const files = fileNames
-			.map(fileName => path.join(extensionPath, fileName))
-			.filter(filePath => {
-				try {
-					return fs.statSync(filePath).isFile();
-				} catch {
-					return false;
-				}
-			})
-			.map(filePath => new File({
-				path: filePath,
-				stat: fs.statSync(filePath),
-				base: extensionPath,
-				contents: fs.createReadStream(filePath)
-			}));
-
-		es.readArray(files).pipe(result);
+		gulp.src(fileNames, { cwd: extensionPath, base: extensionPath, allowEmpty: true }).pipe(result);
 	}).catch(err => {
 		console.error(extensionPath);
 		console.error(packagedDependencies);
