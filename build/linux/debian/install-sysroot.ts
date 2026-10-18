@@ -9,7 +9,7 @@ import fs from 'fs';
 import https from 'https';
 import path from 'path';
 import { createHash } from 'crypto';
-import { getElectronVersion as getBuildElectronVersion } from '../../lib/util.ts';
+import { getElectronVersion as getBuildElectronVersion } from '../../lib/electronVersion.ts';
 import type { DebianArchString } from './types.ts';
 
 const URL_PREFIX = 'https://msftelectronbuild.z5.web.core.windows.net';
@@ -37,7 +37,7 @@ interface IFetchOptions {
 }
 
 function getElectronVersion(): Record<string, string> {
-	return getBuildElectronVersion();
+	return getBuildElectronVersion(REPO_ROOT);
 }
 
 function getSha(filename: fs.PathLike): string {

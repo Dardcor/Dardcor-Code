@@ -16,6 +16,7 @@ import { pathToFileURL } from 'url';
 import ternaryStream from 'ternary-stream';
 import type { Transform } from 'stream';
 import * as tar from 'tar';
+import { getElectronVersion as resolveElectronVersion } from './electronVersion.ts';
 
 const root = path.dirname(path.dirname(import.meta.dirname));
 
@@ -372,14 +373,7 @@ export function streamToPromise(stream: NodeJS.ReadWriteStream): Promise<void> {
 }
 
 export function getElectronVersion(): Record<string, string> {
-	const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
-	const legacyNpmrc = fs.existsSync(path.join(root, '.npmrc')) ? fs.readFileSync(path.join(root, '.npmrc'), 'utf8') : '';
-	const electronVersion = /^(?:npm_config_)?target="(.*)"$/m.exec(legacyNpmrc)?.[1] ?? packageJson.devDependencies?.electron;
-	const msBuildId = /^(?:npm_config_)?ms_build_id="(.*)"$/m.exec(legacyNpmrc)?.[1] ?? packageJson.dardcorBuild?.electronMsBuildId ?? '';
-	if (typeof electronVersion !== 'string' || !electronVersion.trim()) {
-		throw new Error('Could not resolve the Electron version from package.json devDependencies.');
-	}
-	return { electronVersion, msBuildId };
+	return resolveElectronVersion(root);
 }
 
 export function getRemoteNodeVersion(): Record<string, string> {
