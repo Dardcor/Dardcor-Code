@@ -205,7 +205,7 @@ export class FoldingRegions {
 	private findIndex(line: number) {
 		let low = 0, high = this._startIndexes.length;
 		if (high === 0) {
-			return -1; // no children
+			return -1;
 		}
 		while (low < high) {
 			const mid = Math.floor((low + high) / 2);
@@ -283,19 +283,19 @@ export class FoldingRegions {
 		return regions;
 	}
 
-	/**
-	 * Two inputs, each a FoldingRegions or a FoldRange[], are merged.
-	 * Each input must be pre-sorted on startLineNumber.
-	 * The first list is assumed to always include all regions currently defined by range providers.
-	 * The second list only contains the previously collapsed and all manual ranges.
-	 * If the line position matches, the range of the new range is taken, and the range is no longer manual
-	 * When an entry in one list overlaps an entry in the other, the second list's entry "wins" and
-	 * overlapping entries in the first list are discarded.
-	 * Invalid entries are discarded. An entry is invalid if:
-	 * 		the start and end line numbers aren't a valid range of line numbers,
-	 * 		it is out of sequence or has the same start line as a preceding entry,
-	 * 		it overlaps a preceding entry and is not fully contained by that entry.
-	 */
+
+
+
+
+
+
+
+
+
+
+
+
+
 	public static sanitizeAndMerge(
 		rangesA: FoldingRegions | FoldRange[],
 		rangesB: FoldingRegions | FoldRange[],
@@ -325,36 +325,36 @@ export class FoldingRegions {
 			if (nextB && (!nextA || nextA.startLineNumber >= nextB.startLineNumber)) {
 				if (nextA && nextA.startLineNumber === nextB.startLineNumber) {
 					if (nextB.source === FoldSource.userDefined) {
-						// a user defined range (possibly unfolded)
+
 						useRange = nextB;
 					} else {
-						// a previously folded range or a (possibly unfolded) recovered range
+
 						useRange = nextA;
 						useRange.isCollapsed = nextB.isCollapsed && nextA.endLineNumber === nextB.endLineNumber;
 						useRange.source = FoldSource.provider;
 					}
-					nextA = getA(++indexA); // not necessary, just for speed
+					nextA = getA(++indexA);
 				} else {
 					useRange = nextB;
 					if (nextB.isCollapsed && nextB.source === FoldSource.provider) {
-						// a previously collapsed range
+
 						useRange.source = FoldSource.recovered;
 					}
 				}
 				nextB = getB(++indexB);
 			} else {
-				// nextA is next. The user folded B set takes precedence and we sometimes need to look
-				// ahead in it to check for an upcoming conflict.
+
+
 				let scanIndex = indexB;
 				let prescanB = nextB;
 				while (true) {
 					if (!prescanB || prescanB.startLineNumber > nextA!.endLineNumber) {
 						useRange = nextA;
-						break; // no conflict, use this nextA
+						break;
 					}
 					if (prescanB.source === FoldSource.userDefined && prescanB.endLineNumber > nextA!.endLineNumber) {
-						// we found a user folded range, it wins
-						break; // without setting nextResult, so this nextA gets skipped
+
+						break;
 					}
 					prescanB = getB(++scanIndex);
 				}

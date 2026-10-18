@@ -10,7 +10,7 @@ import { IChatAgentCommand, IChatAgentData, reviveSerializedAgent } from 'vs/wor
 import { IChatSlashData } from 'vs/workbench/contrib/chat/common/chatSlashCommands';
 import { IChatRequestVariableValue } from 'vs/workbench/contrib/chat/common/chatVariables';
 
-// These are in a separate file to avoid circular dependencies with the dependencies of the parser
+
 
 export interface IParsedChatRequest {
 	readonly parts: ReadonlyArray<IParsedChatRequestPart>;
@@ -18,11 +18,11 @@ export interface IParsedChatRequest {
 }
 
 export interface IParsedChatRequestPart {
-	readonly kind: string; // for serialization
+	readonly kind: string;
 	readonly range: IOffsetRange;
 	readonly editorRange: IRange;
 	readonly text: string;
-	/** How this part is represented in the prompt going to the agent */
+
 	readonly promptText: string;
 }
 
@@ -43,14 +43,14 @@ export class ChatRequestTextPart implements IParsedChatRequestPart {
 	}
 }
 
-// warning, these also show up in a regex in the parser
+
 export const chatVariableLeader = '#';
 export const chatAgentLeader = '@';
 export const chatSubcommandLeader = '/';
 
-/**
- * An invocation of a static variable that can be resolved by the variable service
- */
+
+
+
 export class ChatRequestVariablePart implements IParsedChatRequestPart {
 	static readonly Kind = 'var';
 	readonly kind = ChatRequestVariablePart.Kind;
@@ -66,9 +66,9 @@ export class ChatRequestVariablePart implements IParsedChatRequestPart {
 	}
 }
 
-/**
- * An invocation of an agent that can be resolved by the agent service
- */
+
+
+
 export class ChatRequestAgentPart implements IParsedChatRequestPart {
 	static readonly Kind = 'agent';
 	readonly kind = ChatRequestAgentPart.Kind;
@@ -85,9 +85,9 @@ export class ChatRequestAgentPart implements IParsedChatRequestPart {
 
 }
 
-/**
- * An invocation of an agent's subcommand
- */
+
+
+
 export class ChatRequestAgentSubcommandPart implements IParsedChatRequestPart {
 	static readonly Kind = 'subcommand';
 	readonly kind = ChatRequestAgentSubcommandPart.Kind;
@@ -102,9 +102,9 @@ export class ChatRequestAgentSubcommandPart implements IParsedChatRequestPart {
 	}
 }
 
-/**
- * An invocation of a standalone slash command
- */
+
+
+
 export class ChatRequestSlashCommandPart implements IParsedChatRequestPart {
 	static readonly Kind = 'slash';
 	readonly kind = ChatRequestSlashCommandPart.Kind;
@@ -119,9 +119,9 @@ export class ChatRequestSlashCommandPart implements IParsedChatRequestPart {
 	}
 }
 
-/**
- * An invocation of a dynamic reference like '#file:'
- */
+
+
+
 export class ChatRequestDynamicVariablePart implements IParsedChatRequestPart {
 	static readonly Kind = 'dynamic';
 	readonly kind = ChatRequestDynamicVariablePart.Kind;

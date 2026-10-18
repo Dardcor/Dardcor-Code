@@ -28,24 +28,24 @@ export const CODEX_FILE_LINK_INSTRUCTIONS = [
 	'</file_link_path_format>',
 ].join('\n');
 
-/**
- * Codex ingests **client-pushed** plugin customizations (the "Open Plugins"
- * the workbench syncs via {@link IActiveClient.customizations}) differently
- * from the `.agents`/`.codex` files it discovers itself. This module holds the
- * per-session store for those synced+parsed plugins plus the pure mappers that
- * project them into (a) the AHP {@link PluginCustomization} surface, (b) codex
- * per-thread `thread/start.config.mcp_servers`, and (c) process-global
- * `skills/extraRoots/set` roots.
- *
- * Feeding strategy (see the phase investigation):
- *  - MCP servers are attached **per session** via `thread/start.config`
- *    (verified: codex starts the server for that thread only), so a plugin's
- *    server only runs for sessions that enable it.
- *  - Skills are process-global in codex (`skills/extraRoots/set` replaces a
- *    single shared root list), so the store exposes the union of enabled skill
- *    roots and the agent sets it across all live sessions. This matches the
- *    semantics of client customizations, which are global user choices.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 export interface ICodexClientPlugin {
 	readonly synced: ISyncedCustomization;
@@ -203,11 +203,11 @@ export function codexSkillRootsFromPlugins(plugins: readonly ICodexClientPlugin[
 	return [...roots].sort();
 }
 
-/**
- * Builds Codex's launch-time roles and developer instructions. Workspace
- * agents are processed first so the session's own repository wins a role-name
- * collision with a global client plugin.
- */
+
+
+
+
+
 export async function codexCustomizationConfig(
 	workspaceAgents: readonly IParsedAgent[],
 	plugins: readonly ICodexClientPlugin[],

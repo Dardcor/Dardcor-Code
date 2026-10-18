@@ -20,11 +20,11 @@ export interface INativeEnvironmentPaths {
 
 	userDataDir: string;
 
-	/**
-	 * The user home directory mainly used for persisting extensions
-	 * and global configuration that should be shared across all
-	 * versions.
-	 */
+
+
+
+
+
 	homeDir: string;
 
 	tmpDir: string;

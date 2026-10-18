@@ -44,7 +44,7 @@ suite('chatModelConfigurationLogic', () => {
 		});
 
 		test('present empty entry resolves to schema defaults and ignores global (issue #320393)', () => {
-			// back to the (possibly non-default) profile-global value.
+
 			const resolved = resolveModelConfiguration({}, defaults, { thinkingEffort: 'high' });
 			assert.deepStrictEqual(resolved, { thinkingEffort: 'medium' });
 		});
@@ -59,7 +59,7 @@ suite('chatModelConfigurationLogic', () => {
 		});
 
 		test('absent entry with a partial global value keeps untouched schema defaults', () => {
-			// Regression for the contextSize 200K-vs-full-window bug: a global config
+
 			const partialDefaults: IStringDictionary<unknown> = { thinkingEffort: 'medium', contextSize: 200_000 };
 			const resolved = resolveModelConfiguration(undefined, partialDefaults, { thinkingEffort: 'high' });
 			assert.deepStrictEqual(resolved, { thinkingEffort: 'high', contextSize: 200_000 });

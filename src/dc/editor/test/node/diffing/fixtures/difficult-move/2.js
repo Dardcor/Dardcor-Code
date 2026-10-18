@@ -35,7 +35,7 @@ const commit = getVersion(REPO_ROOT);
 const BUILD_ROOT = path.dirname(REPO_ROOT);
 const REMOTE_FOLDER = path.join(REPO_ROOT, 'remote');
 
-// Targets
+
 
 const BUILD_TARGETS = [
 	{ platform: 'win32', arch: 'ia32' },
@@ -46,31 +46,31 @@ const BUILD_TARGETS = [
 	{ platform: 'linux', arch: 'armhf' },
 	{ platform: 'linux', arch: 'arm64' },
 	{ platform: 'alpine', arch: 'arm64' },
-	// legacy: we use to ship only one alpine so it was put in the arch, but now we ship
-	// multiple alpine images and moved to a better model (alpine as the platform)
+
+
 	{ platform: 'linux', arch: 'alpine' },
 ];
 
 const serverResources = [
 
-	// Bootstrap
+
 	'out-build/bootstrap.js',
 	'out-build/bootstrap-fork.js',
 	'out-build/bootstrap-amd.js',
 	'out-build/bootstrap-node.js',
 
-	// Performance
+
 	'out-build/vs/base/common/performance.js',
 
-	// Watcher
+
 	'out-build/vs/platform/files/**/*.exe',
 	'out-build/vs/platform/files/**/*.md',
 
-	// Process monitor
+
 	'out-build/vs/base/node/cpuUsage.sh',
 	'out-build/vs/base/node/ps.sh',
 
-	// Terminal shell integration
+
 	'out-build/vs/workbench/contrib/terminal/browser/media/shellIntegration.ps1',
 	'out-build/vs/workbench/contrib/terminal/browser/media/shellIntegration-bash.sh',
 	'out-build/vs/workbench/contrib/terminal/browser/media/shellIntegration-env.zsh',
@@ -84,10 +84,10 @@ const serverResources = [
 
 const serverWithWebResources = [
 
-	// Include all of server...
+
 	...serverResources,
 
-	// ...and all of web
+
 	...vscodeWebResourceIncludes
 ];
 
@@ -116,10 +116,10 @@ const serverEntryPoints = [
 
 const serverWithWebEntryPoints = [
 
-	// Include all of server
+
 	...serverEntryPoints,
 
-	// Include workbench web
+
 	...vscodeWebEntryPoints
 ];
 
@@ -257,7 +257,7 @@ function packageTask(type, platform, arch, sourceFolderName, destinationFolderNa
 					if (manifest.contributes && Object.keys(manifest.contributes).some(key => workspaceExtensionPoints.indexOf(key) !== -1)) {
 						return false;
 					}
-					// Default is UI Extension
+
 					return true;
 				}
 			}
@@ -265,15 +265,15 @@ function packageTask(type, platform, arch, sourceFolderName, destinationFolderNa
 		const localWorkspaceExtensions = glob.sync('extensions/*/package.json')
 			.filter((extensionPath) => {
 				if (type === 'reh-web') {
-					return true; // web: ship all extensions for now
+					return true;
 				}
 
-				// Skip shipping UI extensions because the client side will have them anyways
-				// and they'd just increase the download without being used
+
+
 				const manifest = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, extensionPath)).toString());
 				return !isUIExtension(manifest);
 			}).map((extensionPath) => path.basename(path.dirname(extensionPath)))
-			.filter(name => name !== 'vscode-api-tests' && name !== 'vscode-test-resolver'); // Do not ship the test extensions
+			.filter(name => name !== 'vscode-api-tests' && name !== 'vscode-test-resolver');
 		const marketplaceExtensions = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'product.json'), 'utf8')).builtInExtensions
 			.filter(entry => !entry.platforms || new Set(entry.platforms).has(platform))
 			.filter(entry => !entry.clientOnly)
@@ -383,9 +383,9 @@ function packageTask(type, platform, arch, sourceFolderName, destinationFolderNa
 	};
 }
 
-/**
- * @param {object} product The parsed product.json file contents
- */
+
+
+
 function tweakProductForServerWeb(product) {
 	const result = { ...product };
 	delete result.webEndpointUrlTemplate;
@@ -417,9 +417,9 @@ function tweakProductForServerWeb(product) {
 					platform: 'node',
 					external: [
 						'minimist',
-						// TODO: we cannot inline `product.json` because
-						// it is being changed during build time at a later
-						// point in time (such as `checksums`)
+
+
+
 						'../product.json',
 						'../package.json'
 					]

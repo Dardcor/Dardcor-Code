@@ -19,9 +19,9 @@ import * as module from 'module';
 import { fileURLToPath, pathToFileURL } from 'url';
 import semver from 'semver';
 
-/**
- * @type {{ build: boolean; run: string; runGlob: string; coverage: boolean; help: boolean; coverageFormats: string | string[]; coveragePath: string; }}
- */
+
+
+
 const args = minimist(process.argv.slice(2), {
 	boolean: ['build', 'coverage', 'help'],
 	string: ['run', 'coveragePath', 'coverageFormats'],
@@ -116,11 +116,11 @@ function main() {
 		console.error(reason && (/** @type {Error} */ (reason)).stack || reason);
 	});
 
-	/**
-	 * @param modules
-	 * @param onLoad
-	 * @param onError
-	 */
+
+
+
+
+
 	const loader = function(modules, onLoad, onError) {
 		const loads = modules.map(mod => import(`${baseUrl}/${mod}.js`).catch(err => {
 			console.error(`FAILED to load ${mod} as ${baseUrl}/${mod}.js`);
@@ -142,9 +142,9 @@ function main() {
 		ui: 'tdd'
 	});
 
-	/**
-	 * @param modules
-	 */
+
+
+
 	async function loadModules(modules) {
 		for (const file of modules) {
 			runner.suite.emit(Mocha.Suite.constants.EVENT_FILE_PRE_REQUIRE, globalThis, file, runner);
@@ -154,7 +154,7 @@ function main() {
 		}
 	}
 
-	/** @type { null|((callback:(err:any)=>void)=>void) } */
+
 	let loadFunc = null;
 
 	if (args.runGlob) {
@@ -185,7 +185,7 @@ function main() {
 	} else {
 		loadFunc = (cb) => {
 			glob(TEST_GLOB, { cwd: src }, function(err, files) {
-				/** @type {string[]} */
+
 				const modules = [];
 				for (const file of files) {
 					if (!excludeGlobs.some(excludeGlob => minimatch(file, excludeGlob))) {

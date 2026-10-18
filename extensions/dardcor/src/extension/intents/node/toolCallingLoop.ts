@@ -382,7 +382,7 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 	}
 
 	private async advancedAutopilotContinue(result: IToolCallSingleResult, token: CancellationToken): Promise<string | undefined> {
-		// overall run is still bounded by the global tool-call limit.
+
 		if (this.autopilotIterationCount >= ToolCallingLoop.MAX_AUTOPILOT_ITERATIONS) {
 			this._logService.info(`[ToolCallingLoop] Advanced Autopilot: hit max consecutive iterations (${ToolCallingLoop.MAX_AUTOPILOT_ITERATIONS}), letting it stop`);
 			return undefined;

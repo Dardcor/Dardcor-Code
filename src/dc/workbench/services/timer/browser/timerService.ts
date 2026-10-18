@@ -85,12 +85,12 @@ export interface IStartupMetrics {
 
 		readonly ellapsedSharedProcesConnected: number;
 
-		/**
-		 * The time it took to initialize required user data (settings & global state) using settings sync service.
-		 *
-		 * * Happens in the renderer-process (only in Web)
-		 * * Measured with the `willInitRequiredUserData` and `didInitRequiredUserData` performance marks.
-		 */
+
+
+
+
+
+
 		readonly ellapsedRequiredUserDataInit: number;
 
 		readonly ellapsedOtherUserDataInit: number;

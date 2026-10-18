@@ -157,7 +157,7 @@ export class ChatViewPane extends ViewPane implements IViewWelcomeDelegate {
 		super(options, keybindingService2, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService);
 		this.element.classList.add('chat-viewpane-container');
 
-		// View state for the ViewPane is currently global per-provider basically,
+
 		this.memento = new Memento(`interactive-session-view-${CHAT_PROVIDER_ID}`, this.storageService);
 		this.viewState = this.memento.getMemento(StorageScope.WORKSPACE, StorageTarget.MACHINE);
 		if (

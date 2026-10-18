@@ -11,7 +11,7 @@ import './bootstrap-node.js';
 import * as performance from './dc/base/common/performance.js';
 import { INLSConfiguration } from './dc/nls.js';
 
-// Prepare globals that are needed for running
+
 globalThis._DCCODE_PRODUCT_JSON = globalThis._VSCODE_PRODUCT_JSON = { ...product };
 globalThis._DCCODE_PACKAGE_JSON = globalThis._VSCODE_PACKAGE_JSON = { ...pkg };
 globalThis._DCCODE_FILE_ROOT = globalThis._VSCODE_FILE_ROOT = import.meta.dirname;

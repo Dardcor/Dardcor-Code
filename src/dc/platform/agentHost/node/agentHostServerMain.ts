@@ -220,7 +220,7 @@ async function main(): Promise<void> {
 		}
 	}
 
-	// notifications. The downloader fires process-global frames keyed by package
+
 	if (sdkDownloadProgress) {
 		disposables.add(sdkDownloadProgress(p => agentService.emitDownloadProgress(
 			p.packageId,

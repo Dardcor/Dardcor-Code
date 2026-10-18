@@ -61,9 +61,9 @@ export interface ICustomizationEnablementTarget {
 	readonly name: string;
 	readonly source: URI;
 	readonly owningPluginSource?: URI;
-	/**
-	 * Whether the client supplied this customization and therefore owns its global decision.
-	 */
+
+
+
 	readonly isClientBundled?: boolean;
 }
 
@@ -125,11 +125,11 @@ export function targetForUnownedMcpServer(name: string): ICustomizationEnablemen
 	};
 }
 
-/**
- * Owns host global, workspace, and session decisions, resolving them over a client global base.
- *
- * Global and workspace decisions use host JSON storage; session decisions remain in that session's database across restarts.
- */
+
+
+
+
+
 export class AgentHostCustomizationEnablementService extends Disposable implements IAgentHostCustomizationEnablementService {
 	declare readonly _serviceBrand: undefined;
 
@@ -369,7 +369,7 @@ export class AgentHostCustomizationEnablementService extends Disposable implemen
 	}
 
 	private _applyReplacement(session: string, target: ICustomizationEnablementTarget, enablement: readonly CustomizationEnablement[], workingDirectory: Exclude<WorkingDirectoryState, { kind: 'pending' }>): void {
-		// Update global first so workspace and session inheritance see the new value.
+
 		this._setGlobal(session, target, this._getGlobalReplacement(enablement));
 		this._replaceNonGlobalEnablement(session, target, enablement, workingDirectory);
 	}
@@ -505,7 +505,7 @@ export class AgentHostCustomizationEnablementService extends Disposable implemen
 		write.then(untrack, untrack);
 	}
 
-	/** Prunes matching workspace decisions in every stored directory, preserving only overrides that beat the new global value. */
+
 	private _removeRedundantWorkspaceDecisions(key: string): void {
 		const inherited = this._persistent.global?.[key];
 		if (inherited === undefined) {

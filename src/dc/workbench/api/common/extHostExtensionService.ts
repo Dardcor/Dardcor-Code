@@ -48,7 +48,7 @@ import { IExtHostManagedSockets } from './extHostManagedSockets.js';
 import { Dto } from '../../services/extensions/common/proxyIdentifier.js';
 
 interface ITestRunner {
-	/** Old test runner API, as exported from `vscode/lib/testrunner` */
+
 	run(testsRoot: string, clb: (error: Error, failures?: number) => void): void;
 }
 

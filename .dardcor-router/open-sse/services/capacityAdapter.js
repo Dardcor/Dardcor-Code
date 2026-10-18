@@ -1,13 +1,13 @@
-/**
- * Capacity Adapter — global fallback pools of models per input-modality capability
- * (vision / pdf / audioInput / videoInput).
- *
- * The pool models are appended as extra fallback candidates behind whatever models
- * were already going to be tried (a combo's members, or a single target model).
- * combo.js's existing reorderByCapabilities then floats a capable pool model to the
- * front only when none of the original models can handle the request — so this
- * never overrides a combo that already has a member covering the capability.
- */
+
+
+
+
+
+
+
+
+
+
 import { getCapabilitiesForModel } from "../providers/capabilities.js";
 
 const CAPABILITY_KEYS = ["vision", "pdf", "audioInput", "videoInput"];

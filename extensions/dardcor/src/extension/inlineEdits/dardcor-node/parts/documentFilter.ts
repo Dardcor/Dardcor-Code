@@ -38,7 +38,7 @@ export class DocumentFilter {
 		const enabledLanguages = this._enabledLanguages.get();
 		return enabledLanguages.get(languageId) ?? (
 			enabledLanguages.get('*')! ||
-			this._ignoreCompletionsDisablement.get() // respect if there's per-language setting but allow overriding global one
+			this._ignoreCompletionsDisablement.get()
 		);
 	}
 

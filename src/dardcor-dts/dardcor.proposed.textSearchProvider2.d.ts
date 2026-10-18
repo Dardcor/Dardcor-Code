@@ -32,9 +32,9 @@ declare module 'vscode' {
 			useIgnoreFiles: {
 				local: boolean;
 				parent: boolean;
-				/**
-				 * Use global ignore files. If set, `local` in {@link TextSearchProviderFolderOptions.useIgnoreFiles} should also be `true`.
-				 */
+
+
+
 				global: boolean;
 			};
 

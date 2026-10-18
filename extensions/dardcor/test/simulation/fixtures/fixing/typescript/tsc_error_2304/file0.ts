@@ -5,7 +5,7 @@ import * as assert from 'assert';
 
 declare function test(name: string, callback: () => void): void;
 
-// here are some comments that should be preserved
+
 
 test('parse', () => {
 	const testObj = parse(readFileSync('myFile.txt', 'utf-8'));

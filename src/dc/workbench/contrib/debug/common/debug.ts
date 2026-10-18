@@ -983,10 +983,10 @@ export interface IDebugService {
 
 	enableOrDisableBreakpoints(enable: boolean, breakpoint?: IEnablement): Promise<void>;
 
-	/**
-	 * Sets the global activated property for all breakpoints.
-	 * Notifies debug adapter of breakpoint changes.
-	 */
+
+
+
+
 	setBreakpointsActivated(activated: boolean): Promise<void>;
 
 	removeBreakpoints(id?: string | string[]): Promise<void>;

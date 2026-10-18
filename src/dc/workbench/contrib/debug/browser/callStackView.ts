@@ -172,8 +172,8 @@ export class CallStackView extends ViewPane {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService);
 
 		this.onCallStackChangeScheduler = this._register(new RunOnceScheduler(async () => {
-			// Only show the global pause message if we do not display threads.
-			// Otherwise there will be a pause message per thread and there is no need for a global one.
+
+
 			const sessions = this.debugService.getModel().getSessions();
 			if (sessions.length === 0) {
 				this.autoExpandedSessions.clear();

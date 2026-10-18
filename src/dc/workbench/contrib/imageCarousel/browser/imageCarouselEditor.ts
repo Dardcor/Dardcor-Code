@@ -24,10 +24,10 @@ import { IWebviewElement, IWebviewService } from '../../webview/browser/webview.
 import { ImageCarouselEditorInput } from './imageCarouselEditorInput.js';
 import { ICarouselImage, ICarouselSection, isVideoMimeType } from './imageCarouselTypes.js';
 
-/**
- * A flat entry referencing a specific image within a section, used
- * for global index-based navigation across all sections.
- */
+
+
+
+
 interface IFlatImageEntry {
 	readonly sectionIndex: number;
 	readonly imageIndexInSection: number;

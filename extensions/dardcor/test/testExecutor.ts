@@ -421,7 +421,7 @@ export const executeTestOnce = async (
 	testingServiceCollection.define(ITasksService, new TestTasksService());
 
 	if (test.model || test.embeddingType) {
-		// We prefer opts that come from the CLI over test specific args since Opts are global and must apply to the entire simulation
+
 		const smartChatModel = (opts.smartChatModel ?? opts.chatModel) ?? test.model;
 		const fastChatModel = (opts.fastChatModel ?? opts.chatModel) ?? test.model;
 		const fastRewriteModel = (opts.fastRewriteModel ?? opts.chatModel) ?? test.model;

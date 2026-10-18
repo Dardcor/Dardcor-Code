@@ -83,80 +83,80 @@ suite('FindController', () => {
 		});
 	}
 
-	/* test('stores to the global clipboard buffer on start find action', async () => {
-		await withAsyncTestCodeEditor([
-			'ABC',
-			'ABC',
-			'XYZ',
-			'ABC'
-		], { serviceCollection: serviceCollection }, async (editor) => {
-			clipboardState = '';
-			if (!platform.isMacintosh) {
-				assert.ok(true);
-				return;
-			}
-			let findController = editor.registerAndInstantiateContribution(TestFindController.ID, TestFindController);
-			let startFindAction = new StartFindAction();
-			// I select ABC on the first line
-			editor.setSelection(new Selection(1, 1, 1, 4));
-			// I hit Ctrl+F to show the Find dialog
-			startFindAction.run(null, editor);
 
-			assert.deepStrictEqual(findController.getGlobalBufferTerm(), findController.getState().searchString);
-			findController.dispose();
-		});
-	});
 
-	test('reads from the global clipboard buffer on next find action if buffer exists', async () => {
-		await withAsyncTestCodeEditor([
-			'ABC',
-			'ABC',
-			'XYZ',
-			'ABC'
-		], { serviceCollection: serviceCollection }, async (editor) => {
-			clipboardState = 'ABC';
 
-			if (!platform.isMacintosh) {
-				assert.ok(true);
-				return;
-			}
 
-			let findController = editor.registerAndInstantiateContribution(TestFindController.ID, TestFindController);
-			let findState = findController.getState();
-			let nextMatchFindAction = new NextMatchFindAction();
 
-			nextMatchFindAction.run(null, editor);
-			assert.strictEqual(findState.searchString, 'ABC');
 
-			assert.deepStrictEqual(fromSelection(editor.getSelection()!), [1, 1, 1, 4]);
 
-			findController.dispose();
-		});
-	});
 
-	test('writes to the global clipboard buffer when text changes', async () => {
-		await withAsyncTestCodeEditor([
-			'ABC',
-			'ABC',
-			'XYZ',
-			'ABC'
-		], { serviceCollection: serviceCollection }, async (editor) => {
-			clipboardState = '';
-			if (!platform.isMacintosh) {
-				assert.ok(true);
-				return;
-			}
 
-			let findController = editor.registerAndInstantiateContribution(TestFindController.ID, TestFindController);
-			let findState = findController.getState();
 
-			findState.change({ searchString: 'ABC' }, true);
 
-			assert.deepStrictEqual(findController.getGlobalBufferTerm(), 'ABC');
 
-			findController.dispose();
-		});
-	}); */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	test('issue #1857: F3, Find Next, acts like "Find Under Cursor"', async () => {
 		await withAsyncTestCodeEditor([

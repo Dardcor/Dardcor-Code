@@ -247,17 +247,17 @@ export class XtabProvider implements IStatelessNextEditProvider {
 		);
 	}
 
-	/**
-	 * Gathers language context and neighbor snippets and clips the current file, returning the
-	 * pieces {@link getUserPrompt} needs, or a {@link NoNextEditReason} when the request is
-	 * cancelled mid-gathering or the current file cannot fit its budget.
-	 *
-	 * Under a global budget the current file is clipped LAST: the cascade runs first so the
-	 * current file can reuse whatever budget it leaves unused (via `finalSurplus`), and the
-	 * already-run cascade is returned as `precomputedCascade` so {@link getUserPrompt} renders
-	 * it exactly once. With no global budget (prod default) the current file is clipped to its
-	 * own per-part cap first, byte-identical to the legacy path.
-	 */
+
+
+
+
+
+
+
+
+
+
+
 	private async gatherContextAndClipCurrentFile(
 		globalBudget: xtabPromptOptions.GlobalBudgetOptions | undefined,
 		activeDocument: StatelessNextEditDocument,
@@ -297,7 +297,7 @@ export class XtabProvider implements IStatelessNextEditProvider {
 			telemetry.setNLinesOfCurrentFileInPrompt(clippedTaggedCurrentDoc.lines.length);
 			return Result.ok({ clippedTaggedCurrentDoc, areaAroundCodeToEdit, precomputedCascade: cascade, langCtx, neighborSnippets });
 		} else {
-			// No global budget (prod default): clip the current file to its own per-part
+
 			const taggedCurrentFileContentResult = clipCurrentFileToBudget(undefined);
 			if (taggedCurrentFileContentResult.isError()) {
 				return Result.error(new NoNextEditReason.PromptTooLarge('currentFile'));
@@ -373,8 +373,8 @@ export class XtabProvider implements IStatelessNextEditProvider {
 		const doesIncludeCursorTag = editWindowLines.some(line => line.includes(PromptTags.CURSOR));
 		const shouldRemoveCursorTagFromResponse = !doesIncludeCursorTag;
 
-		// Under a global budget the current file is clipped LAST so it reuses whatever
-		// no global budget (prod default) the current file keeps its own per-part cap.
+
+
 		const globalBudget = promptOptions.globalBudget;
 		if (globalBudget !== undefined) {
 			xtabPromptOptions.GlobalBudgetOptions.validate(globalBudget);
@@ -1510,13 +1510,13 @@ export class XtabProvider implements IStatelessNextEditProvider {
 		};
 	}
 
-	/**
-	 * Resolve the opt-in global budget from its single experiment-driven JSON
-	 * config string (mirrors `modelConfigurationString`). Returns `undefined`
-	 * — disabling the global budget, identical to prod — when the string is
-	 * unset, empty, or fails to parse/validate. Parse failures are reported via
-	 * telemetry so misconfigured experiments are observable.
-	 */
+
+
+
+
+
+
+
 	private getGlobalBudget(): xtabPromptOptions.GlobalBudgetOptions | undefined {
 		const configString = this.configService.getExperimentBasedConfig(ConfigKey.TeamInternal.InlineEditsXtabGlobalBudget, this.expService);
 		if (!configString) {
@@ -1525,14 +1525,14 @@ export class XtabProvider implements IStatelessNextEditProvider {
 
 		const result = xtabPromptOptions.GlobalBudgetOptions.fromConfigString(configString);
 		if (result.isError()) {
-			/* __GDPR__
-				"incorrectNesGlobalBudgetConfig" : {
-					"owner": "ulugbekna",
-					"comment": "Capture if the experiment-driven NES global budget config string is invalid or malformed, so the global budget was disabled.",
-					"errorMessage": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Error message from parsing or validation." },
-					"configValue": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The invalid config string so the bad experiment value can be identified." }
-				}
-			*/
+
+
+
+
+
+
+
+
 			this._telemetryService.sendMSFTTelemetryEvent('incorrectNesGlobalBudgetConfig', { errorMessage: result.err, configValue: configString });
 			return undefined;
 		}

@@ -299,13 +299,13 @@ export class ChatContextUsageWidget extends Disposable {
 		}
 	}
 
-	/**
-	 * Provides a per-editor resolver for the selected model's configuration
-	 * (notably the user-selected context size). The widget re-renders whenever
-	 * the supplied event fires for the currently displayed model. Without this,
-	 * the widget falls back to the profile-global value, which can drift from
-	 * the editor's actual selection (see issue #320393).
-	 */
+
+
+
+
+
+
+
 	setModelConfigurationResolver(
 		resolver: (modelId: string) => IStringDictionary<unknown> | undefined,
 		onDidChange: Event<string>,

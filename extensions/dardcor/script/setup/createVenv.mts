@@ -20,7 +20,7 @@ function findPython(): void {
 		return;
 	}
 
-	// look for global python installations
+
 	const pythonCommands = ['python3', 'python', 'py'];
 	for (const pythonCommand of pythonCommands) {
 		try {

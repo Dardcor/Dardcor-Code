@@ -100,7 +100,7 @@ describe('DocumentFilter', () => {
 		configService.setConfig(ConfigKey.TeamInternal.InlineEditsIgnoreCompletionsDisablement, true);
 		const documentFilter = new DocumentFilter(ignoreService, configService);
 
-		// a language without an explicit setting falls back to the (overridden) global setting
+
 		expect(documentFilter.isLanguageEnabled(js)).toBe(true);
 		expect(documentFilter.isLanguageEnabled('markdown')).toBe(false);
 	});

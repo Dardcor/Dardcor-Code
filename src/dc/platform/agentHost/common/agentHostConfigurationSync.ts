@@ -127,7 +127,7 @@ export function resolveAgentHostConfigurationSyncPatch(configurationService: ICo
 	const patch: Record<string, unknown> = {};
 	for (const entry of getAgentHostConfigurationSyncEntries(target)) {
 		const value = resolveAgentHostConfigurationSyncValue(configurationService, entry);
-		// A setting with no value in any global layer and no registered default has
+
 		if (value !== undefined) {
 			patch[entry.sync.key] = value;
 		}

@@ -122,7 +122,7 @@ export class TerminalPersistedHistory<T> extends Disposable implements ITerminal
 	private _loadState() {
 		this._timestamp = this._storageService.getNumber(this._getTimestampStorageKey(), StorageScope.APPLICATION, 0);
 
-		// Load global entries plus
+
 		const serialized = this._loadPersistedState();
 		if (serialized) {
 			for (const entry of serialized.entries) {

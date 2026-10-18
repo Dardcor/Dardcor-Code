@@ -5,21 +5,21 @@
 
 // @ts-check
 
-/**
- * Merge per-group perf results into a single unified CI summary.
- *
- * Called by the CI report job after all matrix groups have finished.
- * Reads results.json and baseline-*.json from each group directory,
- * merges all scenarios into one combined report, and writes a single
- * ci-summary.md file.
- *
- * Usage:
- *   node scripts/chat-simulation/merge-ci-summary.js \
- *     --results-dir perf-results \
- *     --output ci-summary.md \
- *     [--leak-summary leak-results/.chat-simulation-data/ci-summary-leak.md] \
- *     [--threshold 0.2]
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const fs = require('fs');
 const path = require('path');
@@ -31,10 +31,10 @@ function parseArgs() {
 	const opts = {
 		resultsDir: '',
 		output: '',
-		/** @type {string | undefined} */
+
 		leakSummary: undefined,
 		threshold: 0.2,
-		/** @type {Record<string, number | string>} */
+
 		metricThresholds: {},
 	};
 	for (let i = 0; i < args.length; i++) {
@@ -64,11 +64,11 @@ function parseArgs() {
 }
 
 
-/**
- * Find all results.json and baseline-*.json files across group directories,
- * merge scenarios into a single combined report.
- * @param {string} resultsDir
- */
+
+
+
+
+
 function mergeResults(resultsDir) {
 	let groupDirs = fs.readdirSync(resultsDir)
 		.filter(d => d.startsWith('perf-results-') || d.startsWith('perf-summary-'))
@@ -86,21 +86,21 @@ function mergeResults(resultsDir) {
 		}
 	}
 
-	/** @type {Record<string, any>} */
+
 	const mergedScenarios = {};
-	/** @type {Record<string, any>} */
+
 	const mergedBaselineScenarios = {};
 	let runsPerScenario = 0;
 	let platform = 'linux';
-	/** @type {string | undefined} */
+
 	let buildMode;
-	/** @type {string | undefined} */
+
 	let baselineBuildVersion;
-	/** @type {string | undefined} */
+
 	let threshold;
 
 	const perfConfig = loadConfig('perfRegression');
-	/** @type {Record<string, number | string>} */
+
 	const metricThresholds = perfConfig.metricThresholds ?? {};
 
 	for (const groupDir of groupDirs) {
@@ -173,7 +173,7 @@ function mergeResults(resultsDir) {
 
 const GITHUB_REPO = 'https://github.com/microsoft/vscode';
 
-/** @param {string} label */
+
 function formatBuildLink(label) {
 	if (/^[0-9a-f]{7,40}$/.test(label)) {
 		return `[\`${label.substring(0, 7)}\`](${GITHUB_REPO}/commit/${label})`;
@@ -184,30 +184,30 @@ function formatBuildLink(label) {
 	return `\`${label}\``;
 }
 
-/**
- * @param {string} base
- * @param {string} test
- */
+
+
+
+
 function formatCompareLink(base, test) {
 	const isRef = (/** @type {string} */ v) => /^[0-9a-f]{7,40}$/.test(v) || /^\d+\.\d+\.\d+/.test(v);
 	if (!isRef(base) || !isRef(test)) { return ''; }
 	return `[compare](${GITHUB_REPO}/compare/${base}...${test})`;
 }
 
-/**
- * @param {{ type: string, value: number }} threshold
- * @param {number} change
- * @param {number} absoluteDelta
- */
+
+
+
+
+
 function exceedsThreshold(threshold, change, absoluteDelta) {
 	if (threshold.type === 'absolute') { return absoluteDelta > threshold.value; }
 	return change > threshold.value;
 }
 
-/**
- * @param {{ threshold: number, metricThresholds?: Record<string, number | string> }} opts
- * @param {string} metric
- */
+
+
+
+
 function getMetricThreshold(opts, metric) {
 	const raw = opts.metricThresholds?.[metric];
 	if (raw !== undefined) {
@@ -217,16 +217,16 @@ function getMetricThreshold(opts, metric) {
 	return { type: 'fraction', value: opts.threshold };
 }
 
-/** @param {number} v */
+
 function round2(v) { return Math.round(v * 100) / 100; }
 
-/**
- * Generate a unified Markdown summary for all scenarios.
- *
- * @param {Record<string, any>} jsonReport
- * @param {Record<string, any> | null} baseline
- * @param {{ threshold: number, metricThresholds?: Record<string, number | string>, runs: number, baselineBuild?: string, build?: string, hasLeakFailure?: boolean }} opts
- */
+
+
+
+
+
+
+
 function generateUnifiedSummary(jsonReport, baseline, opts) {
 	const baseLabel = opts.baselineBuild || 'baseline';
 	const testBuildMode = jsonReport.buildMode || 'dev';
@@ -264,7 +264,7 @@ function generateUnifiedSummary(jsonReport, baseline, opts) {
 	const lines = [];
 	const scenarios = Object.keys(jsonReport.scenarios);
 
-	/** @type {Map<string, { metric: string, verdict: string, change: number, pValue: string, basStr: string, curStr: string }[]>} */
+
 	const scenarioVerdicts = new Map();
 	let totalRegressions = 0;
 	let totalImprovements = 0;
@@ -272,7 +272,7 @@ function generateUnifiedSummary(jsonReport, baseline, opts) {
 	for (const scenario of scenarios) {
 		const current = jsonReport.scenarios[scenario];
 		const base = baseline?.scenarios?.[scenario];
-		/** @type {{ metric: string, verdict: string, change: number, pValue: string, basStr: string, curStr: string }[]} */
+
 		const verdicts = [];
 
 		if (base) {

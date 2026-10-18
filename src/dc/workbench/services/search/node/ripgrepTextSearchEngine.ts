@@ -385,7 +385,7 @@ function getNumLinesAndLastNewlineLength(text: string): { numLines: number; last
 	return { numLines, lastLineLength };
 }
 
-// exported for testing
+
 export function getRgArgs(query: TextSearchQuery2, options: RipgrepTextSearchOptions): string[] {
 	const args = ['--hidden', '--no-require-git'];
 	args.push(query.isCaseSensitive ? '--case-sensitive' : '--ignore-case');

@@ -139,10 +139,10 @@ function deduplicateConsecutiveImages(images: IChatExtractedImage[]): IChatExtra
 	});
 }
 
-/**
- * Finds the global index of the clicked image across all carousel sections.
- * Tries URI string match, then parsed URI equality, then data buffer equality.
- */
+
+
+
+
 export function findClickedImageIndex(
 	sections: ICarouselSection[],
 	resource: URI,

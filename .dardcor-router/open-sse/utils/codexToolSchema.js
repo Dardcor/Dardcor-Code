@@ -1,4 +1,4 @@
-// Scope guardrail (#3667): this is NOT a global schema sanitizer. Providers
+
 
 const UNICODE_PROPERTY_ESCAPE = /(^|[^\\])(\\\\)*\\[pP]\{/;
 

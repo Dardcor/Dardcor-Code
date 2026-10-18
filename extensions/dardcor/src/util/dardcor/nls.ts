@@ -62,11 +62,11 @@ export function localize(data: ILocalizeInfo | string , message: string , ...arg
 	return _format(message, args);
 }
 
-/**
- * Only used when built: Looks up the message in the global NLS table.
- * This table is being made available as a global through bootstrapping
- * depending on the target context.
- */
+
+
+
+
+
 function lookupMessage(index: number, fallback: string | null): string {
 	const message = getNLSMessages()?.[index];
 	if (typeof message !== 'string') {

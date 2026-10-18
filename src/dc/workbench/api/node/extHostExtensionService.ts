@@ -83,7 +83,7 @@ class NodeModuleRequireInterceptor extends RequireInterceptor {
 		const apiInstances = new BidirectionalMap<typeof vscode, string>();
 		const apiImportDataUrl = new Map<string, string>();
 
-		// define a global function that can be used to get API instances given a random key
+
 		Object.defineProperty(globalThis, NodeModuleRequireInterceptor._vscodeImportFnName, {
 			enumerable: false,
 			configurable: false,

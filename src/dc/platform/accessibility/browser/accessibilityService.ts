@@ -150,7 +150,7 @@ export class AccessibilityService extends Disposable implements IAccessibilitySe
 	private getAccessibilitySupportConfigurationValue(): 'auto' | 'off' | 'on' {
 		const inspectedValue = this._configurationService.inspect<'auto' | 'off' | 'on'>('editor.accessibilitySupport');
 
-		// resource-dependent resolution in this global service.
+
 		return inspectedValue.policyValue
 			?? inspectedValue.memoryValue
 			?? inspectedValue.workspaceFolderValue

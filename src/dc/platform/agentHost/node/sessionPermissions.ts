@@ -193,7 +193,7 @@ export class SessionPermissionManager extends Disposable {
 			return ToolCallConfirmationReason.Setting;
 		}
 
-		// global or session auto-approve asked for that everywhere, and inline
+
 		const surfaceScope = this._getSurfaceEditScope(sessionKey);
 		if (surfaceScope) {
 			if ((e.permissionKind === 'write' || e.permissionKind === 'read')
@@ -298,10 +298,10 @@ export class SessionPermissionManager extends Disposable {
 		}).autoApproveRuleResolvable;
 	}
 
-	/**
-	 * Returns whether VS Code's global auto-approve setting (`chat.tools.global.autoApprove`) is enabled.
-	 * When enabled, every tool call is auto-approved without changing the session's approval level in the permissions picker.
-	 */
+
+
+
+
 	isGlobalAutoApproveEnabled(): boolean {
 		return this._configService.getRootValue(platformRootSchema, AgentHostGlobalAutoApproveEnabledConfigKey) === true;
 	}

@@ -8,11 +8,11 @@
 const crypto = require('crypto');
 const https = require('https');
 
-/**
- * @param {string} appId
- * @param {string} privateKey
- * @returns {string}
- */
+
+
+
+
+
 function createJwt(appId, privateKey) {
 	const now = Math.floor(Date.now() / 1000);
 	const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
@@ -21,11 +21,11 @@ function createJwt(appId, privateKey) {
 	return `${header}.${payload}.${signature}`;
 }
 
-/**
- * @param {import('https').RequestOptions} options
- * @param {object} [body]
- * @returns {Promise<any>}
- */
+
+
+
+
+
 function request(options, body) {
 	return new Promise((resolve, reject) => {
 		const req = https.request(options, res => {
@@ -47,13 +47,13 @@ function request(options, body) {
 	});
 }
 
-/**
- * @param {string} jwt
- * @param {string} installationId
- * @returns {Promise<string>}
- */
+
+
+
+
+
 async function getInstallationToken(jwt, installationId) {
-	/** @type {{ token: string }} */
+
 	const result = await request({
 		hostname: 'api.github.com',
 		path: `/app/installations/${encodeURIComponent(installationId)}/access_tokens`,
@@ -68,12 +68,12 @@ async function getInstallationToken(jwt, installationId) {
 	return result.token;
 }
 
-/**
- * @param {string} token
- * @param {string} checkRunId
- * @param {string} conclusion
- * @param {string} detailsUrl
- */
+
+
+
+
+
+
 function updateCheckRun(token, checkRunId, conclusion, detailsUrl) {
 	return request({
 		hostname: 'api.github.com',
@@ -108,7 +108,7 @@ async function main() {
 	const jwt = createJwt(appId, privateKey);
 	const token = await getInstallationToken(jwt, installationId);
 
-	/** @type {string} */
+
 	let conclusion;
 	switch (jobStatus) {
 		case 'Succeeded':

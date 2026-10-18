@@ -207,7 +207,7 @@ export class ModelPickerWidget extends Disposable {
 		this._register(this._entitlementService.onDidChangeSentiment(() => this._renderLabel()));
 		this._register(this._entitlementService.onDidChangeAnonymous(() => this._renderLabel()));
 
-		// a change. The global service path is already covered above via
+
 		if (this._delegate.modelConfiguration?.onDidChange) {
 			this._register(this._delegate.modelConfiguration.onDidChange(() => {
 				this._renderLabel();

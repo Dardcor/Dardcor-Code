@@ -2069,11 +2069,11 @@ export class AgentService extends Disposable implements IAgentService {
 		return this._sessionRegistry.isProviderBackfilled(provider);
 	}
 
-	/**
-	 * Test surface for the legacy global backfill marker. Never written by the
-	 * per-provider discovery — see the removal of automatic mirroring in
-	 * {@link AgentSessionRegistry}'s class doc comment.
-	 */
+
+
+
+
+
 	async isLegacyRegistryBackfilled(): Promise<boolean> {
 		return this._sessionRegistry.isBackfilled();
 	}
@@ -2349,7 +2349,7 @@ export class AgentService extends Disposable implements IAgentService {
 			})()
 			: undefined;
 
-		// host/global customizations and the custom agents they contribute,
+
 		const defaultChat = URI.parse(buildDefaultChatUri(session));
 		const workingDirectories = config?.workingDirectories;
 		const [initialCustomizations, folderPickerDecision] = await Promise.all([
@@ -3029,26 +3029,26 @@ export class AgentService extends Disposable implements IAgentService {
 		}
 	}
 
-	/**
-	 * Surface a host-level SDK download as client progress. The downloader fires
-	 * process-global frames keyed by package id (which equals the provider id);
-	 * because the download is shared across every session of that provider, we
-	 * emit a SINGLE `progress` stream keyed by that package id — not one per
-	 * session — so the client shows exactly one indicator no matter how many
-	 * sessions of the provider are awaiting it. Frames are emitted while at least
-	 * one session has opted in (supplied a
-	 * {@link IAgentCreateSessionConfig.progressToken} on `createSession`) or a
-	 * user-initiated flow has explicitly requested progress. A
-	 * terminal frame reports `total === progress` (using `receivedBytes` when the
-	 * size was never known) so the client dismisses the indicator deterministically.
-	 *
-	 * `displayName` is the provider's brand noun (e.g. `Claude`). It is woven
-	 * into the notification's localized, human-readable `message` (e.g.
-	 * "Downloading Claude agent") so a generic client can render the indicator
-	 * verbatim without knowing the resource is an agent SDK. No trailing
-	 * ellipsis: clients render progress as "<title>: <percent>", so an ellipsis
-	 * would read as an unusual "…:" (see #324455).
-	 */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	emitDownloadProgress(packageId: string, displayName: string, receivedBytes: number, totalBytes: number | undefined, terminal: boolean, explicitlyRequested = false): void {
 		const sessions = this._downloadProgressInterest.get(packageId);
 		if ((!sessions || sessions.size === 0) && !explicitlyRequested) {
@@ -5906,12 +5906,12 @@ function collectChanges(event: FileChangesEvent): IFileChange[] {
 	return out;
 }
 
-/**
- * Variant of {@link collectChanges} that restricts the output to changes
- * inside `root` (inclusive). Used for the recursive watch fallback,
- * which feeds off the uncorrelated global stream and must filter out
- * unrelated events.
- */
+
+
+
+
+
+
 function collectChangesUnderRoot(event: FileChangesEvent, root: URI): IFileChange[] {
 	const out: IFileChange[] = [];
 	const accept = (resource: URI, type: FileChangeType) => {

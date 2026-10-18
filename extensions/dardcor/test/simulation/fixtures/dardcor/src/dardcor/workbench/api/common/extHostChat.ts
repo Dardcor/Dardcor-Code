@@ -35,7 +35,7 @@ export class ExtHostChat implements ExtHostChatShape {
 	private readonly _chatProvider = new Map<number, ChatProviderWrapper<vscode.InteractiveSessionProvider>>();
 	private readonly _slashCommandProvider = new Map<number, ChatProviderWrapper<vscode.InteractiveSlashCommandProvider>>();
 	private readonly _chatSessions = new Map<number, vscode.InteractiveSession>();
-	// private readonly _providerResponsesByRequestId = new Map<number, { response: vscode.ProviderResult<vscode.InteractiveResponse | vscode.InteractiveResponseForProgress>; sessionId: number }>();
+
 
 	private readonly _onDidPerformUserAction = new Emitter<vscode.InteractiveSessionUserActionEvent>();
 	public readonly onDidPerformUserAction = this._onDidPerformUserAction.event;
@@ -49,7 +49,7 @@ export class ExtHostChat implements ExtHostChatShape {
 		this._proxy = mainContext.getProxy(MainContext.MainThreadChat);
 	}
 
-	//#region interactive session
+
 
 	registerChatProvider(extension: Readonly<IRelaxedExtensionDescription>, id: string, provider: vscode.InteractiveSessionProvider): vscode.Disposable {
 		const wrapper = new ChatProviderWrapper(extension, provider);
@@ -230,7 +230,7 @@ export class ExtHostChat implements ExtHostChatShape {
 		}
 
 		try {
-			// Check that the session has not been released since the request started
+
 			if (realSession.saveState && this._chatSessions.has(sessionId)) {
 				const newState = realSession.saveState();
 				this._proxy.$acceptChatState(sessionId, newState);
@@ -273,7 +273,7 @@ export class ExtHostChat implements ExtHostChatShape {
 		this._onDidPerformUserAction.fire(event);
 	}
 
-	//#endregion
+
 
 	registerSlashCommandProvider(extension: Readonly<IRelaxedExtensionDescription>, chatProviderId: string, provider: vscode.InteractiveSlashCommandProvider): vscode.Disposable {
 		const wrapper = new ChatProviderWrapper(extension, provider);

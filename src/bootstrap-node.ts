@@ -106,7 +106,7 @@ export function devInjectNodeModuleLookupPath(injectPath: string): void {
 
 export function removeGlobalNodeJsModuleLookupPaths(): void {
 	if (typeof process?.versions?.electron === 'string') {
-		return; // Electron disables global search paths in https://github.com/electron/electron/blob/3186c2f0efa92d275dc3d57b5a14a60ed3846b0e/shell/common/node_bindings.cc#L653
+		return;
 	}
 
 	const Module = require('module');

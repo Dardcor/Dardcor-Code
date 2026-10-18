@@ -13,10 +13,10 @@ import { INativeRunActionInWindowRequest } from '../../window/common/window.js';
 import { ICodeWindow } from '../../window/electron-main/window.js';
 import { IWindowsMainService } from '../../windows/electron-main/windows.js';
 
-/**
- * The subset of Electron's `globalShortcut` module that this service relies on. Injecting it as a
- * constructor dependency (rather than importing the global directly) lets tests provide a fake.
- */
+
+
+
+
 export interface IGlobalShortcutRegistry {
 	register(accelerator: string, callback: () => void): boolean;
 	unregister(accelerator: string): void;

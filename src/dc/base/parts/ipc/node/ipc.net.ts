@@ -35,7 +35,7 @@ export function upgradeToISocket(req: http.IncomingMessage, socket: Socket, {
 	}
 
 	const requestNonce = req.headers['sec-websocket-key'];
-	const hash = createHash('sha1');// CodeQL [SM04514] SHA1 must be used here to respect the WebSocket protocol specification
+	const hash = createHash('sha1');
 	hash.update(requestNonce + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11');
 	const responseNonce = hash.digest('base64');
 

@@ -5,18 +5,18 @@
 
 import { Disposable } from './disposable';
 
-/**
- * Represents a typed event.
- */
+
+
+
 export interface Event<T> {
 
-	/**
-	 *
-	 * @param listener The listener function will be called when the event happens.
-	 * @param thisArgs The 'this' which will be used when calling the event listener.
-	 * @param disposables An array to which a {{IDisposable}} will be added.
-	 * @return
-	*/
+
+
+
+
+
+
+
 	(listener: (e: T) => any, thisArgs?: any, disposables?: Disposable[]): Disposable;
 }
 
@@ -52,7 +52,7 @@ class CallbackList {
 		for (let i = 0, len = this._callbacks.length; i < len; i++) {
 			if (this._callbacks[i] === callback) {
 				if (this._contexts![i] === context) {
-					// callback & context match => remove it
+
 					this._callbacks.splice(i, 1);
 					this._contexts!.splice(i, 1);
 					return;
@@ -112,10 +112,10 @@ export class Emitter<T> {
 	constructor(private _options?: EmitterOptions) {
 	}
 
-	/**
-	 * For the public to allow to subscribe
-	 * to events from this Emitter
-	 */
+
+
+
+
 	get event(): Event<T> {
 		if (!this._event) {
 			this._event = (listener: (e: T) => any, thisArgs?: any, disposables?: Disposable[]) => {
@@ -130,7 +130,7 @@ export class Emitter<T> {
 				const result: Disposable = {
 					dispose: () => {
 						if (!this._callbacks) {
-							// disposable is disposed after emitter is disposed.
+
 							return;
 						}
 
@@ -151,10 +151,10 @@ export class Emitter<T> {
 		return this._event;
 	}
 
-	/**
-	 * To be kept private to fire an event to
-	 * subscribers
-	 */
+
+
+
+
 	fire(event: T): any {
 		if (this._callbacks) {
 			this._callbacks.invoke.call(this._callbacks, event);

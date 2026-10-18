@@ -6,31 +6,31 @@
 import * as ts from 'typescript';
 import { type RawSourceMap, type Mapping, SourceMapConsumer, SourceMapGenerator } from 'source-map';
 
-/**
- * Converts native ES private fields (`#foo`) into regular JavaScript properties with short,
- * globally unique names (e.g., `$a`, `$b`). This achieves two goals:
- *
- * 1. **Performance**: Native private fields are slower than regular properties in V8.
- * 2. **Mangling**: Short replacement names reduce bundle size.
- *
- * ## Why not simply strip `#`?
- *
- * - **Inheritance collision**: If `class B extends A` and both declare `#x`, stripping `#`
- *   yields `x` on both - collision on child instances.
- * - **Public property shadowing**: `class Foo extends Error { static #name = ... }` - stripping
- *   `#` produces `name` which shadows `Error.name`.
- *
- * ## Strategy: Globally unique names with `$` prefix
- *
- * Each (class, privateFieldName) pair gets a unique name from a global counter: `$a`, `$b`, ...
- * This guarantees no inheritance collision and no shadowing of public properties.
- *
- * ## Why this is safe with syntax-only analysis
- *
- * Native `#` fields are **lexically scoped** to their declaring class body. Every declaration
- * and every usage site is syntactically inside the class body. A single AST walk is sufficient
- * to find all sites - no cross-file analysis or type checker needed.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 

@@ -34,7 +34,7 @@ export async function migrateExtensionStorage(fromExtensionId: string, toExtensi
 
 		const getExtensionStorageLocation = (extensionId: string, global: boolean): URI => {
 			if (global) {
-				return uriIdentityService.extUri.joinPath(userDataProfilesService.defaultProfile.globalStorageHome, extensionId.toLowerCase() /* Extension id is lower cased for global storage */);
+				return uriIdentityService.extUri.joinPath(userDataProfilesService.defaultProfile.globalStorageHome, extensionId.toLowerCase()  );
 			}
 			return uriIdentityService.extUri.joinPath(environmentService.workspaceStorageHome, workspaceContextService.getWorkspace().id, extensionId);
 		};

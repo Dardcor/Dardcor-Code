@@ -1,4 +1,4 @@
-// Patch global fetch with proxy support (must be first)
+
 import "./utils/proxyFetch.js";
 
 export { PROVIDERS } from "./config/providers.js";

@@ -101,7 +101,7 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 			
 			provideSlashCommands: async (token) => {
 				if (!this._agents.get(handle)?.hasSlashCommands) {
-					return []; // save an IPC call
+					return [];
 				}
 				return this._proxy.$provideSlashCommands(handle, token);
 			}
@@ -133,7 +133,7 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 			this._pendingProgress.get(requestId)?.({ ...progress, resolvedContent: deferredContentPromise.p });
 			return handle;
 		} else if (typeof responsePartHandle === 'number') {
-			// Complete an existing deferred promise with resolved content
+
 			const responsePartId = `${requestId}_${responsePartHandle}`;
 			const deferredContentPromise = this._activeResponsePartPromises.get(responsePartId);
 			if (deferredContentPromise && progress.kind === 'treeData') {
@@ -147,7 +147,7 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 			return responsePartHandle;
 		}
 
-		// No need to support standalone tree data that's not attached to a placeholder in API
+
 		if (progress.kind === 'treeData') {
 			return;
 		}
@@ -217,7 +217,7 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 function computeCompletionRanges(model: ITextModel, position: Position, reg: RegExp): { insert: Range; replace: Range } | undefined {
 	const varWord = getWordAtText(position.column, reg, model.getLineContent(position.lineNumber), 0);
 	if (!varWord && model.getWordUntilPosition(position).word) {
-		// inside a "normal" word
+
 		return;
 	}
 

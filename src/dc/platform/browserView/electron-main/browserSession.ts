@@ -18,6 +18,7 @@ import { BrowserSessionRemote, IBrowserSessionRemote } from './browserSessionRem
 import { FileAccess, Schemas } from '../../../base/common/network.js';
 import { IInstantiationService } from '../../instantiation/common/instantiation.js';
 import { localize } from '../../../nls.js';
+import { IAgentNetworkFilterService } from '../../networkFilter/common/networkFilterService.js';
 
 export class BrowserSession {
 
@@ -84,7 +85,34 @@ export class BrowserSession {
 			?? instantiationService.createInstance(BrowserSession, sessionId, electronSession, BrowserViewStorageScope.Ephemeral);
 	}
 
-	static updateNetworkFiltering(): void {
+	static getOrCreateAgent(instantiationService: IInstantiationService, viewId: string, affinity?: string): BrowserSession {
+		const sessionId = `agent:${affinity || viewId}`;
+		const electronSession = session.fromPartition(`vscode-browser-agent-${encodeURIComponent(affinity || viewId)}`);
+		return BrowserSession._bySession.get(electronSession)
+			?? instantiationService.createInstance(BrowserSession, sessionId, electronSession, BrowserViewStorageScope.Agent);
+	}
+
+	static async updateNetworkFiltering(): Promise<void> {
+		const affectedSessions: BrowserSession[] = [];
+		for (const [id, reference] of BrowserSession._byId) {
+			const browserSession = reference.deref();
+			if (!browserSession) {
+				BrowserSession._byId.delete(id);
+			} else if (browserSession.storageScope === BrowserViewStorageScope.Agent) {
+				affectedSessions.push(browserSession);
+			}
+		}
+		await Promise.all(affectedSessions.map(browserSession => browserSession.electronSession.closeAllConnections()));
+	}
+
+	static isAgentRequestAllowed(url: string, networkFilterService: IAgentNetworkFilterService): boolean {
+		let uri: URI;
+		try {
+			uri = URI.parse(url);
+		} catch {
+			return false;
+		}
+		return !networkFilterService.isEnabled() || networkFilterService.isUriAllowed(uri);
 	}
 
 	static getOrCreate(
@@ -102,6 +130,9 @@ export class BrowserSession {
 				if (workspaceId) {
 					return BrowserSession.getOrCreateWorkspace(instantiationService, workspaceId, workspaceStorageHome);
 				}
+				return BrowserSession.getOrCreateEphemeral(instantiationService, viewId);
+			case BrowserViewStorageScope.Agent:
+				return BrowserSession.getOrCreateAgent(instantiationService, viewId, sessionOptions.affinity);
 			case BrowserViewStorageScope.Ephemeral:
 			default:
 				return BrowserSession.getOrCreateEphemeral(instantiationService, viewId);
@@ -132,6 +163,7 @@ export class BrowserSession {
 		readonly id: string,
 		readonly electronSession: Electron.Session,
 		readonly storageScope: BrowserViewStorageScope,
+		@IAgentNetworkFilterService private readonly agentNetworkFilterService: IAgentNetworkFilterService,
 	) {
 		this._trust = new BrowserSessionTrust(this);
 		this._history = new BrowserSessionHistory(this);
@@ -168,6 +200,13 @@ export class BrowserSession {
 
 	private configure(): void {
 		this._permissions.configure(this.electronSession);
+		if (this.storageScope === BrowserViewStorageScope.Agent) {
+			this.electronSession.webRequest.onBeforeRequest({
+				urls: ['http://*/*', 'https://*/*', 'ws://*/*', 'wss://*/*']
+			}, (details, callback) => {
+				callback({ cancel: !BrowserSession.isAgentRequestAllowed(details.url, this.agentNetworkFilterService) });
+			});
+		}
 		this.electronSession.registerPreloadScript({
 			type: 'frame',
 			filePath: FileAccess.asFileUri('vs/platform/browserView/electron-browser/preload-browserView.js').fsPath

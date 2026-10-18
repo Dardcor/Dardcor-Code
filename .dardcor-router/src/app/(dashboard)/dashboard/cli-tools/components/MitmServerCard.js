@@ -5,10 +5,10 @@ import { Card, Button, Badge, Input } from "@/shared/components";
 
 const DEFAULT_MITM_ROUTER_BASE = "http://localhost:21128";
 
-/**
- * Shared MITM infrastructure card — manages SSL cert + server start/stop.
- * DNS per-tool is handled separately in MitmToolCard.
- */
+
+
+
+
 export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }) {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -24,7 +24,7 @@ export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }
   const serverIsWindows = status?.isWin === true;
   const canRunWithoutPassword = serverIsWindows || status?.hasCachedPassword || status?.needsSudoPassword === false;
   const isAdmin = status?.isAdmin !== false;
-  // No privilege: not admin/root AND (Win OR no cached sudo password)
+
   const noPrivilege = !isAdmin && (serverIsWindows || (!status?.hasCachedPassword && status?.needsSudoPassword !== false));
 
   const fetchStatus = useCallback(async () => {
@@ -51,7 +51,7 @@ export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }
 
   const handleAction = (action) => {
     setActionError(null);
-    // Wait for status to load before deciding whether to show sudo modal
+
     if (!status) return;
     if (canRunWithoutPassword) {
       doAction(action, "");

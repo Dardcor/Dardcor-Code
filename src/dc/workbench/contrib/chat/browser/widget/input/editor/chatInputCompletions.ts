@@ -107,7 +107,7 @@ class SlashCommandCompletions extends Disposable {
 				const parsedRequest = widget.parsedInput.parts;
 				const usedAgent = parsedRequest.find(p => p instanceof ChatRequestAgentPart);
 				if (usedAgent) {
-					// No (classic) global slash commands when an agent is used
+
 					return;
 				}
 

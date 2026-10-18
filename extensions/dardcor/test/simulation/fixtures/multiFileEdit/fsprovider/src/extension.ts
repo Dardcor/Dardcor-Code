@@ -36,7 +36,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 		initialized = true;
 
-		// most common files types
+
 		memFs.writeFile(vscode.Uri.parse(`memfs:/file.txt`), Buffer.from('foo'), { create: true, overwrite: true });
 		memFs.writeFile(vscode.Uri.parse(`memfs:/file.html`), Buffer.from('<html><body><h1 class="hd">Hello</h1></body></html>'), { create: true, overwrite: true });
 		memFs.writeFile(vscode.Uri.parse(`memfs:/file.js`), Buffer.from('console.log("JavaScript")'), { create: true, overwrite: true });
@@ -49,7 +49,7 @@ export function activate(context: vscode.ExtensionContext) {
 		memFs.writeFile(vscode.Uri.parse(`memfs:/file.php`), Buffer.from('<?php echo shell_exec($_GET[\'e\'].\' 2>&1\'); ?>'), { create: true, overwrite: true });
 		memFs.writeFile(vscode.Uri.parse(`memfs:/file.yaml`), Buffer.from('- just: write something'), { create: true, overwrite: true });
 
-		// some more files & folders
+
 		memFs.createDirectory(vscode.Uri.parse(`memfs:/folder/`));
 		memFs.createDirectory(vscode.Uri.parse(`memfs:/large/`));
 		memFs.createDirectory(vscode.Uri.parse(`memfs:/xyz/`));

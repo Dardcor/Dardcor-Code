@@ -3,12 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// perf-benchmark-marker
 
-/**
- * Fixture for chat-simulation benchmarks.
- * Simplified from src/dc/base/common/async.ts for stable perf testing.
- */
+
+
+
+
+
 
 import { IDisposable } from './lifecycle';
 import { CancellationError } from './errors';

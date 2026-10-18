@@ -4,7 +4,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// layer which has no dependency on the DOM/browser-context. However, `crypto` is available as global in all browsers and
+
 
 declare global {
 

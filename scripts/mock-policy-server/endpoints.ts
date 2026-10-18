@@ -3,22 +3,22 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Shared definition of the Copilot "policy" endpoints that
- * `DefaultAccountService` (src/dc/workbench/services/accounts/browser/defaultAccount.ts)
- * calls, together with sample response bodies. This is the single source of
- * truth shared by the Node server (route table + default state) and the browser
- * GUI (endpoint tabs + preset dropdown), exported UMD-style so it loads in both
- * environments without a build step.
- *
- * For the default (github.com) provider these URLs are read verbatim from
- * `product.json` -> `defaultChatAgent.<productKey>`, so pointing all of them at
- * a local server via `product.overrides.json` lets a dev exercise the whole
- * policy pipeline offline.
- *
- * NOTE: The server uses `module.stripTypeScriptTypes()` to serve this file to
- * the browser as plain JavaScript — no build step is needed.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 export interface EndpointPreset {
 	id: string;

@@ -68,7 +68,7 @@ export class CodeEditorWidget extends Disposable implements editorBrowser.ICodeE
 		className: 'dnd-target'
 	});
 
-	//#region Eventing
+
 
 	private readonly _deliveryQueue = createEventDeliveryQueue();
 	protected readonly _contributions: CodeEditorContributions = this._register(new CodeEditorContributions());
@@ -194,7 +194,7 @@ export class CodeEditorWidget extends Disposable implements editorBrowser.ICodeE
 	private readonly _onEndUpdate: Emitter<void> = this._register(new Emitter<void>());
 	public readonly onEndUpdate: Event<void> = this._onEndUpdate.event;
 
-	//#endregion
+
 
 	public get isSimpleWidget(): boolean {
 		return this._configuration.isSimpleWidget;
@@ -214,7 +214,7 @@ export class CodeEditorWidget extends Disposable implements editorBrowser.ICodeE
 
 	protected readonly _actions = new Map<string, editorCommon.IEditorAction>();
 
-	// --- Members logically associated to a model
+
 	protected _modelData: ModelData | null;
 
 	protected readonly _instantiationService: IInstantiationService;
@@ -231,9 +231,9 @@ export class CodeEditorWidget extends Disposable implements editorBrowser.ICodeE
 	private _overlayWidgets: { [key: string]: IOverlayWidgetData };
 	private _glyphMarginWidgets: { [key: string]: IGlyphMarginWidgetData };
 
-	/**
-	 * map from "parent" decoration type to live decoration ids.
-	 */
+
+
+
 	private _decorationTypeKeysToIds: { [decorationTypeKey: string]: string[] };
 	private _decorationTypeSubtypes: { [decorationTypeKey: string]: { [subtype: string]: boolean } };
 
@@ -476,11 +476,11 @@ export class CodeEditorWidget extends Disposable implements editorBrowser.ICodeE
 			this._beginUpdate();
 			const model = <ITextModel | null>_model;
 			if (this._modelData === null && model === null) {
-				// Current model is the new model
+
 				return;
 			}
 			if (this._modelData && this._modelData.model === model) {
-				// Current model is the new model
+
 				return;
 			}
 
@@ -749,7 +749,7 @@ export class CodeEditorWidget extends Disposable implements editorBrowser.ICodeE
 		if (isSelection) {
 			this._setSelectionImpl(<ISelection>something, source);
 		} else if (isRange) {
-			// act as if it was an IRange
+
 			const selection: ISelection = {
 				selectionStartLineNumber: something.startLineNumber,
 				selectionStartColumn: something.startColumn,
@@ -1000,7 +1000,7 @@ export class CodeEditorWidget extends Disposable implements editorBrowser.ICodeE
 					this._modelData.viewModel.restoreCursorState(<editorCommon.ICursorState[]>cursorState);
 				}
 			} else {
-				// Backwards compatibility
+
 				this._modelData.viewModel.restoreCursorState([<editorCommon.ICursorState>cursorState]);
 			}
 
@@ -1191,7 +1191,7 @@ export class CodeEditorWidget extends Disposable implements editorBrowser.ICodeE
 			return false;
 		}
 		if (this._configuration.options.get(EditorOption.readOnly)) {
-			// read only editor => sorry!
+
 			return false;
 		}
 		this._modelData.model.pushStackElement();
@@ -1203,7 +1203,7 @@ export class CodeEditorWidget extends Disposable implements editorBrowser.ICodeE
 			return false;
 		}
 		if (this._configuration.options.get(EditorOption.readOnly)) {
-			// read only editor => sorry!
+
 			return false;
 		}
 		this._modelData.model.popStackElement();
@@ -1215,7 +1215,7 @@ export class CodeEditorWidget extends Disposable implements editorBrowser.ICodeE
 			return false;
 		}
 		if (this._configuration.options.get(EditorOption.readOnly)) {
-			// read only editor => sorry!
+
 			return false;
 		}
 
@@ -1252,7 +1252,7 @@ export class CodeEditorWidget extends Disposable implements editorBrowser.ICodeE
 
 	public changeDecorations(callback: (changeAccessor: IModelDecorationsChangeAccessor) => any): any {
 		if (!this._modelData) {
-			// callback will not be called
+
 			return null;
 		}
 		return this._modelData.model.changeDecorations(callback, this._id);
@@ -1308,14 +1308,14 @@ export class CodeEditorWidget extends Disposable implements editorBrowser.ICodeE
 		for (const decorationOption of decorationOptions) {
 			let typeKey = decorationTypeKey;
 			if (decorationOption.renderOptions) {
-				// identify custom render options by a hash code over all keys and values
-				// For custom render options register a decoration type if necessary
+
+
 				const subType = hash(decorationOption.renderOptions).toString(16);
-				// The fact that `decorationTypeKey` appears in the typeKey has no influence
-				// it is just a mechanism to get predictable and unique keys (repeatable for the same options and unique across clients)
+
+
 				typeKey = decorationTypeKey + '-' + subType;
 				if (!oldDecorationsSubTypes[subType] && !newDecorationsSubTypes[subType]) {
-					// decoration type did not exist before, register new one
+
 					this._registerDecorationType(description, typeKey, decorationOption.renderOptions, decorationTypeKey);
 				}
 				newDecorationsSubTypes[subType] = true;
@@ -1327,21 +1327,21 @@ export class CodeEditorWidget extends Disposable implements editorBrowser.ICodeE
 			newModelDecorations.push({ range: decorationOption.range, options: opts });
 		}
 
-		// remove decoration sub types that are no longer used, deregister decoration type if necessary
+
 		for (const subType in oldDecorationsSubTypes) {
 			if (!newDecorationsSubTypes[subType]) {
 				this._removeDecorationType(decorationTypeKey + '-' + subType);
 			}
 		}
 
-		// update all decorations
+
 		const oldDecorationsIds = this._decorationTypeKeysToIds[decorationTypeKey] || [];
 		this.changeDecorations(accessor => this._decorationTypeKeysToIds[decorationTypeKey] = accessor.deltaDecorations(oldDecorationsIds, newModelDecorations));
 	}
 
 	public setDecorationsByTypeFast(decorationTypeKey: string, ranges: IRange[]): void {
 
-		// remove decoration sub types that are no longer used, deregister decoration type if necessary
+
 		const oldDecorationsSubTypes = this._decorationTypeSubtypes[decorationTypeKey] || {};
 		for (const subType in oldDecorationsSubTypes) {
 			this._removeDecorationType(decorationTypeKey + '-' + subType);
@@ -1354,13 +1354,13 @@ export class CodeEditorWidget extends Disposable implements editorBrowser.ICodeE
 			newModelDecorations[i] = { range: ranges[i], options: opts };
 		}
 
-		// update all decorations
+
 		const oldDecorationsIds = this._decorationTypeKeysToIds[decorationTypeKey] || [];
 		this.changeDecorations(accessor => this._decorationTypeKeysToIds[decorationTypeKey] = accessor.deltaDecorations(oldDecorationsIds, newModelDecorations));
 	}
 
 	public removeDecorationsByType(decorationTypeKey: string): void {
-		// remove decorations for type and sub type
+
 		const oldDecorationsIds = this._decorationTypeKeysToIds[decorationTypeKey];
 		if (oldDecorationsIds) {
 			this.changeDecorations(accessor => accessor.deltaDecorations(oldDecorationsIds, []));
@@ -1661,7 +1661,7 @@ export class CodeEditorWidget extends Disposable implements editorBrowser.ICodeE
 			}
 		);
 
-		// Someone might destroy the model from under the editor, so prevent any exceptions by setting a null model
+
 		listenersToRemove.push(model.onWillDispose(() => this.setModel(null)));
 
 		listenersToRemove.push(viewModel.onEvent((e) => {
@@ -1819,9 +1819,9 @@ export class CodeEditorWidget extends Disposable implements editorBrowser.ICodeE
 					this._commandService.executeCommand(editorCommon.Handler.Type, payload);
 				},
 				compositionType: (text: string, replacePrevCharCnt: number, replaceNextCharCnt: number, positionDelta: number) => {
-					// Try if possible to go through the existing `replacePreviousChar` command
+
 					if (replaceNextCharCnt || positionDelta) {
-						// must be handled through the new command
+
 						const payload: editorCommon.CompositionTypePayload = { text, replacePrevCharCnt, replaceNextCharCnt, positionDelta };
 						this._commandService.executeCommand(editorCommon.Handler.CompositionType, payload);
 					} else {
@@ -1949,30 +1949,30 @@ export class CodeEditorWidget extends Disposable implements editorBrowser.ICodeE
 let EDITOR_ID = 0;
 
 export interface ICodeEditorWidgetOptions {
-	/**
-	 * Is this a simple widget (not a real code editor)?
-	 * Defaults to false.
-	 */
+
+
+
+
 	isSimpleWidget?: boolean;
 
-	/**
-	 * Contributions to instantiate.
-	 * When provided, only the contributions included will be instantiated.
-	 * To include the defaults, those must be provided as well via [...EditorExtensionsRegistry.getEditorContributions()]
-	 * Defaults to EditorExtensionsRegistry.getEditorContributions().
-	 */
+
+
+
+
+
+
 	contributions?: IEditorContributionDescription[];
 
-	/**
-	 * Telemetry data associated with this CodeEditorWidget.
-	 * Defaults to null.
-	 */
+
+
+
+
 	telemetryData?: object;
 
-	/**
-	 * The ID of the context menu.
-	 * Defaults to MenuId.SimpleEditorContext or MenuId.EditorContext depending on whether the widget is simple.
-	 */
+
+
+
+
 	contextMenuId?: MenuId;
 }
 
@@ -2033,9 +2033,9 @@ export class BooleanEventEmitter extends Disposable {
 	}
 }
 
-/**
- * A regular event emitter that also makes sure contributions are instantiated if necessary
- */
+
+
+
 class InteractionEmitter<T> extends Emitter<T> {
 
 	constructor(
@@ -2194,11 +2194,11 @@ export class EditorModeContext extends Disposable {
 
 		const update = () => this._update();
 
-		// update when model/mode changes
+
 		this._register(_editor.onDidChangeModel(update));
 		this._register(_editor.onDidChangeModelLanguage(update));
 
-		// update when registries change
+
 		this._register(_languageFeaturesService.completionProvider.onDidChange(update));
 		this._register(_languageFeaturesService.codeActionProvider.onDidChange(update));
 		this._register(_languageFeaturesService.codeLensProvider.onDidChange(update));
@@ -2395,7 +2395,7 @@ class EditorDecorationsCollection implements editorCommon.IEditorDecorationsColl
 
 	public clear(): void {
 		if (this._decorationIds.length === 0) {
-			// nothing to do
+
 			return;
 		}
 		this.set([]);

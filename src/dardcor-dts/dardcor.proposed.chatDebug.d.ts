@@ -289,16 +289,16 @@ declare module 'vscode' {
 			token: CancellationToken
 		): ProviderResult<Uint8Array>;
 
-		/**
-		 * Import a previously exported debug log from a serialized byte array.
-		 * Core provides the open dialog and reads the file bytes.
-		 * The extension deserializes the data and returns a session URI that can be
-		 * opened in the debug panel via {@link provideChatDebugLog}.
-		 *
-		 * @param data The serialized debug log data (as returned by {@link provideChatDebugLogExport}).
-		 * @param token A cancellation token.
-		 * @returns The imported session info, or undefined if import failed.
-		 */
+
+
+
+
+
+
+
+
+
+
 		resolveChatDebugLogImport?(
 			data: Uint8Array,
 			token: CancellationToken
@@ -318,10 +318,10 @@ declare module 'vscode' {
 	export interface ChatDebugLogExportOptions {
 		readonly coreEvents: readonly ChatDebugEvent[];
 
-		/**
-		 * Session title, if available.
-		 * Used to provide a human-readable label in the exported file.
-		 */
+
+
+
+
 		readonly sessionTitle?: string;
 	}
 

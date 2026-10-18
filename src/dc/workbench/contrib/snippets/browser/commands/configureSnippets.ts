@@ -52,7 +52,7 @@ async function computePicks(snippetService: ISnippetsService, userDataProfileSer
 
 			await file.load();
 
-			// list scopes for global snippets
+
 			const names = new Set<string>();
 			let source: string | undefined;
 

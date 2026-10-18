@@ -617,7 +617,7 @@ suite('ExtHostTypes', function () {
 	});
 
 	test('CancellationError', function () {
-		// The CancellationError-type is used internally and exported as API. Make sure that at
+
 		const err = new CancellationError();
 		assert.strictEqual(err.name, 'Canceled');
 		assert.strictEqual(err.message, 'Canceled');

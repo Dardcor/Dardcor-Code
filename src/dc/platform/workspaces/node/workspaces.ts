@@ -22,7 +22,7 @@ export function getWorkspaceIdentifier(configPath: URI): IWorkspaceIdentifier {
 			configPathStr = configPathStr.toLowerCase();
 		}
 
-		return createHash('md5').update(configPathStr).digest('hex'); // CodeQL [SM04514] Using MD5 to convert a file path to a fixed length
+		return createHash('md5').update(configPathStr).digest('hex');
 	}
 
 	return {
@@ -39,7 +39,7 @@ export function getSingleFolderWorkspaceIdentifier(folderUri: URI, folderStat?: 
 	function getFolderId(): string | undefined {
 
 		if (folderUri.scheme !== Schemas.file) {
-			return createHash('md5').update(folderUri.toString()).digest('hex'); // CodeQL [SM04514] Using MD5 to convert a file path to a fixed length
+			return createHash('md5').update(folderUri.toString()).digest('hex');
 		}
 
 
@@ -60,7 +60,7 @@ export function getSingleFolderWorkspaceIdentifier(folderUri: URI, folderStat?: 
 			}
 		}
 
-		return createHash('md5').update(folderUri.fsPath).update(ctime ? String(ctime) : '').digest('hex'); // CodeQL [SM04514] Using MD5 to convert a file path to a fixed length
+		return createHash('md5').update(folderUri.fsPath).update(ctime ? String(ctime) : '').digest('hex');
 	}
 
 	const folderId = getFolderId();

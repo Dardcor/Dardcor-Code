@@ -154,7 +154,7 @@ export class GitHubBranchProtectionProvider implements BranchProtectionProvider 
 
 		this.disposables.add(this._onDidChangeBranchProtection);
 
-		// Restore branch protection from global state
+
 		this.branchProtection = this.globalState.get<BranchProtection[]>(this.globalStateKey, []);
 
 		repository.status().then(() => {
@@ -233,7 +233,7 @@ export class GitHubBranchProtectionProvider implements BranchProtectionProvider 
 			this.branchProtection = branchProtection;
 			this._onDidChangeBranchProtection.fire(this.repository.rootUri);
 
-			// Save branch protection to global state
+
 			await this.globalState.update(this.globalStateKey, branchProtection);
 			this.logger.trace(`[GitHubBranchProtectionProvider][updateRepositoryBranchProtection] Branch protection for "${this.repository.rootUri.toString()}": ${JSON.stringify(branchProtection)}.`);
 

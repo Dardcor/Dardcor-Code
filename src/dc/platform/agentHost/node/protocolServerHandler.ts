@@ -611,7 +611,7 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 			this._registerClientFileSystemAuthority(params.clientId, initializationDisposables);
 
 			const oldestBuffered = this._replayBuffer.length > 0 ? this._replayBuffer[0].serverSeq : this._stateManager.serverSeq;
-			// A global cursor only proves the client saw every ACTION; it says
+
 			const canReplay = params.lastSeenServerSeq >= oldestBuffered
 				&& !this._hasBaselineDebt(params.clientId, params.subscriptions);
 			const responsePromise = this._restoreReconnectSubscriptions(client, params, canReplay);

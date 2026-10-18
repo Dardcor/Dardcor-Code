@@ -272,7 +272,7 @@ export class QueryBuilder {
 			return { ...queryProps, ...changedFilesQueryProps };
 		}
 
-		// Filter extraFileResources against global include/exclude patterns - they are already expected to not belong to a workspace
+
 		const extraFileResources = options.extraFileResources && options.extraFileResources.filter(extraFile => pathIncludedInQuery(queryProps, extraFile.fsPath));
 		queryProps.extraFileResources = extraFileResources && extraFileResources.length ? extraFileResources : undefined;
 

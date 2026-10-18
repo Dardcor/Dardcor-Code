@@ -100,7 +100,7 @@ export async function simulateInlineChat(
 	let range: Range | undefined;
 	let isFirst = true;
 
-	// run each query for the scenario
+
 	try {
 		for (const query of scenario.queries) {
 
@@ -149,7 +149,7 @@ export async function simulateInlineChat(
 			let initialDiagnostics: ResourceMap<vscode.Diagnostic[]> | undefined;
 
 			if (typeof query.diagnostics === 'string') {
-				// diagnostics are computed
+
 				try {
 					initialDiagnostics = await fetchDiagnostics(accessor, workspace, query.diagnostics);
 					workspace.setDiagnostics(initialDiagnostics);
@@ -157,7 +157,7 @@ export async function simulateInlineChat(
 					throw new Error(`Error obtained while fetching the diagnostics: ${error}`);
 				}
 			} else {
-				// diagnostics are set explicitly
+
 				const diagnostics = new ResourceMap<vscode.Diagnostic[]>();
 				diagnostics.set(document.uri, convertToDiagnostics(workspace, query.diagnostics));
 				workspace.setDiagnostics(diagnostics);
@@ -179,9 +179,9 @@ export async function simulateInlineChat(
 						throw new Error(`Missing notebook document ${document.uri}`);
 					}
 
-					relativeDiskPath = await testRuntime.writeFile(workspacePath + '.txt', notebookDocument.getText(), INLINE_INITIAL_DOC_TAG); // TODO@aml: using .txt instead of real file extension to avoid breaking AML scripts
+					relativeDiskPath = await testRuntime.writeFile(workspacePath + '.txt', notebookDocument.getText(), INLINE_INITIAL_DOC_TAG);
 				} else {
-					relativeDiskPath = await testRuntime.writeFile(workspacePath + '.txt', document.getText(), INLINE_INITIAL_DOC_TAG); // TODO@aml: using .txt instead of real file extension to avoid breaking AML scripts
+					relativeDiskPath = await testRuntime.writeFile(workspacePath + '.txt', document.getText(), INLINE_INITIAL_DOC_TAG);
 				}
 
 				if (!relativeDiskPath) {
@@ -236,7 +236,7 @@ export async function simulateInlineChat(
 
 					let doc: ExtHostDocumentData;
 					if (!workspace.hasDocument(uri)) {
-						// this is a new file
+
 						const language = getLanguageForResource(uri);
 						doc = ExtHostDocumentData.create(uri, '', language.languageId);
 						workspace.addDocument(doc);
@@ -253,7 +253,7 @@ export async function simulateInlineChat(
 					workingCopyDocument.applyOffsetEdits(workingCopyDocument.transformer.toOffsetEdit(edits));
 					changedDocs.push(doc.document);
 					if (doc.document.uri.toString() === document.uri.toString()) {
-						// edit in the same document, adjust the range
+
 						range = applyEditsAndExpandRange(workspace, document, edits, range);
 					} else {
 						workspace.applyEdits(doc.document.uri, edits);
@@ -295,7 +295,7 @@ export async function simulateInlineChat(
 					const offsetEdits = workingCopyDoc.appliedEdits;
 					const textEdits = workingCopyDoc.transformer.toTextEdits(offsetEdits);
 					if (uri.toString() === document.uri.toString()) {
-						// edit in the same document
+
 						for (let i = 0; i < offsetEdits.edits.length; i++) {
 							const offsetEdit = offsetEdits.edits[i];
 							const textEdit = textEdits[i];
@@ -367,7 +367,7 @@ export async function simulateInlineChat(
 					}
 				}
 
-				// We managed to edit some files!
+
 				testRuntime.setOutcome({
 					kind: 'edit',
 					files: changedFilePaths.map(f => f.relativeDiskPath),
@@ -441,7 +441,7 @@ export async function simulateInlineChat(
 		}
 	} finally {
 		await teardownSimulationWorkspace(accessor, workspace);
-		await testRuntime.writeFile('inline-simulator.txt', JSON.stringify(states, undefined, 2), INLINE_STATE_TAG); // TODO@aml: using .txt instead of .json to avoid breaking AML scripts
+		await testRuntime.writeFile('inline-simulator.txt', JSON.stringify(states, undefined, 2), INLINE_STATE_TAG);
 	}
 }
 
@@ -606,7 +606,7 @@ class SimulationWorkspaceService extends AbstractWorkspaceService {
 	}
 
 	override ensureWorkspaceIsFullyLoaded(): Promise<void> {
-		// We aren't using virtual workspaces here, so we can just return
+
 		return Promise.resolve();
 	}
 }

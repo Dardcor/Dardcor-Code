@@ -1663,7 +1663,7 @@ export class ClearRecentFilesAction extends Action2 {
 			return;
 		}
 
-		// Clear global recently opened
+
 		workspacesService.clearRecentlyOpened();
 
 		historyService.clearRecentlyOpened();

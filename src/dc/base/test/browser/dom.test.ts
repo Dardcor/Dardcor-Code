@@ -550,7 +550,7 @@ suite('dom', () => {
 	suite('DisposableResizeObserver', () => {
 		teardown(() => new Promise<void>(resolve => mainWindow.requestAnimationFrame(() => resolve())));
 
-		// global mutation, no `any` casts.
+
 		interface FakeResizeObserverHandle {
 			ctor: typeof ResizeObserver;
 			fire: (entries: ResizeObserverEntry[]) => void;

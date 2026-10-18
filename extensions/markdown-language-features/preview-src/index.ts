@@ -335,7 +335,7 @@ window.addEventListener('message', async event => {
 			const root = document.querySelector('.markdown-body')!;
 
 			const parser = new DOMParser();
-			const newContent = parser.parseFromString(data.content, 'text/html'); // CodeQL [SM03712] This renderers content from the workspace into the Markdown preview. Webviews (and the markdown preview) have many other security measures in place to make this safe
+			const newContent = parser.parseFromString(data.content, 'text/html');
 
 			for (const metaElement of Array.from(newContent.querySelectorAll('meta'))) {
 				if (metaElement.hasAttribute('http-equiv')) {

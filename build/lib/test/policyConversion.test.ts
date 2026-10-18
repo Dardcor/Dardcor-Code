@@ -52,7 +52,7 @@ function parsePolicies(policyData: ExportedPolicyDataDto): Policy[] {
 		policies.push(result);
 	}
 
-	// Sort policies first by category name, then by policy name
+
 	policies.sort((a, b) => {
 		const categoryCompare = a.category.name.value.localeCompare(b.category.name.value);
 		if (categoryCompare !== 0) {
@@ -64,10 +64,10 @@ function parsePolicies(policyData: ExportedPolicyDataDto): Policy[] {
 	return policies;
 }
 
-/**
- * This is a snapshot of the data taken on Oct. 20 2025 as part of the
- * policy refactor effort. Let's make sure that nothing has regressed.
- */
+
+
+
+
 const policies: ExportedPolicyDataDto = {
 	categories: [
 		{
@@ -399,11 +399,11 @@ suite('Policy E2E conversion', () => {
 		const parsedPolicies = parsePolicies(policies);
 		const result = renderMacOSPolicy(mockProduct, parsedPolicies, []);
 
-		// Load the expected fixture file
+
 		const fixturePath = path.join(import.meta.dirname, 'fixtures', 'policies', 'darwin', 'com.dardcor.code.oss.mobileconfig');
 		const expectedContent = await fs.readFile(fixturePath, 'utf-8');
 
-		// Compare the rendered profile with the fixture
+
 		assert.strictEqual(result.profile, expectedContent, 'macOS policy profile should match the fixture');
 	});
 
@@ -411,16 +411,16 @@ suite('Policy E2E conversion', () => {
 		const parsedPolicies = parsePolicies(policies);
 		const result = renderMacOSPolicy(mockProduct, parsedPolicies, []);
 
-		// Load the expected fixture file
+
 		const fixturePath = path.join(import.meta.dirname, 'fixtures', 'policies', 'darwin', 'en-us', 'com.dardcor.code.oss.plist');
 		const expectedContent = await fs.readFile(fixturePath, 'utf-8');
 
-		// Find the en-us manifest
+
 		const enUsManifest = result.manifests.find(m => m.languageId === 'en-us');
 		assert.ok(enUsManifest, 'en-us manifest should exist');
 
-		// Compare the rendered manifest with the fixture, ignoring the timestamp
-		// The pfm_last_modified field contains a timestamp that will differ each time
+
+
 		const normalizeTimestamp = (content: string) => content.replace(/<date>.*?<\/date>/, '<date>TIMESTAMP</date>');
 		assert.strictEqual(
 			normalizeTimestamp(enUsManifest.contents),
@@ -433,11 +433,11 @@ suite('Policy E2E conversion', () => {
 		const parsedPolicies = parsePolicies(policies);
 		const result = renderGP(mockProduct, parsedPolicies, []);
 
-		// Load the expected fixture file
+
 		const fixturePath = path.join(import.meta.dirname, 'fixtures', 'policies', 'win32', 'CodeOSS.admx');
 		const expectedContent = await fs.readFile(fixturePath, 'utf-8');
 
-		// Compare the rendered ADMX with the fixture
+
 		assert.strictEqual(result.admx, expectedContent, 'Windows ADMX should match the fixture');
 	});
 
@@ -445,15 +445,15 @@ suite('Policy E2E conversion', () => {
 		const parsedPolicies = parsePolicies(policies);
 		const result = renderGP(mockProduct, parsedPolicies, []);
 
-		// Load the expected fixture file
+
 		const fixturePath = path.join(import.meta.dirname, 'fixtures', 'policies', 'win32', 'en-us', 'CodeOSS.adml');
 		const expectedContent = await fs.readFile(fixturePath, 'utf-8');
 
-		// Find the en-us ADML
+
 		const enUsAdml = result.adml.find(a => a.languageId === 'en-us');
 		assert.ok(enUsAdml, 'en-us ADML should exist');
 
-		// Compare the rendered ADML with the fixture
+
 		assert.strictEqual(enUsAdml.contents, expectedContent, 'Windows ADML should match the fixture');
 	});
 
@@ -461,15 +461,15 @@ suite('Policy E2E conversion', () => {
 		const parsedPolicies = parsePolicies(policies);
 		const result = renderMacOSPolicy(mockProduct, parsedPolicies, frenchTranslations);
 
-		// Load the expected fixture file
+
 		const fixturePath = path.join(import.meta.dirname, 'fixtures', 'policies', 'darwin', 'fr-fr', 'com.dardcor.code.oss.plist');
 		const expectedContent = await fs.readFile(fixturePath, 'utf-8');
 
-		// Find the fr-fr manifest
+
 		const frFrManifest = result.manifests.find(m => m.languageId === 'fr-fr');
 		assert.ok(frFrManifest, 'fr-fr manifest should exist');
 
-		// Compare the rendered manifest with the fixture, ignoring the timestamp
+
 		const normalizeTimestamp = (content: string) => content.replace(/<date>.*?<\/date>/, '<date>TIMESTAMP</date>');
 		assert.strictEqual(
 			normalizeTimestamp(frFrManifest.contents),
@@ -482,15 +482,15 @@ suite('Policy E2E conversion', () => {
 		const parsedPolicies = parsePolicies(policies);
 		const result = renderGP(mockProduct, parsedPolicies, frenchTranslations);
 
-		// Load the expected fixture file
+
 		const fixturePath = path.join(import.meta.dirname, 'fixtures', 'policies', 'win32', 'fr-fr', 'CodeOSS.adml');
 		const expectedContent = await fs.readFile(fixturePath, 'utf-8');
 
-		// Find the fr-fr ADML
+
 		const frFrAdml = result.adml.find(a => a.languageId === 'fr-fr');
 		assert.ok(frFrAdml, 'fr-fr ADML should exist');
 
-		// Compare the rendered ADML with the fixture
+
 		assert.strictEqual(frFrAdml.contents, expectedContent, 'Windows fr-fr ADML should match the fixture');
 	});
 
@@ -498,12 +498,12 @@ suite('Policy E2E conversion', () => {
 		const parsedPolicies = parsePolicies(policies);
 		const result = renderJsonPolicies(parsedPolicies);
 
-		// Load the expected fixture file
+
 		const fixturePath = path.join(import.meta.dirname, 'fixtures', 'policies', 'linux', 'policy.json');
 		const expectedContent = await fs.readFile(fixturePath, 'utf-8');
 		const expectedJson = JSON.parse(expectedContent);
 
-		// Compare the rendered JSON with the fixture
+
 		assert.deepStrictEqual(result, expectedJson, 'Linux policy JSON should match the fixture');
 	});
 
@@ -514,8 +514,8 @@ suite('Policy E2E conversion', () => {
 		const policyData: ExportedPolicyDataDto = JSONC.parse(raw, errors);
 
 		assert.strictEqual(errors.length, 0, `policyData.jsonc should be valid JSONC: ${JSON.stringify(errors)}`);
-		// This exercises StringEnumPolicy.from() validation, which requires
-		// enumDescriptions to exist and match enum length for string enum policies.
+
+
 		const parsed = parsePolicies(policyData);
 		assert.ok(parsed.length > 0, 'Should parse at least one policy from policyData.jsonc');
 	});
@@ -574,7 +574,7 @@ suite('Policy E2E conversion', () => {
 		const enUs = adml.find(a => a.languageId === 'en-us');
 		assert.ok(enUs, 'en-us ADML should exist');
 
-		// Angle brackets must be escaped so the output is valid XML
+
 		assert.ok(enUs.contents.includes('&lt;plugin&gt;@&lt;marketplace&gt;'), 'angle brackets in descriptions must be XML-escaped');
 		assert.ok(enUs.contents.includes('&lt;url&gt;'), 'angle brackets in descriptions must be XML-escaped');
 		assert.ok(!enUs.contents.includes('<plugin>'), 'raw angle brackets must not appear in ADML output');

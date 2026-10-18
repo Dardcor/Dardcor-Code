@@ -284,7 +284,7 @@ export class AnythingQuickAccessProvider extends PickerQuickAccessProvider<IAnyt
 		this.pickState.lastOriginalFilter = originalFilter;
 		this.pickState.lastFilter = filter;
 
-		// We can use this state to return back to the global pick
+
 		const picks = this.pickState.picker?.items;
 		const activePick = this.pickState.picker?.activeItems[0];
 		if (picks && activePick) {
@@ -317,7 +317,7 @@ export class AnythingQuickAccessProvider extends PickerQuickAccessProvider<IAnyt
 	): Picks<IAnythingQuickPickItem> | Promise<Picks<IAnythingQuickPickItem>> | FastAndSlowPicks<IAnythingQuickPickItem> {
 		const query = prepareQuery(filter);
 
-		// - having a previously active global pick (e.g. a file)
+
 		if (options.enableEditorSymbolSearch) {
 			const editorSymbolPicks = this.getEditorSymbolPicks(query, disposables, token);
 			if (editorSymbolPicks) {
@@ -325,8 +325,8 @@ export class AnythingQuickAccessProvider extends PickerQuickAccessProvider<IAnyt
 			}
 		}
 
-		// the last global pick to support the case of narrowing out from a
-		// editor symbol search back into the global search
+
+
 		const activePick = this.pickState.picker?.activeItems[0];
 		if (isEditorSymbolQuickPickItem(activePick) && this.pickState.lastGlobalPicks) {
 			return this.pickState.lastGlobalPicks;
@@ -796,7 +796,7 @@ export class AnythingQuickAccessProvider extends PickerQuickAccessProvider<IAnyt
 
 
 
-	//#region Editor Symbols (if narrowing down into a global pick via `@`)
+
 
 	private readonly editorSymbolsQuickAccess: GotoSymbolQuickAccessProvider;
 
@@ -809,7 +809,7 @@ export class AnythingQuickAccessProvider extends PickerQuickAccessProvider<IAnyt
 
 		const activeGlobalPick = this.pickState.lastGlobalPicks?.active;
 		if (!activeGlobalPick) {
-			return null; // we need an active global pick to find symbols for
+			return null;
 		}
 
 		const activeGlobalResource = activeGlobalPick.resource;

@@ -652,7 +652,7 @@ namespace tss {
 					return a.k - b.k;
 				});
 			}
-			const hash = hashProvider.createHash('md5'); // CodeQL [SM04514] The 'md5' algorithm is used to compute a shorter string to represent a symbol in a map. It has no security implications.
+			const hash = hashProvider.createHash('md5');
 			if ((symbol.flags & ts.SymbolFlags.Transient) !== 0) {
 				hash.update(JSON.stringify({ trans: true }, undefined, 0));
 			}
@@ -701,7 +701,7 @@ namespace tss {
 					return a.k - b.k;
 				});
 			}
-			const hash = context.host.createHash('md5'); // CodeQL [SM04514] The 'md5' algorithm is used to compute a shorter string to represent a symbol in a map. It has no security implications.
+			const hash = context.host.createHash('md5');
 			if ((symbol.flags & ts.SymbolFlags.Transient) !== 0) {
 				hash.update(JSON.stringify({ trans: true }, undefined, 0));
 			}

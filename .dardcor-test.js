@@ -15,12 +15,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const { defineConfig } = require('@vscode/test-cli');
 
-/**
- * A list of extension folders who have opted into tests, or configuration objects.
- * Edit me to add more!
- *
- * @type {Array<Partial<import("@vscode/test-cli").TestConfiguration> & { label: string }>}
- */
+
+
+
+
+
+
 const extensions = [
 	{
 		label: 'markdown-language-features',
@@ -97,7 +97,7 @@ const defaultLaunchArgs = process.env.API_TESTS_EXTRA_ARGS?.split(' ') || [
 ];
 
 const config = defineConfig(extensions.map(extension => {
-	/** @type {import('@vscode/test-cli').TestConfiguration} */
+
 	const config = {
 		platform: 'desktop',
 		files: `extensions/${extension.label}/out/**/*.test.js`,

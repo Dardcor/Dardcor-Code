@@ -35,14 +35,14 @@ export function matchesTerminalSandboxCommandRule<T>(command: ITerminalSandboxCo
 	return rule.when?.(command) ?? true;
 }
 
-/**
- * Returns the first non-option argument, treating it as the command's subcommand.
- * Options are skipped, and options listed in `optionsWithValue` also skip the
- * following argument so global option values are not mistaken for subcommands.
- *
- * For example, with `-C` in `optionsWithValue`, `git -C repo commit` returns
- * `commit` instead of `repo`.
- */
+
+
+
+
+
+
+
+
 export function getCommandSubcommand(args: readonly string[], optionsWithValue?: ReadonlySet<string>): string | undefined {
 	for (let i = 0; i < args.length; i++) {
 		const arg = args[i];

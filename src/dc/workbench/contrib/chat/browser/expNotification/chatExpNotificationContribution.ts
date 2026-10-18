@@ -20,7 +20,7 @@ export const CHAT_EXP_NOTIFICATION_TREATMENT = 'chatNotifications';
 
 const DISMISSED_STORAGE_KEY = 'chat.dismissedExpNotificationIds';
 
-/** Payload ids share a global map with built-in notifications, so they are namespaced. */
+
 const ID_PREFIX = 'chat.expNotification.';
 
 export class ChatExpNotificationContribution extends Disposable implements IWorkbenchContribution {

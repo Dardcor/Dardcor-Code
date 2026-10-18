@@ -653,9 +653,9 @@ interface IFetcher {
 
 export interface IFetchResourceMetadataOptions {
 	sameOriginHeaders?: Record<string, string>;
-	/**
-	 * Optional custom fetch implementation (defaults to global fetch)
-	 */
+
+
+
 	fetch?: IFetcher;
 }
 
@@ -747,9 +747,9 @@ export async function fetchResourceMetadata(
 
 export interface IFetchAuthorizationServerMetadataOptions {
 	additionalHeaders?: Record<string, string>;
-	/**
-	 * Optional custom fetch implementation (defaults to global fetch)
-	 */
+
+
+
 	fetch?: IFetcher;
 }
 

@@ -40,7 +40,7 @@ function isTerminalCommandPasteWarningSuppressed(storageService: IStorageService
 	return storageService.getBoolean(terminalCommandPasteDontAskAgainStorageKey, StorageScope.APPLICATION, false);
 }
 
-/** Prompts for terminal command paste confirmation and persists the global suppression choice. */
+
 async function shouldPasteTerminalCommand(
 	dialogService: IDialogService,
 	storageService: IStorageService,

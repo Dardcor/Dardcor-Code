@@ -179,7 +179,7 @@ export class TelemetryContribution extends Disposable implements IWorkbenchContr
 			return '';
 		}
 
-		// Check for global settings file
+
 		if (isEqual(resource, this.userDataProfileService.currentProfile.settingsResource)) {
 			return 'global-settings';
 		}

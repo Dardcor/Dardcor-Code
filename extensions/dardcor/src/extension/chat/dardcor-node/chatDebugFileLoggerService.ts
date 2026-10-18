@@ -150,7 +150,7 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 		if (this._debugLogsDirUri) {
 			return this._debugLogsDirUri;
 		}
-		// global storage so debug logs are still written to disk.
+
 		const storageUri = (this._extensionContext.storageUri ?? this._extensionContext.globalStorageUri) as URI | undefined;
 		if (!storageUri) {
 			return undefined;
@@ -159,15 +159,15 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 		return this._debugLogsDirUri;
 	}
 
-	/**
-	 * Candidate `debug-logs` roots in priority order. The active write root is
-	 * resolved by {@link _getDebugLogsDir} (workspace storage when a workspace is
-	 * open, otherwise global storage). When resolving a *historical* session we
-	 * also consider the other root, because a session may have been written in a
-	 * different window context than the current one — e.g. logged with no
-	 * workspace open (global storage) and later reopened from the session history
-	 * in a window that has a workspace (or vice versa).
-	 */
+
+
+
+
+
+
+
+
+
 	private _getCandidateDebugLogsRoots(): URI[] {
 		const roots: URI[] = [];
 		const seen = new Set<string>();
@@ -1237,7 +1237,7 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 	}
 
 	private async _cleanupOldLogs(): Promise<void> {
-		// while also trimming the global no-workspace bucket, which may be written
+
 		const roots = this._getCandidateDebugLogsRoots();
 		if (roots.length === 0) {
 			return;

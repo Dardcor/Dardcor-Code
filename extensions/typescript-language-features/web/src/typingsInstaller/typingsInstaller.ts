@@ -3,25 +3,25 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/*
- * This file implements the global typings installer API for web clients. It
- * uses [nassun](https://docs.rs/nassun) and
- * [node-maintainer](https://docs.rs/node-maintainer) to install typings
- * in-memory (and maybe eventually cache them in IndexedDB?).
- *
- * Implementing a typings installer involves implementing two parts:
- *
- * -> ITypingsInstaller: the "top level" interface that tsserver uses to
- * request typings. Implementers of this interface are what actually get
- * passed to tsserver.
- *
- * -> TypingsInstaller: an abstract class that implements a good chunk of
- * the "generic" functionality for what ITypingsInstaller needs to do. For
- * implementation detail reasons, it does this in a "server/client" model of
- * sorts. In our case, we don't need a separate process, or even _quite_ a
- * pure "server/client" model, so we play along a bit for the sake of reusing
- * the stuff the abstract class is already doing for us.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import { PackageManager, PackageType } from '@vscode/ts-package-manager';
 import { join } from 'path';

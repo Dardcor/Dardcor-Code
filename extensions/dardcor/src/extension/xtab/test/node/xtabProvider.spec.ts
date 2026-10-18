@@ -1112,7 +1112,7 @@ describe('XtabProvider integration', () => {
 
 		const bigFile = Array.from({ length: 400 }, (_, i) => `const value${i} = ${i};`);
 
-		// Under a global budget the current file is clipped LAST, so it absorbs whatever
+
 		it('absorbs leftover cascade budget so it keeps more of the current file than the legacy cap', async () => {
 			const legacy = await captureUserPrompt(createProvider(), createRequestWithEdit(bigFile, { insertionOffset: 3, insertedText: 'a' }));
 

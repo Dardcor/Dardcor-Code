@@ -221,7 +221,7 @@ export class BrowserUrlBarWidget extends Disposable {
 				this._host.ensureBrowserFocus();
 				return;
 			}
-			// The workbench captures Ctrl/Cmd+A as a global command before
+
 			if (event.keyCode === KeyCode.KeyA && (event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey) {
 				e.preventDefault();
 				event.stopPropagation();

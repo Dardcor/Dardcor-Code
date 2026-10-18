@@ -112,7 +112,7 @@ export namespace ChatContextKeys {
 	export const enableRemoteCodingAgentPromptFileOverlay = new RawContextKey<boolean>('enableRemoteCodingAgentPromptFileOverlay', false, localize('enableRemoteCodingAgentPromptFileOverlay', "Whether the remote coding agent prompt file overlay feature is enabled"));
 	export const skipChatRequestInProgressMessage = new RawContextKey<boolean>('chatSkipRequestInProgressMessage', false, { type: 'boolean', description: localize('chatSkipRequestInProgressMessage', "True when the chat request in progress message should be skipped.") });
 
-	// Re-exported from chat entitlement service
+
 	export const Setup = ChatEntitlementContextKeys.Setup;
 	export const Entitlement = ChatEntitlementContextKeys.Entitlement;
 	export const chatQuotaExceeded = ChatEntitlementContextKeys.chatQuotaExceeded;

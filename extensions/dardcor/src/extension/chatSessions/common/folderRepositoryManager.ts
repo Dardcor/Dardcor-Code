@@ -7,12 +7,12 @@ import type * as vscode from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
 import { IWorkspaceInfo } from './workspaceInfo';
 
-/**
- * The isolation mode for a chat session.
- * - `worktree`: Creates an isolated git worktree for the session.
- * - `workspace`: Works directly in the workspace directory without isolation.
- * Do not change these values, they are stored in global storage.
- */
+
+
+
+
+
+
 export enum IsolationMode {
 	Workspace = 'workspace',
 	Worktree = 'worktree',

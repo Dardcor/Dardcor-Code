@@ -24,7 +24,7 @@ line3`;
 	it('should get correct offset for a position', () => {
 		const position = new Position(1, 2);
 		const offset = transformer.getOffset(position);
-		expect(offset).to.equal(8); // 6 (line1\n) + 2 (line2)
+		expect(offset).to.equal(8);
 	});
 
 	it('should get correct position for an offset', () => {

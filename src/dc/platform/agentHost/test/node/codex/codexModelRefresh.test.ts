@@ -620,7 +620,7 @@ suite('CodexAgent model refresh', () => {
 					return { account: null, requiresOpenaiAuth: true };
 				}
 				if (method === 'account/login/start') {
-					// Model the persistent connection's global completion handler
+
 					ctx.agent['_setOpenAIAccountState']({
 						usageSource: 'openai',
 						status: 'signedIn',

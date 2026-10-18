@@ -5,13 +5,13 @@
 
 // @ts-check
 
-/**
- * Shared utilities for chat performance benchmarks and leak checks.
- *
- * Platform: macOS and Linux only. Windows is not supported — several
- * utilities (`sqlite3`, `sleep`, `pkill`) are Unix-specific.
- * CI runs on ubuntu-latest.
- */
+
+
+
+
+
+
+
 
 const path = require('path');
 const fs = require('fs');
@@ -23,14 +23,14 @@ const ROOT = path.join(__dirname, '..', '..', '..');
 const DATA_DIR = path.join(ROOT, '.chat-simulation-data');
 
 
-/** @param {string} text */
+
 function stripJsoncComments(text) { return text.replace(/\/\/.*/g, '').replace(/\/\*[\s\S]*?\*\//g, ''); }
 
-/**
- * Load a namespaced section from config.jsonc.
- * @param {string} section - Top-level key (e.g. 'perfRegression', 'memLeaks')
- * @returns {Record<string, any>}
- */
+
+
+
+
+
 function loadConfig(section) {
 	const raw = fs.readFileSync(path.join(__dirname, '..', 'config.jsonc'), 'utf-8');
 	const config = JSON.parse(stripJsoncComments(raw));
@@ -38,14 +38,14 @@ function loadConfig(section) {
 }
 
 
-/**
- * Derive the VS Code repo root from an Electron executable path.
- * Dev builds live at `<repo>/.build/electron/<app>/`, so we walk up
- * from the path to find the directory containing `.build`.
- * Returns `undefined` if the path doesn't look like a dev build.
- * @param {string} electronPath
- * @returns {string | undefined}
- */
+
+
+
+
+
+
+
+
 function getRepoRoot(electronPath) {
 	const buildIdx = electronPath.indexOf(`${path.sep}.build${path.sep}`);
 	if (buildIdx === -1) {
@@ -67,11 +67,11 @@ function getElectronPath() {
 	}
 }
 
-/**
- * Returns true if the string looks like a VS Code version or commit hash
- * rather than a file path.
- * @param {string} value
- */
+
+
+
+
+
 function isVersionString(value) {
 	if (value === 'insiders' || value === 'stable') { return true; }
 	if (/^\d+\.\d+\.\d+/.test(value)) { return true; }
@@ -79,11 +79,11 @@ function isVersionString(value) {
 	return false;
 }
 
-/**
- * Get the built-in extensions directory for a VS Code executable.
- * @param {string} exePath
- * @returns {string | undefined}
- */
+
+
+
+
+
 function getBuiltinExtensionsDir(exePath) {
 	if (process.platform === 'darwin') {
 		const appDir = exePath.split('/Contents/')[0];
@@ -95,12 +95,12 @@ function getBuiltinExtensionsDir(exePath) {
 	}
 }
 
-/**
- * Resolve a build arg to an executable path.
- * Version strings are downloaded via @vscode/test-electron.
- * @param {string | undefined} buildArg
- * @returns {Promise<string>}
- */
+
+
+
+
+
+
 async function resolveBuild(buildArg) {
 	if (!buildArg) {
 		return getElectronPath();
@@ -143,14 +143,14 @@ async function resolveBuild(buildArg) {
 }
 
 
-/**
- * Pre-seed the VS Code storage database to prevent the
- * BuiltinChatExtensionEnablementMigration from disabling the copilot
- * extension on fresh user data directories.
- *
- * Requires `sqlite3` on PATH (pre-installed on macOS and Ubuntu).
- * @param {string} userDataDir
- */
+
+
+
+
+
+
+
+
 function preseedStorage(userDataDir) {
 	const globalStorageDir = path.join(userDataDir, 'User', 'globalStorage');
 	fs.mkdirSync(globalStorageDir, { recursive: true });
@@ -164,14 +164,14 @@ function preseedStorage(userDataDir) {
 }
 
 
-/**
- * Build the environment variables for launching VS Code with the mock server.
- * @param {{ url: string }} mockServer
- * @param {{ isDevBuild?: boolean }} [opts]
- * @returns {Record<string, string>}
- */
+
+
+
+
+
+
 function buildEnv(mockServer, { isDevBuild = true } = {}) {
-	/** @type {Record<string, string>} */
+
 	const env = {
 		...process.env,
 		ELECTRON_ENABLE_LOGGING: '1',
@@ -197,13 +197,13 @@ function buildEnv(mockServer, { isDevBuild = true } = {}) {
 	return env;
 }
 
-/**
- * Build the default VS Code launch args.
- * @param {string} userDataDir
- * @param {string} extDir
- * @param {string} logsDir
- * @returns {string[]}
- */
+
+
+
+
+
+
+
 function buildArgs(userDataDir, extDir, logsDir, { isDevBuild = true, extHostInspectPort = 0, traceFile = '', appRoot = ROOT, gcObjectStats = false } = {}) {
 	const chromiumFlags = [];
 	if (traceFile) {
@@ -243,12 +243,12 @@ function buildArgs(userDataDir, extDir, logsDir, { isDevBuild = true, extHostIns
 	return args;
 }
 
-/**
- * Write VS Code settings that point the copilot extension at the mock server.
- * @param {string} userDataDir
- * @param {{ url: string }} mockServer
- * @param {Record<string, any>} [overrides]
- */
+
+
+
+
+
+
 function writeSettings(userDataDir, mockServer, overrides) {
 	const settingsDir = path.join(userDataDir, 'User');
 	fs.mkdirSync(settingsDir, { recursive: true });
@@ -265,13 +265,13 @@ function writeSettings(userDataDir, mockServer, overrides) {
 	}, null, '\t'));
 }
 
-/**
- * Prepare a fresh run directory (clean, create, preseed, write settings).
- * @param {string} runId
- * @param {{ url: string }} mockServer
- * @param {Record<string, any>} [settingsOverrides]
- * @returns {{ userDataDir: string, extDir: string, logsDir: string }}
- */
+
+
+
+
+
+
+
 function prepareRunDir(runId, mockServer, settingsOverrides) {
 	const tmpBase = path.join(os.tmpdir(), 'vscode-chat-simulation');
 	const userDataDir = path.join(tmpBase, `run-${runId}`);
@@ -300,27 +300,27 @@ function prepareRunDir(runId, mockServer, settingsOverrides) {
 
 
 
-/** @type {number} */
+
 let nextExtHostPort = 29222;
 
-/** @returns {number} */
+
 function getNextExtHostInspectPort() {
 	return nextExtHostPort++;
 }
 
-/**
- * Connect to the extension host's Node inspector via WebSocket.
- * The extension host must be started with `--inspect-extensions=<port>`.
- *
- * @param {number} port
- * @param {{ verbose?: boolean, timeoutMs?: number }} [opts]
- * @returns {Promise<{ send: (method: string, params?: any) => Promise<any>, on: (event: string, listener: (params: any) => void) => void, close: () => void, port: number }>}
- */
+
+
+
+
+
+
+
+
 async function connectToExtHostInspector(port, opts = {}) {
 	const { verbose = false, timeoutMs = 30_000 } = opts;
 
 	const deadline = Date.now() + timeoutMs;
-	/** @type {any} */
+
 	let wsUrl;
 	while (Date.now() < deadline) {
 		try {
@@ -348,9 +348,9 @@ async function connectToExtHostInspector(port, opts = {}) {
 	});
 
 	let msgId = 1;
-	/** @type {Map<number, { resolve: (v: any) => void, reject: (e: Error) => void }>} */
+
 	const pending = new Map();
-	/** @type {Map<string, ((params: any) => void)[]>} */
+
 	const eventListeners = new Map();
 
 	ws.on('message', (/** @type {Buffer} */ data) => {
@@ -370,11 +370,11 @@ async function connectToExtHostInspector(port, opts = {}) {
 
 	return {
 		port,
-		/**
-		 * @param {string} method
-		 * @param {any} [params]
-		 * @returns {Promise<any>}
-		 */
+
+
+
+
+
 		send(method, params) {
 			return new Promise((resolve, reject) => {
 				const id = msgId++;
@@ -388,10 +388,10 @@ async function connectToExtHostInspector(port, opts = {}) {
 				}, 30_000);
 			});
 		},
-		/**
-		 * @param {string} event
-		 * @param {(params: any) => void} listener
-		 */
+
+
+
+
 		on(event, listener) {
 			const list = eventListeners.get(event) || [];
 			list.push(listener);
@@ -403,11 +403,11 @@ async function connectToExtHostInspector(port, opts = {}) {
 	};
 }
 
-/**
- * Fetch JSON from a URL. Used to probe the CDP endpoint.
- * @param {string} url
- * @returns {Promise<any>}
- */
+
+
+
+
+
 function getJson(url) {
 	return new Promise((resolve, reject) => {
 		http.get(url, res => {
@@ -421,12 +421,12 @@ function getJson(url) {
 	});
 }
 
-/**
- * Wait until VS Code exposes its CDP endpoint.
- * @param {number} port
- * @param {number} timeoutMs
- * @returns {Promise<void>}
- */
+
+
+
+
+
+
 async function waitForCDP(port, timeoutMs = 60_000) {
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
@@ -440,14 +440,14 @@ async function waitForCDP(port, timeoutMs = 60_000) {
 	throw new Error(`Timed out waiting for CDP on port ${port}`);
 }
 
-/**
- * Find the workbench page among all CDP pages.
- * For dev builds this checks for `globalThis.driver` (smoke-test driver).
- * For stable builds it checks for `.monaco-workbench` in the DOM.
- * @param {import('playwright').Browser} browser
- * @param {number} timeoutMs
- * @returns {Promise<import('playwright').Page>}
- */
+
+
+
+
+
+
+
+
 async function findWorkbenchPage(browser, timeoutMs = 60_000) {
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
@@ -466,19 +466,19 @@ async function findWorkbenchPage(browser, timeoutMs = 60_000) {
 	throw new Error('Timed out waiting for the workbench page');
 }
 
-/** @type {number} */
+
 let nextPort = 19222;
 
-/**
- * Launch VS Code via child_process and connect via CDP.
- * Works with dev builds, insiders, and stable releases.
- *
- * @param {string} executable - Path to the VS Code executable (Electron binary or CLI)
- * @param {string[]} launchArgs - Arguments to pass to the executable
- * @param {Record<string, string>} env - Environment variables
- * @param {{ verbose?: boolean }} [opts]
- * @returns {Promise<{ page: import('playwright').Page, browser: import('playwright').Browser, close: () => Promise<void> }>}
- */
+
+
+
+
+
+
+
+
+
+
 async function launchVSCode(executable, launchArgs, env, opts = {}) {
 	const { chromium } = require('playwright');
 	const port = nextPort++;
@@ -544,20 +544,20 @@ async function launchVSCode(executable, launchArgs, env, opts = {}) {
 }
 
 
-/**
- * @param {number[]} values
- */
+
+
+
 function median(values) {
 	const sorted = [...values].sort((a, b) => a - b);
 	const mid = Math.floor(sorted.length / 2);
 	return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-/**
- * Remove outliers using IQR method.
- * @param {number[]} values
- * @returns {number[]}
- */
+
+
+
+
+
 function removeOutliers(values) {
 	if (values.length < 4) { return values; }
 	const sorted = [...values].sort((a, b) => a - b);
@@ -569,14 +569,14 @@ function removeOutliers(values) {
 	return sorted.filter(v => v >= lo && v <= hi);
 }
 
-/**
- * Regularized incomplete beta function I_x(a, b) via continued fraction.
- * Used for computing t-distribution CDF / p-values.
- * @param {number} x
- * @param {number} a
- * @param {number} b
- * @returns {number}
- */
+
+
+
+
+
+
+
+
 function betaIncomplete(x, a, b) {
 	if (x <= 0) { return 0; }
 	if (x >= 1) { return 1; }
@@ -606,11 +606,11 @@ function betaIncomplete(x, a, b) {
 	return front * result;
 }
 
-/**
- * Log-gamma via Lanczos approximation.
- * @param {number} z
- * @returns {number}
- */
+
+
+
+
+
 function lnGamma(z) {
 	const g = 7;
 	const coef = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
@@ -626,23 +626,23 @@ function lnGamma(z) {
 	return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
 }
 
-/**
- * Two-tailed p-value from t-distribution.
- * @param {number} t - t-statistic
- * @param {number} df - degrees of freedom
- * @returns {number}
- */
+
+
+
+
+
+
 function tDistPValue(t, df) {
 	const x = df / (df + t * t);
 	return betaIncomplete(x, df / 2, 0.5);
 }
 
-/**
- * Welch's t-test for two independent samples (unequal variance).
- * @param {number[]} a - Sample 1 (e.g., baseline values)
- * @param {number[]} b - Sample 2 (e.g., current values)
- * @returns {{ t: number, df: number, pValue: number, significant: boolean, confidence: string } | null}
- */
+
+
+
+
+
+
 function welchTTest(a, b) {
 	if (a.length < 2 || b.length < 2) { return null; }
 	const meanA = a.reduce((s, v) => s + v, 0) / a.length;
@@ -665,10 +665,10 @@ function welchTTest(a, b) {
 	return { t: Math.round(t * 100) / 100, df: Math.round(df * 10) / 10, pValue: Math.round(pValue * 1000) / 1000, significant, confidence };
 }
 
-/**
- * Compute robust stats for a metric array.
- * @param {number[]} raw
- */
+
+
+
+
 function robustStats(raw) {
 	const valid = raw.filter(v => v >= 0);
 	if (valid.length === 0) { return null; }
@@ -694,10 +694,10 @@ function robustStats(raw) {
 	};
 }
 
-/**
- * Simple linear regression slope (y per unit x).
- * @param {number[]} values
- */
+
+
+
+
 function linearRegressionSlope(values) {
 	const n = values.length;
 	if (n < 2) { return 0; }
@@ -711,12 +711,12 @@ function linearRegressionSlope(values) {
 	return (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
 }
 
-/**
- * Format a single metric line for console output.
- * @param {number[]} values
- * @param {string} label
- * @param {string} unit
- */
+
+
+
+
+
+
 function summarize(values, label, unit) {
 	const s = robustStats(values);
 	if (!s) { return `  ${label}: (no data)`; }
@@ -725,12 +725,12 @@ function summarize(values, label, unit) {
 	return `  ${label}: median=${s.median}${unit}, p95=${s.p95}${unit},${cv}${outliers} [n=${s.n}]`;
 }
 
-/**
- * Compute duration between two chat perf marks.
- * @param {Array<{name: string, startTime: number}>} marks
- * @param {string} from
- * @param {string} to
- */
+
+
+
+
+
+
 function markDuration(marks, from, to) {
 	const fromMark = marks.find(m => m.name.endsWith('/' + from));
 	const toMark = marks.find(m => m.name.endsWith('/' + to));
@@ -740,7 +740,7 @@ function markDuration(marks, from, to) {
 	return -1;
 }
 
-/** @type {Array<[string, string, string]>} */
+
 const METRIC_DEFS = [
 	['timeToFirstToken', 'timing', 'ms'],
 	['timeToComplete', 'timing', 'ms'],

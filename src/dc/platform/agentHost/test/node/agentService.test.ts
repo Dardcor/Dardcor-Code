@@ -5159,8 +5159,8 @@ suite('AgentService (node dispatcher)', () => {
 		});
 
 		test('the legacy global backfill marker is never auto-mirrored, even once every currently-registered provider is backfilled', async () => {
-			// The bug this guards: mirroring the legacy global marker once
-			// global marker would then silently skip that late provider's
+
+
 			const svc = disposables.add(createTestAgentService(new NullLogService(), fileService, createSessionDataService(), { _serviceBrand: undefined } as IProductService, createNoopGitService()));
 			const early = disposables.add(new MockAgent('copilot'));
 			registerTestAgentProvider(svc, early);
@@ -5173,7 +5173,7 @@ suite('AgentService (node dispatcher)', () => {
 			await svc.listSessions();
 			assert.strictEqual(await svc.isProviderRegistryBackfilled('claude'), true);
 
-			// legacy global marker is still never mirrored — so a downgrade
+
 			assert.strictEqual(await svc.isLegacyRegistryBackfilled(), false);
 		});
 

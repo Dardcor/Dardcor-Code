@@ -156,7 +156,7 @@ export async function handleSearchCore({ body, provider, providerConfig, credent
 
   if (result.success) return successResult(result.data);
 
-  // 3. Failover within global timeout for retriable errors
+
   if (
     !NON_RETRIABLE.has(result.status || 0) &&
     Date.now() - globalStartTime < GLOBAL_TIMEOUT_MS &&

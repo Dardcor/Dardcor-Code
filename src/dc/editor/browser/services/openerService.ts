@@ -80,7 +80,7 @@ const legacyDocumentationRoutes: Record<string, string> = {
 	'/vscode/jsts/partial-mode': '/docs/languages/javascript/partial-mode',
 };
 
-/** Redirects product documentation links while leaving service/API endpoints untouched. */
+
 function redirectLegacyDocumentationUri(resource: URI): URI {
 	if (!matchesSomeScheme(resource, Schemas.http, Schemas.https)) {
 		return resource;
@@ -88,7 +88,7 @@ function redirectLegacyDocumentationUri(resource: URI): URI {
 
 	const authority = resource.authority.toLowerCase();
 	if (authority === 'code.visualstudio.com') {
-		// This host/path is an update-notes API consumed by the app, not a user-facing help page.
+
 		if (resource.path === '/raw' || resource.path.startsWith('/raw/')) {
 			return resource;
 		}
@@ -110,7 +110,7 @@ function redirectLegacyDocumentationUri(resource: URI): URI {
 	} else if (!destinationPath && path.startsWith('/vscode-mcp-install/')) {
 		destinationPath = `/docs/agent-customization/mcp-servers/install/${path.slice('/vscode-mcp-install/'.length)}`;
 	} else if (!destinationPath && path.startsWith('/vscode-')) {
-		// Keep unknown product aliases on Dardcor's compatibility documentation instead of the vendor site.
+
 		destinationPath = `/docs/compatibility/aka-ms/${path.slice('/vscode-'.length)}`;
 	}
 

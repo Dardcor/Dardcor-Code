@@ -27,19 +27,19 @@ export type ClaudeToolKind = ToolKind;
 
 type ClaudeToolPathField = 'file_path' | 'notebook_path' | 'path' | 'url';
 
-/**
- * Single source-of-truth row for one of Claude's built-in tools. Every
- * structural fact the host needs about the tool sits in this row; the
- * exported helpers below are one-liners over the table. Adding a new
- * SDK tool means adding one row and one `displayName` arm. The
- * snapshot test in [claudeToolDisplay.test.ts](../../test/node/claudeToolDisplay.test.ts)
- * fails until both this map and the snapshot are updated together.
- *
- * `displayName` is intentionally NOT on the row — it is user-facing
- * and must be `localize()`-d, which we cannot do at module-init time
- * without freezing the bundle's locale. Lookup lives in
- * {@link getClaudeToolDisplayName}.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
 interface ClaudeToolRow {
 	readonly permissionKind: ClaudePermissionKind;
 	readonly pathField?: ClaudeToolPathField;

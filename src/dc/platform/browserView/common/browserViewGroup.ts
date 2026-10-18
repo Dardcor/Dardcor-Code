@@ -12,7 +12,7 @@ export const ipcBrowserViewGroupChannelName = 'browserViewGroup';
 
 export interface IBrowserViewGroupViewEvent {
 	readonly viewId: string;
-	/** Chromium target identity used to correlate this BrowserView with Playwright pages. */
+
 	readonly targetId?: string;
 	readonly url?: string;
 	readonly title?: string;

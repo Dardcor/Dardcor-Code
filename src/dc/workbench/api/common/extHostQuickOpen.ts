@@ -146,7 +146,7 @@ export function createExtHostQuickOpen(mainContext: IMainContext, workspace: IEx
 
 		showInput(options?: InputBoxOptions, token: CancellationToken = CancellationToken.None): Promise<string | undefined> {
 
-			// global validate fn used in callback below
+
 			this._validateInput = options?.validateInput;
 
 			return proxy.$input(options, typeof this._validateInput === 'function', token)

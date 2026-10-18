@@ -40,21 +40,21 @@ import { startFeedbackCollection } from './feedbackCollection';
 import { registerNewWorkspaceIntentCommand } from './newWorkspaceFollowup';
 import { generateTerminalFixes, setLastCommandMatchResult } from './terminalFixGenerator';
 
-/**
- * Registers the conversation providers backed by Dardcor Router.
- */
+
+
+
 export class ConversationFeature implements IExtensionContribution {
-	/** Disposables that exist for the lifetime of this object */
+
 	private readonly _disposables = new DisposableStore();
-	/** Disposables that are cleared whenever feature enablement is toggled */
+
 	private readonly _activatedDisposables = new DisposableStore();
 	public _enabled;
-	/** The feature is marked as active the first time it is enabled. */
+
 	private _activated;
 
-	/** Whether or not the search provider has been registered */
+
 	private _searchProviderRegistered = false;
-	/** Whether or not the settings search provider has been registered */
+
 	private _settingsSearchProviderRegistered = false;
 
 	readonly id = 'conversationFeature';
@@ -93,7 +93,7 @@ export class ConversationFeature implements IExtensionContribution {
 		}
 		this._enabled = value;
 
-		// Set context value that is used to show/hide th sidebar icon
+
 		vscode.commands.executeCommand('setContext', 'github.dardcor.interactiveSession.disabled', !value);
 	}
 
@@ -140,7 +140,7 @@ export class ConversationFeature implements IExtensionContribution {
 		} else {
 			this._searchProviderRegistered = true;
 
-			// Don't register for no auth user or BYOK-only users
+
 			if (!this.authenticationService.anyGitHubSession || this.authenticationService.dardcorToken?.isNoAuthUser) {
 				this.logService.debug('ConversationFeature: Skipping search provider registration - no GitHub session available');
 				return;
@@ -161,7 +161,7 @@ export class ConversationFeature implements IExtensionContribution {
 
 		this._settingsSearchProviderRegistered = true;
 
-		// Don't register for no auth user or or BYOK-only users
+
 		if (!this.authenticationService.anyGitHubSession || this.authenticationService.dardcorToken?.isNoAuthUser) {
 			this.logService.debug('ConversationFeature: Skipping settings search provider registration - no GitHub session available');
 			return;
@@ -194,7 +194,7 @@ export class ConversationFeature implements IExtensionContribution {
 	}
 
 	private registerParticipantDetectionProvider() {
-		// Many BYOK models are slow and we don't want to risk invalid detection with those, at least for now.
+
 		if (!this.authenticationService.anyGitHubSession) {
 			return;
 		}
@@ -231,8 +231,8 @@ export class ConversationFeature implements IExtensionContribution {
 
 				const commitMessage = await this.gitCommitMessageService.generateCommitMessage(repository, CancellationToken.None);
 				if (commitMessage) {
-					// Sanitize the message by escaping double quotes, backslashes, and $ characters
-					const sanitizedMessage = commitMessage.replace(/"/g, '\\"').replace(/\\/g, '\\\\').replace(/\$/g, '\\$'); // CodeQL [SM02383] Backslashes are escaped as part of the second replace.
+
+					const sanitizedMessage = commitMessage.replace(/"/g, '\\"').replace(/\\/g, '\\\\').replace(/\$/g, '\\$');
 					const message = `git commit -m "${sanitizedMessage}"`;
 					vscode.window.activeTerminal?.sendText(message, false);
 				}
@@ -298,7 +298,7 @@ export class ConversationFeature implements IExtensionContribution {
 				break;
 			case 'terminal':
 				commandId = 'workbench.action.terminal.chat.start';
-				// HACK: Currently @terminal is hardcoded in core
+
 				break;
 			case 'chatView':
 			default:

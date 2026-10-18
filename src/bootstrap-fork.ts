@@ -171,7 +171,7 @@ function configureCrashReporter(): void {
 
 configureCrashReporter();
 
-// Remove global paths from the node module lookup (node.js only)
+
 removeGlobalNodeJsModuleLookupPaths();
 
 const devInjectPath = process.env['DCCODE_DEV_INJECT_NODE_MODULE_LOOKUP_PATH'] || process.env['VSCODE_DEV_INJECT_NODE_MODULE_LOOKUP_PATH'];

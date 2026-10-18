@@ -59,11 +59,11 @@ function clip(text: string, max: number = ROUTER_FIELD_CLIP_LENGTH): string {
 	return normalized.length > max ? `${normalized.slice(0, max)}...` : normalized;
 }
 
-/**
- * Build the chat messages sent to the scoring model. Kept pure and exported so
- * the same prompt can back a renderer language-model request, a CAPI utility
- * completion, or a local model without divergence.
- */
+
+
+
+
+
 export function buildRouterMessages(request: ISessionRouteRequest): ISessionRouterMessage[] {
 	const sessionLines = request.sessions.map(session => {
 		const parts = [`id=${session.sessionId}`, `name=${JSON.stringify(session.label)}`];

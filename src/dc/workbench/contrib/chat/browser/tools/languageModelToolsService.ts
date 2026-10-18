@@ -1134,10 +1134,10 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 		});
 	}
 
-	/**
-	 * Returns true if enterprise policy has explicitly disabled the global auto-approve setting.
-	 * When this is the case, Bypass Approvals and Autopilot permission levels should not auto-approve tools.
-	 */
+
+
+
+
 	private _isAutoApprovePolicyRestricted(): boolean {
 		const inspected = this._configurationService.inspect<boolean>(ChatConfiguration.GlobalAutoApprove);
 		return inspected.policyValue === false;
@@ -1216,7 +1216,7 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			return undefined;
 		}
 
-		// policy disables global auto-approve.
+
 		if (chatSessionResource && !this._isAutoApprovePolicyRestricted() && this._isSessionInAutoApproveLevel(chatSessionResource)) {
 			if (!(toolIdsThatCannotBeAutoApproved.has(tool.data.id) && getChatSessionType(chatSessionResource) !== localChatSessionType)) {
 				return { type: ToolConfirmKind.ConfirmationNotNeeded, reason: autoApproveAllReason };
@@ -1234,7 +1234,7 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 
 		const config = this._configurationService.inspect<boolean | Record<string, boolean>>(ChatConfiguration.GlobalAutoApprove);
 
-		// If we know the tool runs at a global level, only consider the global config.
+
 		let value = config.value ?? config.defaultValue;
 		if (typeof runsInWorkspace === 'boolean') {
 			value = config.userLocalValue ?? config.applicationValue;
@@ -1254,7 +1254,7 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 	}
 
 	private async shouldAutoConfirmPostExecution(toolId: string, runsInWorkspace: boolean | undefined, source: ToolDataSource, parameters: unknown, chatSessionResource: URI | undefined, chatRequestId: string | undefined, workingDirectory?: URI): Promise<ConfirmedReason | undefined> {
-		// unless enterprise policy disables global auto-approve.
+
 		const sessionAutoApprove = chatSessionResource && !this._isAutoApprovePolicyRestricted() && this._isSessionInAutoApproveLevel(chatSessionResource);
 		if (sessionAutoApprove) {
 			if (!(toolIdsThatCannotBeAutoApproved.has(toolId) && getChatSessionType(chatSessionResource!) !== localChatSessionType)) {

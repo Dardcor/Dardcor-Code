@@ -5,29 +5,29 @@
 
 // @ts-check
 
-/**
- * Chat memory leak checker — state-based approach.
- *
- * The idea: if you return to the same state you started from, memory should
- * return to roughly the same level. Any residual growth is a potential leak.
- *
- * Each iteration:
- *   1. Open a fresh chat (baseline state)
- *   2. Measure heap + DOM nodes
- *   3. Cycle through ALL registered perf scenarios (text, code blocks,
- *      tool calls, thinking, multi-turn, etc.)
- *   4. Open a new chat (return to baseline state — clears previous session)
- *   5. Measure heap + DOM nodes again
- *   6. The delta is the "leaked" memory for that iteration
- *
- * Multiple iterations let us detect consistent leaks vs. one-time caching.
- *
- * Usage:
- *   npm run perf:chat-leak                                # defaults from config
- *   npm run perf:chat-leak -- --iterations 5               # more iterations
- *   npm run perf:chat-leak -- --threshold 5                # 5MB steady-state threshold
- *   npm run perf:chat-leak -- --build 1.115.0              # test a specific build
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const fs = require('fs');
 const path = require('path');
@@ -54,10 +54,10 @@ function parseArgs() {
 		messages: CONFIG.messages ?? 5,
 		verbose: false,
 		ci: false,
-		/** @type {string | undefined} */
+
 		build: undefined,
 		leakThresholdMB: CONFIG.leakThresholdMB ?? 5,
-		/** @type {Record<string, any>} */
+
 		settingsOverrides: {},
 	};
 	for (let i = 0; i < args.length; i++) {
@@ -98,14 +98,14 @@ function parseArgs() {
 }
 
 
-/**
- * Build a flat list of scenario IDs to cycle through during leak testing.
- * Includes all scenario types: content-only, tool-call, and multi-turn.
- *
- * Content scenarios exercise varied rendering (code blocks, markdown, etc.).
- * Tool-call scenarios exercise the agent loop (model → tool → model → ...).
- * Multi-turn scenarios exercise user follow-ups and thinking blocks.
- */
+
+
+
+
+
+
+
+
 function getScenarioIds() {
 	return [
 		...Object.keys(CONTENT_SCENARIOS),
@@ -118,11 +118,11 @@ function getScenarioIds() {
 const CHAT_VIEW = 'div[id="workbench.panel.chat"]';
 const CHAT_EDITOR_SEL = `${CHAT_VIEW} .interactive-input-part .monaco-editor[role="code"]`;
 
-/**
- * Measure heap (MB) and DOM node count after forced GC.
- * @param {any} cdp
- * @param {import('playwright').Page} page
- */
+
+
+
+
+
 async function measure(cdp, page) {
 	await cdp.send('HeapProfiler.collectGarbage');
 	await new Promise(r => setTimeout(r, 500));
@@ -134,10 +134,10 @@ async function measure(cdp, page) {
 	return { heapMB, domNodes };
 }
 
-/**
- * Open a new chat session via the command palette.
- * @param {import('playwright').Page} page
- */
+
+
+
+
 async function openNewChat(page) {
 	const newChatShortcut = process.platform === 'darwin' ? 'Meta+KeyL' : 'Control+KeyL';
 	await page.keyboard.press(newChatShortcut);
@@ -151,16 +151,16 @@ async function openNewChat(page) {
 	await new Promise(r => setTimeout(r, 500));
 }
 
-/**
- * Send a single message and wait for the response to complete.
- * For multi-turn scenarios where the model makes multiple tool-call rounds
- * before producing content, `modelTurns` controls how many completions to
- * wait for.
- * @param {import('playwright').Page} page
- * @param {{ completionCount: () => number, waitForCompletion: (n: number, ms: number) => Promise<void> }} mockServer
- * @param {string} text
- * @param {number} [modelTurns=1] - number of model completions to wait for
- */
+
+
+
+
+
+
+
+
+
+
 async function sendMessage(page, mockServer, text, modelTurns = 1) {
 	await page.click(CHAT_EDITOR_SEL);
 	await new Promise(r => setTimeout(r, 200));
@@ -203,21 +203,21 @@ async function sendMessage(page, mockServer, text, modelTurns = 1) {
 	await new Promise(r => setTimeout(r, 500));
 }
 
-/**
- * Run a full scenario: send the initial message, then handle any user
- * follow-up turns for multi-turn scenarios.
- *
- * - Content-only scenarios: single message, 1 model turn.
- * - Tool-call scenarios (no user turns): single message, N model turns
- *   (the extension automatically relays tool results back to the model).
- * - Multi-turn with user turns: send initial message, wait for response,
- *   then for each user turn send the follow-up message and wait again.
- *
- * @param {import('playwright').Page} page
- * @param {{ completionCount: () => number, waitForCompletion: (n: number, ms: number) => Promise<void> }} mockServer
- * @param {string} scenarioId
- * @param {string} label - prefix for the message (e.g. "Warmup" or "Iteration 2")
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 async function runScenario(page, mockServer, scenarioId, label) {
 	const userTurns = getUserTurns(scenarioId);
 	const totalModelTurns = getModelTurnCount(scenarioId);
@@ -244,11 +244,11 @@ async function runScenario(page, mockServer, scenarioId, label) {
 }
 
 
-/**
- * @param {string} electronPath
- * @param {{ url: string, requestCount: () => number, waitForRequests: (n: number, ms: number) => Promise<void>, completionCount: () => number, waitForCompletion: (n: number, ms: number) => Promise<void> }} mockServer
- * @param {{ iterations: number, verbose: boolean, settingsOverrides?: Record<string, any> }}  opts
- */
+
+
+
+
+
 async function runLeakCheck(electronPath, mockServer, opts) {
 	const { iterations, verbose } = opts;
 	const { userDataDir, extDir, logsDir } = prepareRunDir('leak-check', mockServer, opts.settingsOverrides);
@@ -287,7 +287,7 @@ async function runLeakCheck(electronPath, mockServer, opts) {
 			console.log(`  [leak] Baseline: heap=${baseline.heapMB}MB, domNodes=${baseline.domNodes}`);
 		}
 
-		/** @type {{ beforeHeapMB: number, afterHeapMB: number, deltaHeapMB: number, beforeDomNodes: number, afterDomNodes: number, deltaDomNodes: number }[]} */
+
 		const iterationResults = [];
 
 		for (let iter = 0; iter < iterations; iter++) {
@@ -413,11 +413,11 @@ async function main() {
 	process.exit(leaked ? 1 : 0);
 }
 
-/**
- * Generate a Markdown summary for CI, matching the perf script pattern.
- * @param {{ baseline: { heapMB: number, domNodes: number }, final: { heapMB: number, domNodes: number }, totalResidualMB: number, totalResidualNodes: number, steadyResidualMB: number, iterations: { beforeHeapMB: number, afterHeapMB: number, deltaHeapMB: number, beforeDomNodes: number, afterDomNodes: number, deltaDomNodes: number }[] }} result
- * @param {{ leakThresholdMB: number, iterations: number }} opts
- */
+
+
+
+
+
 function generateLeakCISummary(result, opts) {
 	const leaked = result.steadyResidualMB > opts.leakThresholdMB;
 	const verdict = leaked ? '\u274C **LEAK DETECTED**' : '\u2705 **No leak detected**';

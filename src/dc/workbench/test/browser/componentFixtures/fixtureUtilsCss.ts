@@ -151,10 +151,10 @@ function getThemeStyleSheet(theme: ColorThemeData, scopeThemingParticipants: boo
 	return sheet;
 }
 
-/**
- * Installs shared global styles once and appends a scoped stylesheet for each newly requested theme.
- * The reversal overlay keeps a stable identity and position for {@link overrideStylesheetOrder}.
- */
+
+
+
+
 export async function ensureGlobalStylesInstalled(theme: ColorThemeData, scopeThemingParticipants: boolean): Promise<void> {
 	baseStylesInstalledPromise ??= (async () => {
 		await readBundle();

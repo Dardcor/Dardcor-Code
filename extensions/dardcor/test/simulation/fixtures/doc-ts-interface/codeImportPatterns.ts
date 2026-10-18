@@ -180,12 +180,12 @@ export = new class implements eslint.Rule.RuleModule {
 			const restrictions = (typeof option.restrictions === 'string' ? [option.restrictions] : option.restrictions).slice(0);
 
 			if (targetIsVS) {
-				// Always add "vs/nls"
+
 				restrictions.push('vs/nls');
 			}
 
 			if (targetIsVS && option.layer) {
-				// single layer => simple substitution for /~
+
 				const layerRule = findLayer(option.layer);
 				if (layerRule) {
 					const [config, testConfig] = generateConfig(layerRule, target, restrictions);
@@ -196,7 +196,7 @@ export = new class implements eslint.Rule.RuleModule {
 					}
 				}
 			} else if (targetIsVS && /\/\~$/.test(target)) {
-				// generate all layers
+
 				for (const layerRule of layerRules) {
 					const [config, testConfig] = generateConfig(layerRule, target, restrictions);
 					configs.push(config);
@@ -212,12 +212,12 @@ export = new class implements eslint.Rule.RuleModule {
 
 	private _checkImport(context: eslint.Rule.RuleContext, config: ImportPatternsConfig, node: TSESTree.Node, importPath: string) {
 
-		// resolve relative paths
+
 		if (importPath[0] === '.') {
 			const relativeFilename = getRelativeFilename(context);
 			importPath = path.posix.join(path.posix.dirname(relativeFilename), importPath);
 			if (/^src\/vs\//.test(importPath)) {
-				// resolve using AMD base url
+
 				importPath = importPath.substring('src/'.length);
 			}
 		}
@@ -233,7 +233,7 @@ export = new class implements eslint.Rule.RuleModule {
 		}
 
 		if (!matched) {
-			// None of the restrictions matched
+
 			context.report({
 				loc: node.loc,
 				messageId: 'badImport',
@@ -245,9 +245,9 @@ export = new class implements eslint.Rule.RuleModule {
 	}
 };
 
-/**
- * Returns the filename relative to the project root and using `/` as separators
- */
+
+
+
 function getRelativeFilename(context: eslint.Rule.RuleContext): string {
 	const filename = path.normalize(context.getFilename());
 	return filename.substring(REPO_ROOT.length).replace(/\\/g, '/');

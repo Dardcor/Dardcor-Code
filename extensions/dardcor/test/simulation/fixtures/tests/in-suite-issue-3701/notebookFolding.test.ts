@@ -253,7 +253,7 @@ suite('Notebook Folding', () => {
 				foldingModel.applyMemento([{ start: 2, end: 6 }]);
 				viewModel.updateFoldingRanges(foldingModel.regions);
 
-				// Note that hidden ranges !== folding ranges
+
 				assert.deepStrictEqual(viewModel.getHiddenRanges(), [
 					{ start: 3, end: 6 }
 				]);
@@ -284,7 +284,7 @@ suite('Notebook Folding', () => {
 				]);
 				viewModel.updateFoldingRanges(foldingModel.regions);
 
-				// Note that hidden ranges !== folding ranges
+
 				assert.deepStrictEqual(viewModel.getHiddenRanges(), [
 					{ start: 6, end: 6 },
 					{ start: 11, end: 11 }
@@ -316,7 +316,7 @@ suite('Notebook Folding', () => {
 				]);
 				viewModel.updateFoldingRanges(foldingModel.regions);
 
-				// Note that hidden ranges !== folding ranges
+
 				assert.deepStrictEqual(viewModel.getHiddenRanges(), [
 					{ start: 6, end: 6 },
 					{ start: 8, end: 11 }
@@ -347,7 +347,7 @@ suite('Notebook Folding', () => {
 				foldingModel.applyMemento([{ start: 2, end: 6 }]);
 				viewModel.updateFoldingRanges(foldingModel.regions);
 
-				// Note that hidden ranges !== folding ranges
+
 				assert.deepStrictEqual(viewModel.getHiddenRanges(), [
 					{ start: 3, end: 6 }
 				]);
@@ -387,15 +387,15 @@ suite('Notebook Folding', () => {
 
 				viewModel.updateFoldingRanges(foldingModel.regions);
 
-				// Note that hidden ranges !== folding ranges
+
 				assert.deepStrictEqual(viewModel.getHiddenRanges(), [
 					{ start: 6, end: 6 },
 					{ start: 11, end: 11 }
 				]);
 
-				// folding ranges
-				// [5, 6]
-				// [10, 11]
+
+
+
 				assert.strictEqual(viewModel.getNextVisibleCellIndex(4), 5);
 				assert.strictEqual(viewModel.getNextVisibleCellIndex(5), 7);
 				assert.strictEqual(viewModel.getNextVisibleCellIndex(6), 7);

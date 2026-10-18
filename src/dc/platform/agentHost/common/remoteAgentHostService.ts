@@ -341,7 +341,7 @@ export function readRemoteAgentHostSettings(configurationService: IConfiguration
 	};
 }
 
-/** Reads WebSocket entries from the global configuration or its owning target. */
+
 export function readWebSocketRemoteAgentHostEntries(configurationService: IConfigurationService, targetOnly = false): IRemoteAgentHostEntry[] {
 	const entries = targetOnly
 		? readRemoteAgentHostSettings(configurationService).entries

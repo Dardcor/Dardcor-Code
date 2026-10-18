@@ -63,7 +63,7 @@ export class EditorMarkdownCodeBlockRenderer implements IMarkdownCodeBlockRender
 		if (editor) {
 			return editor.getOption(EditorOption.fontInfo);
 		} else {
-			// Otherwise use the global font settings.
+
 			return createBareFontInfoFromRawSettings({
 				fontFamily: this._configurationService.getValue<IEditorOptions>('editor').fontFamily
 			}, 1);

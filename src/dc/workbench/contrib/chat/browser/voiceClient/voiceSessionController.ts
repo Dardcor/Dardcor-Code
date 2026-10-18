@@ -233,7 +233,7 @@ export interface IVoiceSessionController {
 	takeSessionInputOwnership(resource: URI, window: Window & typeof globalThis): void;
 	takeDraftInputOwnership(window: Window & typeof globalThis): void;
 	takeOmniInputOwnership(window: Window & typeof globalThis): void;
-	/** Keep an Omni-owned target pinned when a global barge-in keybinding starts. */
+
 	retainOmniInputOwnershipForBargeIn(window: Window & typeof globalThis): boolean;
 	setOmniInputActive(active: boolean): void;
 	setOmniInputOpen(open: boolean): void;
@@ -398,7 +398,7 @@ export class VoiceSessionController extends Disposable implements IVoiceSessionC
 	private _omniInboxOrdinal = 0;
 	private readonly _omniClaimedPendingIds = new Map<string, string>();
 	private readonly _omniClaimedResponseSummaries = new Map<string, string>();
-	/** Narration ids issued by the global omni inbox, used to abandon them on close. */
+
 	private readonly _omniNarrationIds = new Set<string>();
 
 	private readonly _lastNarratedText = new Map<string, string>();
@@ -2297,7 +2297,7 @@ export class VoiceSessionController extends Disposable implements IVoiceSessionC
 			for (const key of this._pendingVoiceIndicatorKeys()) {
 				this._markPendingResponse(key, false);
 			}
-			// every new global narration while also waiting for an unblock signal
+
 			for (const sessionKey of [...this._deferredNarrations.keys()]) {
 				this._retryDeferredNarration(sessionKey);
 			}

@@ -9,13 +9,13 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-/** @type {string | undefined} */
+
 let deactivateMarkerFile;
 
-/**
- * @param {string} command
- * @param {number} timeoutMs
- */
+
+
+
+
 async function waitForCommand(command, timeoutMs) {
 	const started = Date.now();
 	while (Date.now() - started < timeoutMs) {
@@ -29,9 +29,9 @@ async function waitForCommand(command, timeoutMs) {
 	throw new Error(`Timed out waiting for command '${command}'`);
 }
 
-/**
- * @param {vscode.ExtensionContext} context
- */
+
+
+
 function activate(context) {
 	try {
 		const pid = String(process.pid);

@@ -18,7 +18,7 @@ function getValue(value: keyof MyInterface) {
 	return myObject[value];
 }
 
-getValue('id'); // 1
+getValue('id');
 
 class Employee {
 	private empCode: number;

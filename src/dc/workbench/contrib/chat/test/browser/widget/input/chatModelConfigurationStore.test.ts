@@ -53,8 +53,8 @@ suite('ChatModelConfigurationStore', () => {
 		setGlobal(value: IStringDictionary<unknown> | undefined): void;
 	}
 
-	// A stub whose model registration and profile-global value can change over
-	// forwarded global writes so tests can assert no-ops are not propagated.
+
+
 	function createControllableService(): IControllableService {
 		const emitter = store.add(new Emitter<string>());
 		let registered = true;
@@ -101,7 +101,7 @@ suite('ChatModelConfigurationStore', () => {
 	});
 
 	test('a config write from another editor does not clobber an open editor via the model-change event', () => {
-		// `setModelConfiguration` mirrors to the global service, which re-emits
+
 		const storage = store.add(new InMemoryStorageService());
 		const emitter = store.add(new Emitter<string>());
 		const service = {
@@ -118,7 +118,7 @@ suite('ChatModelConfigurationStore', () => {
 		assert.deepStrictEqual(editorB.getModelConfiguration(MODEL), { thinkingEffort: 'high' });
 		editorB.setModelConfiguration(MODEL, { thinkingEffort: 'low' });
 
-		// The mirrored global write re-emits the model-change event to all stores.
+
 		emitter.fire('copilot');
 
 		assert.deepStrictEqual(
@@ -129,10 +129,10 @@ suite('ChatModelConfigurationStore', () => {
 
 	test('explicit reset-to-default does not revert to a stale global value (issue #320393)', () => {
 		const storage = store.add(new InMemoryStorageService());
-		// Profile-global is a non-default 'high'.
+
 		const editorA = createStore(storage, createStubService({ thinkingEffort: 'high' }));
 
-		// With no scoped entry yet, the editor seeds from the global value.
+
 		assert.deepStrictEqual(editorA.getModelConfiguration(MODEL), { thinkingEffort: 'high' });
 
 		editorA.setModelConfiguration(MODEL, { thinkingEffort: 'medium' });
@@ -230,7 +230,7 @@ suite('ChatModelConfigurationStore', () => {
 		storage.store(KEY, JSON.stringify({ [MODEL]: { thinkingEffort: 'high' } }), StorageScope.APPLICATION, StorageTarget.USER);
 
 		const controls = createControllableService();
-		// Nothing is registered yet, so schema defaults / global config are absent.
+
 		controls.setRegistered(false);
 		const editor = createStore(storage, controls.service);
 
@@ -241,7 +241,7 @@ suite('ChatModelConfigurationStore', () => {
 		const fired: string[] = [];
 		store.add(editor.onDidChange(id => fired.push(id)));
 
-		// Providers register; the schema and a non-default global become available.
+
 		controls.setRegistered(true);
 		controls.setGlobal({ thinkingEffort: 'low' });
 		controls.fireModelsChanged();
@@ -362,7 +362,7 @@ suite('ChatModelConfigurationStore', () => {
 	});
 
 	test('restoreModelConfiguration does not write the profile-global value', () => {
-		// snapshot and never mirror to the profile-global value.
+
 		const storage = store.add(new InMemoryStorageService());
 		const controls = createControllableService();
 		const editor = createStore(storage, controls.service);
@@ -392,7 +392,7 @@ suite('ChatModelConfigurationStore', () => {
 	});
 
 	test('reload: an empty pre-config-load snapshot resolves to the default contextSize once the schema loads', () => {
-		// A model with no stored entry and no global value caches an empty snapshot
+
 		const storage = store.add(new InMemoryStorageService());
 
 		const emitter = store.add(new Emitter<string>());
@@ -420,7 +420,7 @@ suite('ChatModelConfigurationStore', () => {
 	});
 
 	test('integration: store heals + notifies so the widget denominator drops from the full window to the default tier', () => {
-		// A non-empty snapshot (a global thinkingEffort) is cached before the model
+
 		const FULL_WINDOW = 1_000_000;
 		const DEFAULT_TIER = 200_000;
 		const storage = store.add(new InMemoryStorageService());

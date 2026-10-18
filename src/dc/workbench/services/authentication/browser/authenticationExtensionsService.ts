@@ -160,7 +160,7 @@ export class AuthenticationExtensionsService extends Disposable implements IAuth
 		const parentExtensionId = this._inheritAuthAccountPreferenceChildToParent[realExtensionId] ?? realExtensionId;
 		const key = this._getKey(parentExtensionId, providerId);
 
-		// a specific workspace to override the global preference.
+
 		this.storageService.store(key, account.label, StorageScope.WORKSPACE, StorageTarget.MACHINE);
 		this.storageService.store(key, account.label, StorageScope.APPLICATION, StorageTarget.MACHINE);
 
@@ -173,7 +173,7 @@ export class AuthenticationExtensionsService extends Disposable implements IAuth
 		const realExtensionId = ExtensionIdentifier.toKey(extensionId);
 		const key = this._getKey(this._inheritAuthAccountPreferenceChildToParent[realExtensionId] ?? realExtensionId, providerId);
 
-		// If a preference is set in the workspace, use that. Otherwise, use the global preference.
+
 		return this.storageService.get(key, StorageScope.WORKSPACE) ?? this.storageService.get(key, StorageScope.APPLICATION);
 	}
 
@@ -181,7 +181,7 @@ export class AuthenticationExtensionsService extends Disposable implements IAuth
 		const realExtensionId = ExtensionIdentifier.toKey(extensionId);
 		const key = this._getKey(this._inheritAuthAccountPreferenceChildToParent[realExtensionId] ?? realExtensionId, providerId);
 
-		// for this workspace and the global preference. This is only paired with a call to updateSessionPreference...
+
 		this.storageService.remove(key, StorageScope.WORKSPACE);
 		this.storageService.remove(key, StorageScope.APPLICATION);
 	}
@@ -195,7 +195,7 @@ export class AuthenticationExtensionsService extends Disposable implements IAuth
 		const realExtensionId = ExtensionIdentifier.toKey(extensionId);
 		const key = `${realExtensionId}-${providerId}-${session.scopes.join(SCOPESLIST_SEPARATOR)}`;
 
-		// a specific workspace to override the global preference.
+
 		this.storageService.store(key, session.id, StorageScope.WORKSPACE, StorageTarget.MACHINE);
 		this.storageService.store(key, session.id, StorageScope.APPLICATION, StorageTarget.MACHINE);
 	}
@@ -204,7 +204,7 @@ export class AuthenticationExtensionsService extends Disposable implements IAuth
 		const realExtensionId = ExtensionIdentifier.toKey(extensionId);
 		const key = `${realExtensionId}-${providerId}-${scopes.join(SCOPESLIST_SEPARATOR)}`;
 
-		// If a preference is set in the workspace, use that. Otherwise, use the global preference.
+
 		return this.storageService.get(key, StorageScope.WORKSPACE) ?? this.storageService.get(key, StorageScope.APPLICATION);
 	}
 
@@ -212,7 +212,7 @@ export class AuthenticationExtensionsService extends Disposable implements IAuth
 		const realExtensionId = ExtensionIdentifier.toKey(extensionId);
 		const key = `${realExtensionId}-${providerId}-${scopes.join(SCOPESLIST_SEPARATOR)}`;
 
-		// for this workspace and the global preference. This is only paired with a call to updateSessionPreference...
+
 		this.storageService.remove(key, StorageScope.WORKSPACE);
 		this.storageService.remove(key, StorageScope.APPLICATION);
 	}

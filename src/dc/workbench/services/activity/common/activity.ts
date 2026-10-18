@@ -23,9 +23,9 @@ export interface IActivityService {
 
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Emitted when activity changes for a view container or when the activity of the global actions change.
-	 */
+
+
+
 	readonly onDidChangeActivity: Event<string | ViewContainer>;
 
 	showViewContainerActivity(viewContainerId: string, badge: IActivity): IDisposable;
@@ -36,9 +36,9 @@ export interface IActivityService {
 
 	showAccountsActivity(activity: IActivity): IDisposable;
 
-	/**
-	 * Show global activity
-	 */
+
+
+
 	showGlobalActivity(activity: IActivity): IDisposable;
 
 	getActivity(id: string): IActivity[];

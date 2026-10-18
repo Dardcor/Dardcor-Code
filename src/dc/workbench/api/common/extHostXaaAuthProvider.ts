@@ -25,15 +25,15 @@ export function cacheKey(resource: string, scopes: readonly string[]): string {
 	return resource + '|' + [...scopes].sort().join(' ');
 }
 
-/**
- * Returns true if the cached token is past (or within 60s of) its expiry. Pure
- * and exported for testing.
- *
- * Mints fresh ID-JAG assertions are usually short-lived (minutes). We treat tokens as expired
- * 60s before their nominal expiry to avoid clock skew and in-flight redemptions racing past
- * `exp`. Tokens without `expires_in` defined are treated as never-expiring (cached
- * until the process exits); `expires_in: 0` is treated as immediately expired.
- */
+
+
+
+
+
+
+
+
+
 export function isExpired(entry: { token: { expires_in?: number }; created_at: number }, now: number = Date.now()): boolean {
 	if (entry.token.expires_in === undefined) {
 		return false;

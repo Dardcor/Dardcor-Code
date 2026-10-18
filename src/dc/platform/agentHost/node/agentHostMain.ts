@@ -164,7 +164,7 @@ async function startAgentHost(): Promise<void> {
 
 	disposables.add(instantiationService.createInstance(AgentModelRefreshScheduler, runtime.agents, runtime.onDidStartTurn, MODEL_REFRESH_INTERVAL_MS));
 
-	// notifications. The downloader fires process-global frames keyed by package
+
 	if (sdkDownloadProgress) {
 		disposables.add(sdkDownloadProgress(p => agentService.emitDownloadProgress(
 			p.packageId,

@@ -1642,7 +1642,7 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('autopilot permission level bypasses global auto-approve check', async () => {
-		// When autopilot is on, tools should auto-approve without needing global auto-approve enabled
+
 		const { service: testService, chatService: testChatService } = createTestToolsService(store, {
 			configureServices: config => {
 				config.setUserConfiguration('chat.tools.global.autoApprove', false);
@@ -1660,7 +1660,7 @@ suite('LanguageModelToolsService', () => {
 			modeInfo: { permissionLevel: ChatPermissionLevel.Autopilot },
 		});
 
-		// Tool should be auto-approved even though global auto-approve is off
+
 		const result = await testService.invokeTool(
 			tool.makeDto({ test: 1 }, { sessionId }),
 			async () => 0,
@@ -2130,7 +2130,7 @@ suite('LanguageModelToolsService', () => {
 		const sessionId = 'test-basic-config';
 		stubGetSession(testChatService, sessionId, { requestId: 'req1' });
 
-		// Tool should be auto-approved (global config = true)
+
 		const result = await testService.invokeTool(
 			autoTool.makeDto({ test: 1 }, { sessionId }),
 			async () => 0,

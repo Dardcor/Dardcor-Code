@@ -327,7 +327,7 @@ export class CommandLineAutoApprover extends Disposable {
 		const regexPattern = regexMatch?.groups?.pattern;
 		if (regexPattern) {
 			let flags = regexMatch.groups?.flags;
-			// Remove global flag as it changes how the regex state works which we need to handle
+
 			if (flags) {
 				flags = flags.replaceAll('g', '');
 			}

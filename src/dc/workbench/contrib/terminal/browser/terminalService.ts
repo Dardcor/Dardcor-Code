@@ -1073,11 +1073,11 @@ export class TerminalService extends Disposable implements ITerminalService {
 		return instance;
 	}
 
-	/**
-	 * Registers a single set of global service listeners (theme/config/log-level
-	 * changes) that forward updates to all detached xterm instances. This avoids
-	 * each detached terminal registering its own listener on global singletons.
-	 */
+
+
+
+
+
 	private _ensureDetachedTerminalListeners(): void {
 		if (this._detachedListenersRegistered) {
 			return;

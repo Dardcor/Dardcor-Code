@@ -218,7 +218,7 @@ class Editor extends Disposable {
 			this.#patchViewState({ selection: sel ? { anchor: sel.anchor, active: sel.active } : undefined });
 		}));
 
-		// Persist the edit/read-only mode as the global default whenever the lock
+
 		let firstReadonly = true;
 		this._register(autorun((reader) => {
 			const isReadonly = reader.readObservable(this.model.readonlyMode);

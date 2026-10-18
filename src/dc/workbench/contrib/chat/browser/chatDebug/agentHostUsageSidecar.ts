@@ -64,39 +64,39 @@ export async function readAgentHostUsageRecords(fileService: IFileService, uri: 
 
 type IAgentHostActionSource = Pick<IAgentHostService, 'onDidAction' | 'onDidNotification'>;
 
-/**
- * Shared client-side plumbing for recorders that observe agent-host protocol
- * actions across the ambient (local) connection and every live remote
- * connection, and persist derived data to a client-local sidecar. Enable
- * gating, local/remote fan-out, and sidecar lifetime live here; subclasses
- * implement {@link _onAction} for the action(s) they care about and
- * {@link _sidecarUri} for the file to delete when a session goes away.
- *
- * Running on the client (where wire logs are captured) means every session's
- * actions arrive through the same subscription reducers regardless of
- * transport, so subclasses work uniformly for local and remote hosts.
- *
- * ## Why these sidecars are client-side
- *
- * The data they capture (`ChatUsage` / `SessionCustomizationsChanged`) is
- * produced by the agent host, and the host persists its own copy of the parts
- * it needs for correctness (see `turns.usage` in the session database, which
- * restores the context-usage gauge and session cost). These sidecars are NOT
- * that store and should not be confused with it — they exist because the
- * renderer has no way to read host-side session storage: the AHP protocol is
- * generated outside this repo, so no "read session data" RPC can be added here,
- * and the session data directory's path is never published to clients. Until
- * such a contract exists, a client-side capture is the only mechanism that
- * works uniformly for local *and* remote hosts.
- *
- * The two stores therefore differ deliberately:
- * - host store: per turn, always on, all providers, correctness-critical;
- * - these sidecars: per model call, debug-gated, best-effort diagnostics.
- *
- * What IS unified: lifetime (both are deleted with their session — see
- * {@link _sidecarUri}) and collection (both are included in the exported debug
- * log bundle, so an export can explain a usage discrepancy).
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 abstract class AgentHostActionRecorder extends Disposable {
 
 	private readonly _remoteListeners = this._register(new DisposableMap<string>());

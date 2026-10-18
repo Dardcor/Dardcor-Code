@@ -57,15 +57,15 @@ export function stringify(globalState: IGlobalState, format: boolean): string {
 
 const GLOBAL_STATE_DATA_VERSION = 1;
 
-/**
- * Synchronises global state that includes
- * 	- Global storage with user scope
- * 	- Locale from argv properties
- *
- * Global storage is synced without checking version just like other resources (settings, keybindings).
- * If there is a change in format of the value of a storage key which requires migration then
- * 		Owner of that key should remove that key from user scope and replace that with new user scoped key.
- */
+
+
+
+
+
+
+
+
+
 export class GlobalStateSynchroniser extends AbstractSynchroniser implements IUserDataSynchroniser {
 
 	protected readonly version: number = GLOBAL_STATE_DATA_VERSION;
@@ -498,13 +498,13 @@ export class UserDataSyncStoreTypeSynchronizer {
 	}
 
 	private async doSync(userDataSyncStoreType: UserDataSyncStoreType, syncHeaders: IHeaders): Promise<void> {
-		// Read the global state from remote
+
 		const globalStateUserData = await this.userDataSyncStoreClient.readResource(SyncResource.GlobalState, null, undefined, syncHeaders);
 		const remoteGlobalState = this.parseGlobalState(globalStateUserData) || { storage: {} };
 
 		remoteGlobalState.storage[SYNC_SERVICE_URL_TYPE] = { value: userDataSyncStoreType, version: GLOBAL_STATE_DATA_VERSION };
 
-		// Write the global state to remote
+
 		const machineId = await getServiceMachineId(this.environmentService, this.fileService, this.storageService);
 		const syncDataToUpdate: ISyncData = { version: GLOBAL_STATE_DATA_VERSION, machineId, content: stringify(remoteGlobalState, false) };
 		await this.userDataSyncStoreClient.writeResource(SyncResource.GlobalState, JSON.stringify(syncDataToUpdate), globalStateUserData.ref, undefined, syncHeaders);

@@ -394,7 +394,7 @@ export class Mangler {
 
 		const service = ts.createLanguageService(new StaticLanguageServiceHost(this.projectPath));
 
-		// - Find exported symbols.
+
 
 		const fileIdents = new ShortIdent('$');
 
@@ -411,7 +411,7 @@ export class Mangler {
 			}
 
 			if (this.config.mangleExports) {
-				// Find exported classes, functions, and vars
+
 				if (
 					(
 						ts.isClassDeclaration(node)

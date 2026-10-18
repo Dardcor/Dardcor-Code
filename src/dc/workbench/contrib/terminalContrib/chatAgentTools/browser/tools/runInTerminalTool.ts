@@ -372,7 +372,7 @@ export async function createRunInTerminalToolData(
 	const configurationService = accessor.get(IConfigurationService);
 	const allowToRunUnsandboxedCommands = configurationService.getValue<boolean>(AgentSandboxSettingId.AgentSandboxAllowUnsandboxedCommands) === true;
 	const retryWithAllowNetworkRequestsSetting = configurationService.getValue<boolean>(AgentSandboxSettingId.AgentSandboxRetryWithAllowNetworkRequests) === true;
-	// best available static signals: the terminal auto-approve setting, the global auto-approve
+
 	const defaultPermissionLevel = configurationService.getValue<ChatPermissionLevel | undefined>(ChatConfiguration.DefaultPermissionLevel);
 	const includeElevationGuidance =
 		configurationService.getValue(TerminalChatAgentToolsSettingId.EnableAutoApprove) === true ||

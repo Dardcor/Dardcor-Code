@@ -225,7 +225,7 @@ describe('ExP Service Tests', () => {
 	});
 
 	it('should handle cached user info on initialization', async () => {
-		// Simulate cached values in global state
+
 		await extensionContext.globalState.update(UserInfoStore.INTERNAL_ORG_STORAGE_KEY, 'github');
 		await extensionContext.globalState.update(UserInfoStore.SKU_STORAGE_KEY, 'pro');
 
@@ -350,7 +350,7 @@ describe('ExP Service Tests', () => {
 		dardcorTokenService.dardcorToken = GitHubProToken;
 		await treatmentsChangePromise;
 
-		// Verify values were cached in global state
+
 		const cachedOrg = extensionContext.globalState.get<string>(UserInfoStore.INTERNAL_ORG_STORAGE_KEY);
 		const cachedSku = extensionContext.globalState.get<string>(UserInfoStore.SKU_STORAGE_KEY);
 		expect(cachedOrg).toBe('github');
@@ -425,13 +425,13 @@ describe('ExP Service Tests', () => {
 		dardcorTokenService.dardcorToken = VscodeTeamMemberToken;
 		await treatmentsChangePromise;
 
-		// Verify value was cached in global state
+
 		const cachedIsVscodeTeamMember = extensionContext.globalState.get<boolean>(UserInfoStore.IS_VSCODE_TEAM_MEMBER_STORAGE_KEY);
 		expect(cachedIsVscodeTeamMember).toBe(true);
 	});
 
 	it('should use cached VS Code team member status on initialization', async () => {
-		// Simulate cached value in global state
+
 		await extensionContext.globalState.update(UserInfoStore.IS_VSCODE_TEAM_MEMBER_STORAGE_KEY, true);
 
 		const newUserInfoStore = new UserInfoStore(extensionContext, dardcorTokenService);
@@ -463,7 +463,7 @@ describe('ExP Service Tests', () => {
 		dardcorTokenService.dardcorToken = GitHubAndMicrosoftEnterpriseToken;
 		await treatmentsChangePromise;
 
-		// Verify value was cached in global state
+
 		const cachedOrgList = extensionContext.globalState.get<string[]>(UserInfoStore.ORGANIZATION_LIST_STORAGE_KEY);
 		expect(cachedOrgList).toBeDefined();
 		expect(cachedOrgList).toContain('4535c7beffc844b46bb1ed4aa04d759a');
@@ -471,7 +471,7 @@ describe('ExP Service Tests', () => {
 	});
 
 	it('should use cached organization list on initialization', async () => {
-		// Simulate cached value in global state
+
 		const testOrgList = ['org1', 'org2', 'org3'];
 		await extensionContext.globalState.update(UserInfoStore.ORGANIZATION_LIST_STORAGE_KEY, testOrgList);
 
@@ -544,13 +544,13 @@ describe('ExP Service Tests', () => {
 		dardcorTokenService.dardcorToken = SnEnabledToken;
 		await treatmentsChangePromise;
 
-		// Verify value was cached in global state
+
 		const cachedIsSn = extensionContext.globalState.get<boolean>(UserInfoStore.IS_SN_STORAGE_KEY);
 		expect(cachedIsSn).toBe(true);
 	});
 
 	it('should use cached sn flag on initialization', async () => {
-		// Simulate cached value in global state
+
 		await extensionContext.globalState.update(UserInfoStore.IS_SN_STORAGE_KEY, true);
 
 		const newUserInfoStore = new UserInfoStore(extensionContext, dardcorTokenService);

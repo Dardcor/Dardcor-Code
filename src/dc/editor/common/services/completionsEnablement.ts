@@ -13,14 +13,14 @@ function getCompletionsEnablementSettingName(): string | undefined {
 	return product.defaultChatAgent?.completionsEnablementSetting;
 }
 
-/**
- * Checks if completions (e.g., Copilot) are enabled for a given language ID
- * using `IConfigurationService`.
- *
- * @param configurationService The configuration service to read settings from.
- * @param modeId The language ID to check. Defaults to '*' which checks the global setting.
- * @returns `true` if completions are enabled for the language, `false` otherwise.
- */
+
+
+
+
+
+
+
+
 export function isCompletionsEnabled(configurationService: IConfigurationService, modeId: string = '*'): boolean {
 	const settingName = getCompletionsEnablementSettingName();
 	if (!settingName) {
@@ -33,35 +33,35 @@ export function isCompletionsEnabled(configurationService: IConfigurationService
 	);
 }
 
-/**
- * Checks if completions (e.g., Copilot) are enabled for a given language ID
- * using `ITextResourceConfigurationService`.
- *
- * @param configurationService The text resource configuration service to read settings from.
- * @param modeId The language ID to check. Defaults to '*' which checks the global setting.
- * @returns `true` if completions are enabled for the language, `false` otherwise.
- */
+
+
+
+
+
+
+
+
 export function isCompletionsEnabledWithTextResourceConfig(configurationService: ITextResourceConfigurationService, resource: URI, modeId: string = '*'): boolean {
 	const settingName = getCompletionsEnablementSettingName();
 	if (!settingName) {
 		return false;
 	}
 
-	// Pass undefined as resource to get the global setting
+
 	return isCompletionsEnabledFromObject(
 		configurationService.getValue<Record<string, boolean>>(resource, settingName),
 		modeId
 	);
 }
 
-/**
- * Checks if completions are enabled for a given language ID using a pre-fetched
- * completions enablement object.
- *
- * @param completionsEnablementObject The object containing per-language enablement settings.
- * @param modeId The language ID to check. Defaults to '*' which checks the global setting.
- * @returns `true` if completions are enabled for the language, `false` otherwise.
- */
+
+
+
+
+
+
+
+
 export function isCompletionsEnabledFromObject(completionsEnablementObject: Record<string, boolean> | undefined, modeId: string = '*'): boolean {
 	if (!isObject(completionsEnablementObject)) {
 		return false;
@@ -71,5 +71,5 @@ export function isCompletionsEnabledFromObject(completionsEnablementObject: Reco
 		return Boolean(completionsEnablementObject[modeId]);
 	}
 
-	return Boolean(completionsEnablementObject['*']); // fallback to global setting otherwise
+	return Boolean(completionsEnablementObject['*']);
 }

@@ -23,21 +23,21 @@ const { randomBytes } = require('crypto');
 const minimist = require('minimist');
 const { promisify } = require('node:util');
 
-/**
- * @type {{
- * run: string;
- * grep: string;
- * runGlob: string;
- * browser: string;
- * reporter: string;
- * 'reporter-options': string;
- * tfs: string;
- * build: boolean;
- * debug: boolean;
- * sequential: boolean;
- * help: boolean;
- * }}
-*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const args = minimist(process.argv.slice(2), {
 	boolean: ['build', 'debug', 'sequential', 'help'],
 	string: ['run', 'grep', 'runGlob', 'browser', 'reporter', 'reporter-options', 'tfs'],
@@ -175,7 +175,7 @@ async function createServer() {
 	const prefix = '/' + randomBytes(16).toString('hex');
 	const serveStatic = await yaserver.createServer({ rootDir });
 
-	/** Handles a request for a remote method call, invoking `fn` and returning the result */
+
 	const remoteMethod = async (req, response, fn) => {
 		const params = await new Promise((resolve, reject) => {
 			const body = [];

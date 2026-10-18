@@ -175,7 +175,7 @@ export class AuthenticationMcpService extends Disposable implements IAuthenticat
 		const parentMcpServerId = this._inheritAuthAccountPreferenceChildToParent[mcpServerId] ?? mcpServerId;
 		const key = this._getKey(parentMcpServerId, providerId);
 
-		// a specific workspace to override the global preference.
+
 		this.storageService.store(key, account.label, StorageScope.WORKSPACE, StorageTarget.MACHINE);
 		this.storageService.store(key, account.label, StorageScope.APPLICATION, StorageTarget.MACHINE);
 
@@ -187,14 +187,14 @@ export class AuthenticationMcpService extends Disposable implements IAuthenticat
 	getAccountPreference(mcpServerId: string, providerId: string): string | undefined {
 		const key = this._getKey(this._inheritAuthAccountPreferenceChildToParent[mcpServerId] ?? mcpServerId, providerId);
 
-		// If a preference is set in the workspace, use that. Otherwise, use the global preference.
+
 		return this.storageService.get(key, StorageScope.WORKSPACE) ?? this.storageService.get(key, StorageScope.APPLICATION);
 	}
 
 	removeAccountPreference(mcpServerId: string, providerId: string): void {
 		const key = this._getKey(this._inheritAuthAccountPreferenceChildToParent[mcpServerId] ?? mcpServerId, providerId);
 
-		// for this workspace and the global preference. This is only paired with a call to updateSessionPreference...
+
 		this.storageService.remove(key, StorageScope.WORKSPACE);
 		this.storageService.remove(key, StorageScope.APPLICATION);
 	}
@@ -207,7 +207,7 @@ export class AuthenticationMcpService extends Disposable implements IAuthenticat
 	updateSessionPreference(providerId: string, mcpServerId: string, session: AuthenticationSession): void {
 		const key = `${mcpServerId}-${providerId}-${session.scopes.join(SCOPESLIST_SEPARATOR)}`;
 
-		// a specific workspace to override the global preference.
+
 		this.storageService.store(key, session.id, StorageScope.WORKSPACE, StorageTarget.MACHINE);
 		this.storageService.store(key, session.id, StorageScope.APPLICATION, StorageTarget.MACHINE);
 	}
@@ -215,14 +215,14 @@ export class AuthenticationMcpService extends Disposable implements IAuthenticat
 	getSessionPreference(providerId: string, mcpServerId: string, scopes: string[]): string | undefined {
 		const key = `${mcpServerId}-${providerId}-${scopes.join(SCOPESLIST_SEPARATOR)}`;
 
-		// If a preference is set in the workspace, use that. Otherwise, use the global preference.
+
 		return this.storageService.get(key, StorageScope.WORKSPACE) ?? this.storageService.get(key, StorageScope.APPLICATION);
 	}
 
 	removeSessionPreference(providerId: string, mcpServerId: string, scopes: string[]): void {
 		const key = `${mcpServerId}-${providerId}-${scopes.join(SCOPESLIST_SEPARATOR)}`;
 
-		// for this workspace and the global preference. This is only paired with a call to updateSessionPreference...
+
 		this.storageService.remove(key, StorageScope.WORKSPACE);
 		this.storageService.remove(key, StorageScope.APPLICATION);
 	}

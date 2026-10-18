@@ -27,7 +27,7 @@ export function cancelPreviousCalls<
 		`Method '${methodName}' is not defined.`,
 	);
 
-	// we create the global map that contains `TObjectRecord` for each object instance that
+
 	const objectRecords = new WeakMap<TObject, DisposableMap<string, CancellationTokenSource>>();
 
 	descriptor.value = function (

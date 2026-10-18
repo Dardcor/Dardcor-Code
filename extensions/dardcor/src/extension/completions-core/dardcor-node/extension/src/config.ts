@@ -33,7 +33,7 @@ export class VSCodeConfigProvider extends ConfigProvider implements IDisposable 
 		super();
 		this.config = vscode.workspace.getConfiguration(DardcorConfigPrefix);
 
-		// Reload cached config when a workspace change affects the completion settings namespace.
+
 		this._disposables.add(vscode.workspace.onDidChangeConfiguration(changeEvent => {
 			if (changeEvent.affectsConfiguration(DardcorConfigPrefix)) {
 				this.config = vscode.workspace.getConfiguration(DardcorConfigPrefix);
@@ -60,12 +60,12 @@ export class VSCodeConfigProvider extends ConfigProvider implements IDisposable 
 	}
 
 	private _getUserScopeValue<T>(key: ConfigKeyType): T | undefined {
-		// Try the flat key path directly
+
 		const inspected = this.config.inspect<T>(key);
 		if (inspected?.globalValue !== undefined) {
 			return inspected.globalValue;
 		}
-		// Handle object-style settings (e.g., "advanced": { "debug.overrideCapiUrl": "..." })
+
 		const firstDot = key.indexOf('.');
 		if (firstDot > 0) {
 			const parentKey = key.substring(0, firstDot);
@@ -78,7 +78,7 @@ export class VSCodeConfigProvider extends ConfigProvider implements IDisposable 
 		return undefined;
 	}
 
-	// Dumps config settings defined in the extension json
+
 	override dumpForTelemetry(): { [key: string]: string } {
 		return {};
 	}
@@ -96,7 +96,7 @@ export class VSCodeConfigProvider extends ConfigProvider implements IDisposable 
 	);
 }
 
-// From vscode's src/vs/platform/telemetry/common/telemetryUtils.ts
+
 const telemetryAllowedAuthorities = new Set([
 	'ssh-remote',
 	'dev-container',
@@ -130,8 +130,8 @@ export class VSCodeEditorInfo implements ICompletionsEditorAndPluginInfo {
 		return { name: 'dardcor-chat', readableName: 'Dardcor AI for Dardcor Code', version: packageJson.version };
 	}
 	getRelatedPluginInfo() {
-		// Any additions to this list should also be added as a known filter in
-		// lib/src/experiments/filters.ts
+
+
 		return [
 			'ms-vscode.cpptools',
 			'ms-vscode.cmake-tools',
@@ -168,11 +168,11 @@ function getEnabledConfig(accessor: ServicesAccessor, languageId: string): boole
 	return obj[languageId] ?? obj['*'] ?? true;
 }
 
-/**
- * Checks whether automatic completions are enabled for the current document by all completion settings.
- * Excludes the `editor.inlineSuggest.enabled` setting.
- * Return undefined if there is no current document.
- */
+
+
+
+
+
 export function isCompletionEnabled(accessor: ServicesAccessor): boolean | undefined {
 	const editor = vscode.window.activeTextEditor;
 	if (!editor) {
@@ -213,20 +213,20 @@ function getConfigurationTargetForEnabledConfig(): vscode.ConfigurationTarget {
 	}
 }
 
-/**
- * Enable completions by every means possible.
- */
+
+
+
 export async function enableCompletions(accessor: ServicesAccessor) {
 	const instantiationService = accessor.get(IInstantiationService);
 	const scope = vscode.window.activeTextEditor?.document;
-	// Make sure both of these settings are enabled, because that's a precondition for the user seeing inline completions.
+
 	for (const [section, option] of [['', 'editor.inlineSuggest.enabled']]) {
 		const config = vscode.workspace.getConfiguration(section, scope);
 		const inspect = config.inspect(option);
-		// Start from the most specific setting and work our way up to the global default.
+
 		for (const [key, target, overrideInLanguage] of inspectKinds) {
-			// Exit condition: if VS Code thinks the setting is enabled, we're done.
-			// This might be true from the start, or a call to .update() might flip it.
+
+
 			if (vscode.workspace.getConfiguration(section, scope).get(option)) {
 				break;
 			}
@@ -236,7 +236,7 @@ export async function enableCompletions(accessor: ServicesAccessor) {
 		}
 	}
 
-	// The rest of this function is the inverse of disableCompletions(), updating the github.dardcor.enable setting.
+
 	const languageId = vscode.window.activeTextEditor?.document.languageId;
 	if (!languageId) { return; }
 	const config = vscode.workspace.getConfiguration(DardcorConfigPrefix);
@@ -254,9 +254,9 @@ export async function enableCompletions(accessor: ServicesAccessor) {
 	}
 }
 
-/**
- * Disable completions using the github.dardcor.enable setting.
- */
+
+
+
 export async function disableCompletions(accessor: ServicesAccessor) {
 	const instantiationService = accessor.get(IInstantiationService);
 	const languageId = vscode.window.activeTextEditor?.document.languageId;

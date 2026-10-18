@@ -48,17 +48,17 @@ export const CHAT_CATEGORY = localize2('chat.category', 'Chat');
 export const CHAT_OPEN_ACTION_ID = 'workbench.action.chat.open';
 
 export interface IChatViewOpenOptions {
-	/**
-	 * The query for quick chat.
-	 */
+
+
+
 	query: string;
-	/**
-	 * Whether the query is partial and will await more input from the user.
-	 */
+
+
+
 	isPartialQuery?: boolean;
-	/**
-	 * Any previous chat requests and responses that should be shown in the chat view.
-	 */
+
+
+
 	previousRequests?: IChatViewOpenRequestEntry[];
 }
 
@@ -205,7 +205,7 @@ class ChatHistoryAction extends Action2 {
 						chatService.setChatSessionTitle(context.item.chat.sessionId, title);
 					}
 
-					// The quick input hides the picker, it gets disposed, so we kick it off from scratch
+
 					showPicker();
 				}
 			}));
@@ -287,8 +287,8 @@ export function registerChatActions() {
 				chatView.widget.clear();
 			}
 
-			// Clear all chat editors. Have to go this route because the chat editor may be in the background and
-			// not have a ChatEditorInput.
+
+
 			editorGroupsService.groups.forEach(group => {
 				group.editors.forEach(editor => {
 					if (editor instanceof ChatEditorInput) {
@@ -307,13 +307,13 @@ export function registerChatActions() {
 				precondition: ContextKeyExpr.and(CONTEXT_IN_CHAT_INPUT),
 				category: CHAT_CATEGORY,
 				keybinding: [
-					// On mac, require that the cursor is at the top of the input, to avoid stealing cmd+up to move the cursor to the top
+
 					{
 						when: CONTEXT_CHAT_INPUT_CURSOR_AT_TOP,
 						primary: KeyMod.CtrlCmd | KeyCode.UpArrow,
 						weight: KeybindingWeight.EditorContrib,
 					},
-					// On win/linux, ctrl+up can always focus the chat list
+
 					{
 						when: ContextKeyExpr.or(IsWindowsContext, IsLinuxContext),
 						primary: KeyMod.CtrlCmd | KeyCode.UpArrow,
@@ -361,7 +361,7 @@ export function stringifyItem(item: IChatRequestViewModel | IChatResponseViewMod
 }
 
 
-// --- command center chat
+
 
 MenuRegistry.appendMenuItem(MenuId.CommandCenter, {
 	submenu: MenuId.ChatCommandCenter,
@@ -383,7 +383,7 @@ export class ChatCommandCenterRendering implements IWorkbenchContribution {
 		@IInstantiationService instantiationService: IInstantiationService,
 	) {
 
-		// TODO@jrieken this isn't proper
+
 		const key = `submenuitem.${MenuId.ChatCommandCenter.id}`;
 
 		this._store.add(actionViewItemService.register(MenuId.CommandCenter, key, (action, options) => {

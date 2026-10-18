@@ -3,12 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// perf-benchmark-marker
 
-/**
- * Fixture for chat-simulation benchmarks.
- * Simplified from src/dc/base/common/types.ts for stable perf testing.
- */
+
+
+
+
+
 
 export function isString(thing: unknown): thing is string {
 	return typeof thing === 'string';

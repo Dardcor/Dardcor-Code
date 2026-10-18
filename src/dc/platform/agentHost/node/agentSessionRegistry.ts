@@ -24,37 +24,37 @@ export interface IStoredRegisteredSession extends Omit<IRegisteredSession, 'exte
 
 export type RegisteredSessionMigration = (entry: IStoredRegisteredSession) => Promise<IRegisteredSession | undefined>;
 
-/**
- * A durable, orchestrator-owned index of the sessions that exist, keyed by
- * session URI. Unlike the agents' `listSessions()` (which enumerates their own
- * SDK sessions/threads and maps them to session URIs via invariant I3), this
- * registry is authoritative on the AH side and does not depend on the agent
- * exposing a session whose SDK id equals the session id.
- *
- * Provider backfill markers are retained for compatibility/diagnostics.
- * AgentService starts native discovery at provider registration and reruns it
- * only when a provider reports a catalog/readiness change. Concurrent callers
- * in one host share a single in-flight pass per provider; concurrently running
- * host processes are outside the supported database contract.
- *
- * The legacy global marker ({@link isBackfilled} / {@link markBackfilled}) is
- * retained only for reading databases written before per-provider tracking
- * existed. `AgentService` never writes it anymore: there is no reliable
- * in-process signal for "every provider that will ever register has now
- * registered" (provider registration is asynchronous and conditionally gated
- * outside this layer), so writing it early risks a downgrade to pre-per-provider
- * code silently skipping a provider (e.g. Codex) that only registers later.
- * `markBackfilled` remains callable for tests and any explicit migration
- * tooling, but nothing in the per-provider sweep invokes it automatically.
- *
- * Sessions passed to {@link tombstone} are durably tombstoned so a forced
- * or repeated native discovery pass — which re-reads a provider's catalog from
- * scratch — cannot register them. This covers both a session the user
- * explicitly deleted and one that must never be listed at all (e.g. a
- * throwaway chat surface, tombstoned at creation). Tombstones are cleared only
- * by an explicit {@link register} of the same session URI (i.e. an explicit
- * create/restore), never by backfill itself.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 export class AgentSessionRegistry extends Disposable {
 
 	constructor(private readonly _database: IAgentHostDatabase) {

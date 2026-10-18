@@ -39,7 +39,7 @@ suite('Inline chat zone widget — menu contributions', function () {
 		'chatLocation': 'editor',
 		'inlineChatHasEditsAgent': true,
 		'quickChatHasFocus': false,
-		// NOT in global editing session (this is inline chat, not panel edits)
+
 		'chatEdits.isGlobalEditingSession': false,
 		'lockedToCodingAgent': false,
 		'chatIsEnabled': true,

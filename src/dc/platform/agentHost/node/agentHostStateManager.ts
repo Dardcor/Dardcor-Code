@@ -728,7 +728,7 @@ export class AgentHostStateManager extends Disposable {
 		};
 	}
 
-	/** Returns external sessions exposed through either listing or global add notification. */
+
 	getExposedExternalSessionKeys(): string[] {
 		const result: string[] = [];
 		for (const session of this._publishedSessionSummaries) {

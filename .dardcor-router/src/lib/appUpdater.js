@@ -149,7 +149,7 @@ export async function killAppProcesses() {
 
 function resolveRelaunchCommand() {
   const isWin = process.platform === "win32";
-  // Prefer `npx dardcor-code` — works regardless of global bin path changes after npm i -g
+
   const npx = isWin ? "npx.cmd" : "npx";
   return { cmd: npx, args: [UPDATER_CONFIG.npmPackageName] };
 }

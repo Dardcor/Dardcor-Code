@@ -3,12 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// perf-benchmark-marker
 
-/**
- * Fixture for chat-simulation benchmarks.
- * Simplified from src/dc/base/common/arrays.ts for stable perf testing.
- */
+
+
+
+
+
 
 export function coalesce<T>(array: ReadonlyArray<T | undefined | null>): T[] {
 	return array.filter((e): e is T => e !== undefined && e !== null);

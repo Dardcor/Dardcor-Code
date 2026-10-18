@@ -149,7 +149,7 @@ export class LanguageDetectionService extends Disposable implements ILanguageDet
 		return this._languageDetectionWorkerClient.detectLanguage(resource, biases, preferHistory, supportedLangs);
 	}
 
-	// only gives history for a workspace... where this takes advantage of history at a global level as well.
+
 	private initEditorOpenedListeners(storageService: IStorageService) {
 		try {
 			const globalLangHistoryData = JSON.parse(storageService.get(LanguageDetectionService.globalOpenedLanguagesStorageKey, StorageScope.PROFILE, '[]'));

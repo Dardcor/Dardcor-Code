@@ -1640,18 +1640,18 @@ export class DataTransferItem implements vscode.DataTransferItem {
 	) { }
 }
 
-/**
- * A data transfer item that has been created by VS Code instead of by a extension.
- *
- * Intentionally not exported to extensions.
- */
+
+
+
+
+
 export class InternalDataTransferItem extends DataTransferItem { }
 
-/**
- * A data transfer item for a file.
- *
- * Intentionally not exported to extensions as only we can create these.
- */
+
+
+
+
+
 export class InternalFileDataTransferItem extends InternalDataTransferItem {
 
 	readonly #file: vscode.DataTransferFile;
@@ -1666,9 +1666,9 @@ export class InternalFileDataTransferItem extends InternalDataTransferItem {
 	}
 }
 
-/**
- * Intentionally not exported to extensions
- */
+
+
+
 export class DataTransferFile implements vscode.DataTransferFile {
 
 	public readonly name: string;

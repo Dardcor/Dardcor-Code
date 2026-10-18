@@ -21,10 +21,10 @@ export interface ICompletionsTelemetryUserConfigService {
 	ftFlag: string;
 }
 
-/**
- * Completion telemetry carries no external provider identity or entitlement.
- * Keep the existing telemetry contract with privacy-preserving local defaults.
- */
+
+
+
+
 export class TelemetryUserConfig implements ICompletionsTelemetryUserConfigService {
 	declare _serviceBrand: undefined;
 	optedIn = false;

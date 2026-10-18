@@ -115,7 +115,7 @@ interface ITreeSitterResources {
 let treeSitterResourcesPromise: Promise<ITreeSitterResources> | undefined;
 
 function getTreeSitterResources(): Promise<ITreeSitterResources> {
-	// Parser.init and Language.load mutate process-global WASM state, so load them once.
+
 	return treeSitterResourcesPromise ??= loadTreeSitterResources();
 }
 

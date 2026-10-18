@@ -553,7 +553,7 @@ export class MenuBar extends Disposable {
 		if (this.options.enableMnemonics) {
 			const cleanLabel = strings.escape(label);
 
-			// This is global so reset it
+
 			MENU_ESCAPED_MNEMONIC_REGEX.lastIndex = 0;
 			let escMatch = MENU_ESCAPED_MNEMONIC_REGEX.exec(cleanLabel);
 

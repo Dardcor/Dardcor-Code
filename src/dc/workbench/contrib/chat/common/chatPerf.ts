@@ -11,32 +11,32 @@ const chatPerfPrefix = 'code/chat/';
 
 const chatMarksBySession = new Map<string, Set<string>>();
 
-/**
- * Well-defined perf scenarios for chat request lifecycle.
- * Each mark is a boundary of a measurable scenario — don't add marks
- * without defining what scenario they belong to.
- *
- * ## Scenarios
- *
- * **Time to UI Feedback** (perceived input lag):
- *   `request/start` → `request/uiUpdated`
- *
- * **Instruction Collection Overhead**:
- *   `request/willCollectInstructions` → `request/didCollectInstructions`
- *
- * **Extension Activation Wait** (first-request cold start):
- *   `code/chat/willWaitForActivation` → `code/chat/didWaitForActivation`
- *   (global marks, not session-scoped — emitted via {@link markChatGlobal})
- *
- * **Time to First Token** (the headline metric):
- *   `request/start` → `request/firstToken`
- *
- * **Total Request Duration**:
- *   `request/start` → `request/complete`
- *
- * **Agent Invocation Time** (LLM round-trip):
- *   `agent/willInvoke` → `agent/didInvoke`
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 export const ChatPerfMark = {
 	RequestStart: 'request/start',
 	RequestUiUpdated: 'request/uiUpdated',
@@ -71,10 +71,10 @@ export function clearChatMarks(sessionResource: URI): void {
 	}
 }
 
-/**
- * Well-defined one-time global perf marks (not scoped to a session).
- * These are emitted via {@link markChatGlobal} and are never cleared.
- */
+
+
+
+
 export const ChatGlobalPerfMark = {
 	WillWaitForActivation: 'willWaitForActivation',
 	DidWaitForActivation: 'didWaitForActivation',

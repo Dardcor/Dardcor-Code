@@ -112,7 +112,7 @@ function emitExternalLoaderInfo(externalLoaderInfo: util.IExternalLoaderInfo): s
 	const externalBaseUrl = externalLoaderInfo.baseUrl;
 	externalLoaderInfo.baseUrl = '$BASE_URL';
 
-	// If defined, use the runtime configured baseUrl.
+
 	const code = `
 (function() {
 	const baseUrl = require.getConfig().baseUrl || ${JSON.stringify(externalBaseUrl)};
@@ -168,44 +168,44 @@ function toBundleStream(src: string, bundledFileHeader: string, bundles: bundle.
 }
 
 export interface IOptimizeAMDTaskOpts {
-	/**
-	 * The folder to read files from.
-	 */
+
+
+
 	src: string;
 	/**
 	 * (for AMD files, will get bundled and get Copyright treatment)
 	 */
 	entryPoints: bundle.IEntryPoint[];
-	/**
-	 * (svg, etc.)
-	 */
+
+
+
 	resources: string[];
 	loaderConfig: any;
-	/**
-	 * Additional info we append to the end of the loader
-	 */
+
+
+
 	externalLoaderInfo?: util.IExternalLoaderInfo;
-	/**
-	 * (true by default - append css and nls to loader)
-	 */
+
+
+
 	bundleLoader?: boolean;
 	/**
 	 * (basically the Copyright treatment)
 	 */
 	header?: string;
-	/**
-	 * (emit bundleInfo.json file)
-	 */
+
+
+
 	bundleInfo: boolean;
-	/**
-	 * Language configuration.
-	 */
+
+
+
 	languages?: Language[];
-	/**
-	 * File contents interceptor
-	 * @param contents The contents of the file
-	 * @param path The absolute file path, always using `/`, even on Windows
-	 */
+
+
+
+
+
 	fileContentMapper?: (contents: string, path: string) => string;
 }
 
@@ -223,16 +223,16 @@ function optimizeAMDTask(opts: IOptimizeAMDTaskOpts): NodeJS.ReadWriteStream {
 	const bundledFileHeader = opts.header || DEFAULT_FILE_HEADER;
 	const fileContentMapper = opts.fileContentMapper || ((contents: string, _path: string) => contents);
 
-	const bundlesStream = es.through(); // this stream will contain the bundled files
-	const resourcesStream = es.through(); // this stream will contain the resources
-	const bundleInfoStream = es.through(); // this stream will contain bundleInfo.json
+	const bundlesStream = es.through();
+	const resourcesStream = es.through();
+	const bundleInfoStream = es.through();
 
 	bundle.bundle(entryPoints, loaderConfig, function (err, result) {
 		if (err || !result) { return bundlesStream.emit('error', JSON.stringify(err)); }
 
 		toBundleStream(src, bundledFileHeader, result.files, fileContentMapper).pipe(bundlesStream);
 
-		// Remove css inlined resources
+
 		const filteredResources = resources.slice();
 		result.cssInlinedResources.forEach(function (resource) {
 			if (process.env['VSCODE_BUILD_VERBOSE']) {
@@ -274,8 +274,8 @@ function optimizeAMDTask(opts: IOptimizeAMDTaskOpts): NodeJS.ReadWriteStream {
 }
 
 function optimizeESMTask(opts: IOptimizeAMDTaskOpts, cjsOpts?: IOptimizeCommonJSTaskOpts): NodeJS.ReadWriteStream {
-	const resourcesStream = es.through(); // this stream will contain the resources
-	const bundlesStream = es.through(); // this stream will contain the bundled files
+	const resourcesStream = es.through();
+	const bundlesStream = es.through();
 
 	const entryPoints = opts.entryPoints.filter(d => d.target !== 'amd');
 	if (cjsOpts) {
@@ -289,7 +289,7 @@ function optimizeESMTask(opts: IOptimizeAMDTaskOpts, cjsOpts?: IOptimizeCommonJS
 		entryPoint.exclude?.forEach(allMentionedModules.add, allMentionedModules);
 	}
 
-	allMentionedModules.delete('vs/css'); // TODO@esm remove this when vs/css is removed
+	allMentionedModules.delete('vs/css');
 
 	const bundleAsync = async () => {
 
@@ -300,10 +300,10 @@ function optimizeESMTask(opts: IOptimizeAMDTaskOpts, cjsOpts?: IOptimizeCommonJS
 
 			console.log(`[bundle] '${entryPoint.name}'`);
 
-			// support for 'dest' via esbuild#in/out
+
 			const dest = entryPoint.dest?.replace(/\.[^/.]+$/, '') ?? entryPoint.name;
 
-			// boilerplate massage
+
 			const banner = { js: '' };
 			const tslibPath = path.join(require.resolve('tslib'), '../tslib.es6.js');
 			banner.js += await fs.promises.readFile(tslibPath, 'utf-8');
@@ -319,7 +319,7 @@ function optimizeESMTask(opts: IOptimizeAMDTaskOpts, cjsOpts?: IOptimizeCommonJS
 				}
 			};
 
-			// support for 'preprend' via the esbuild#banner
+
 			if (entryPoint.prepend?.length) {
 				for (const item of entryPoint.prepend) {
 					const fullpath = path.join(REPO_ROOT_PATH, opts.src, item.path);
@@ -364,9 +364,9 @@ function optimizeESMTask(opts: IOptimizeAMDTaskOpts, cjsOpts?: IOptimizeCommonJS
 					if (file.path.endsWith('.js')) {
 
 						if (opts.fileContentMapper) {
-							// UGLY the fileContentMapper is per file but at this point we have all files
-							// bundled already. So, we call the mapper for the same contents but each file
-							// that has been included in the bundle...
+
+
+
 							let newText = file.text;
 							for (const input of Object.keys(res.metafile.inputs)) {
 								newText = opts.fileContentMapper(newText, input);
@@ -387,7 +387,7 @@ function optimizeESMTask(opts: IOptimizeAMDTaskOpts, cjsOpts?: IOptimizeCommonJS
 				}
 			});
 
-			// await task; // FORCE serial bundling (makes debugging easier)
+
 			tasks.push(task);
 		}
 
@@ -397,10 +397,10 @@ function optimizeESMTask(opts: IOptimizeAMDTaskOpts, cjsOpts?: IOptimizeCommonJS
 
 	bundleAsync().then((output) => {
 
-		// bundle output (JS, CSS, SVG...)
+
 		es.readArray(output.files).pipe(bundlesStream);
 
-		// forward all resources
+
 		gulp.src(opts.resources, { base: `${opts.src}`, allowEmpty: true }).pipe(resourcesStream);
 	});
 
@@ -423,21 +423,21 @@ function optimizeESMTask(opts: IOptimizeAMDTaskOpts, cjsOpts?: IOptimizeCommonJS
 }
 
 export interface IOptimizeCommonJSTaskOpts {
-	/**
-	 * The paths to consider for optimizing.
-	 */
+
+
+
 	entryPoints: string[];
-	/**
-	 * The folder to read files from.
-	 */
+
+
+
 	src: string;
-	/**
-	 * ESBuild `platform` option: https://esbuild.github.io/api/#platform
-	 */
+
+
+
 	platform: 'browser' | 'node' | 'neutral';
-	/**
-	 * ESBuild `external` option: https://esbuild.github.io/api/#external
-	 */
+
+
+
 	external: string[];
 }
 
@@ -463,14 +463,14 @@ function optimizeCommonJSTask(opts: IOptimizeCommonJSTaskOpts): NodeJS.ReadWrite
 }
 
 export interface IOptimizeManualTaskOpts {
-	/**
-	 * The paths to consider for concatenation. The entries
-	 * will be concatenated in the order they are provided.
-	 */
+
+
+
+
 	src: string[];
-	/**
-	 * Destination target to concatenate the entryPoints into.
-	 */
+
+
+
 	out: string;
 }
 
@@ -489,21 +489,21 @@ export function optimizeLoaderTask(src: string, out: string, bundleLoader: boole
 }
 
 export interface IOptimizeTaskOpts {
-	/**
-	 * Destination folder for the optimized files.
-	 */
+
+
+
 	out: string;
-	/**
-	 * Optimize AMD modules (using our AMD loader).
-	 */
+
+
+
 	amd: IOptimizeAMDTaskOpts;
-	/**
-	 * Optimize CommonJS modules (using esbuild).
-	 */
+
+
+
 	commonJS?: IOptimizeCommonJSTaskOpts;
-	/**
-	 * Optimize manually by concatenating files.
-	 */
+
+
+
 	manual?: IOptimizeManualTaskOpts[];
 }
 

@@ -129,10 +129,10 @@ export interface IChatDebugService extends IDisposable {
 
 	exportLog(sessionResource: URI): Promise<Uint8Array | undefined>;
 
-	/**
-	 * Import a previously exported debug log via the registered provider.
-	 * Returns the session URI for the imported data.
-	 */
+
+
+
+
 	importLog(data: Uint8Array): Promise<URI | undefined>;
 
 	isCoreEvent(event: IChatDebugEvent): boolean;

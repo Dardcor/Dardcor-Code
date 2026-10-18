@@ -1893,7 +1893,7 @@ export class Repository implements Disposable {
 
 			await this.repository.addWorktree({ path: worktreePath!, commitish: commitish ?? 'HEAD', branch, noTrack });
 
-			// Update worktree root in global state
+
 			const newWorktreeRoot = path.dirname(worktreePath!);
 			if (defaultWorktreeRoot && !pathEquals(newWorktreeRoot, defaultWorktreeRoot)) {
 				this.globalState.update(`${Repository.WORKTREE_ROOT_STORAGE_KEY}:${this.root}`, newWorktreeRoot);

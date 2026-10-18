@@ -6,10 +6,10 @@
 
 import { JSONScanner, ScanError, SyntaxKind } from './scannerTypes';
 
-/**
- * Creates a JSON scanner on the given text.
- * If ignoreTrivia is set, whitespaces or comments are ignored.
- */
+
+
+
+
 export function createScanner(text: string, ignoreTrivia: boolean = false): JSONScanner {
 
 	const len = text.length;
@@ -187,13 +187,13 @@ export function createScanner(text: string, ignoreTrivia: boolean = false): JSON
 		prevTokenLineStartOffset = tokenLineStartOffset;
 
 		if (pos >= len) {
-			// at the end
+
 			tokenOffset = len;
 			return token = SyntaxKind.EOF;
 		}
 
 		let code = text.charCodeAt(pos);
-		// trivia: whitespace
+
 		if (isWhiteSpace(code)) {
 			do {
 				pos++;
@@ -204,7 +204,7 @@ export function createScanner(text: string, ignoreTrivia: boolean = false): JSON
 			return token = SyntaxKind.Trivia;
 		}
 
-		// trivia: newlines
+
 		if (isLineBreak(code)) {
 			pos++;
 			value += String.fromCharCode(code);
@@ -218,7 +218,7 @@ export function createScanner(text: string, ignoreTrivia: boolean = false): JSON
 		}
 
 		switch (code) {
-			// tokens: []{}:,
+
 			case CharacterCodes.openBrace:
 				pos++;
 				return token = SyntaxKind.OpenBraceToken;
@@ -238,16 +238,16 @@ export function createScanner(text: string, ignoreTrivia: boolean = false): JSON
 				pos++;
 				return token = SyntaxKind.CommaToken;
 
-			// strings
+
 			case CharacterCodes.doubleQuote:
 				pos++;
 				value = scanString();
 				return token = SyntaxKind.StringLiteral;
 
-			// comments
+
 			case CharacterCodes.slash:
 				const start = pos - 1;
-				// Single-line comment
+
 				if (text.charCodeAt(pos + 1) === CharacterCodes.slash) {
 					pos += 2;
 
@@ -262,11 +262,11 @@ export function createScanner(text: string, ignoreTrivia: boolean = false): JSON
 					return token = SyntaxKind.LineCommentTrivia;
 				}
 
-				// Multi-line comment
+
 				if (text.charCodeAt(pos + 1) === CharacterCodes.asterisk) {
 					pos += 2;
 
-					const safeLength = len - 1; // For lookahead.
+					const safeLength = len - 1;
 					let commentClosed = false;
 					while (pos < safeLength) {
 						const ch = text.charCodeAt(pos);
@@ -297,21 +297,21 @@ export function createScanner(text: string, ignoreTrivia: boolean = false): JSON
 					value = text.substring(start, pos);
 					return token = SyntaxKind.BlockCommentTrivia;
 				}
-				// just a single slash
+
 				value += String.fromCharCode(code);
 				pos++;
 				return token = SyntaxKind.Unknown;
 
-			// numbers
+
 			case CharacterCodes.minus:
 				value += String.fromCharCode(code);
 				pos++;
 				if (pos === len || !isDigit(text.charCodeAt(pos))) {
 					return token = SyntaxKind.Unknown;
 				}
-			// found a minus, followed by a number so
-			// we fall through to proceed with scanning
-			// numbers
+
+
+
 			case CharacterCodes._0:
 			case CharacterCodes._1:
 			case CharacterCodes._2:
@@ -324,16 +324,16 @@ export function createScanner(text: string, ignoreTrivia: boolean = false): JSON
 			case CharacterCodes._9:
 				value += scanNumber();
 				return token = SyntaxKind.NumericLiteral;
-			// literals and unknown symbols
+
 			default:
-				// is a literal? Read the full word.
+
 				while (pos < len && isUnknownContentCharacter(code)) {
 					pos++;
 					code = text.charCodeAt(pos);
 				}
 				if (tokenOffset !== pos) {
 					value = text.substring(tokenOffset, pos);
-					// keywords: true, false, null
+
 					switch (value) {
 						case 'true': return token = SyntaxKind.TrueKeyword;
 						case 'false': return token = SyntaxKind.FalseKeyword;
@@ -341,7 +341,7 @@ export function createScanner(text: string, ignoreTrivia: boolean = false): JSON
 					}
 					return token = SyntaxKind.Unknown;
 				}
-				// some
+
 				value += String.fromCharCode(code);
 				pos++;
 				return token = SyntaxKind.Unknown;

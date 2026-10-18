@@ -80,7 +80,7 @@ export function removeLinkQueryString(link: string): string {
 }
 
 export function detectLinkSuffixes(line: string): ILinkSuffix[] {
-	// Find all suffixes on the line. Since the regex global flag is used, lastIndex will be updated
+
 	let match: RegExpExecArray | null;
 	const results: ILinkSuffix[] = [];
 	linkSuffixRegex.value.lastIndex = 0;

@@ -13,7 +13,7 @@ import { applyAgentHostCompletionAction, isPolicyBlockedCompletionAction } from 
 import { ChatConfiguration } from '../../common/constants.js';
 import { resetShownWarnings } from '../../common/chatPermissionWarnings.js';
 
-/** Test configuration service whose `inspect` reports a fixed `policyValue` for the global auto-approve setting. */
+
 class PolicyTestConfigurationService extends TestConfigurationService {
 	constructor(private readonly _globalAutoApprovePolicyValue: boolean | undefined) {
 		super();

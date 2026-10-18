@@ -18,21 +18,21 @@ function ensureSetTimeoutOriginalFn(fn: TimeApi['setTimeout'], previousFn: TimeA
 	return tagged;
 }
 
-/**
- * Replace the global time APIs (`setTimeout`, `setInterval`, …, `Date`,
- * `performance.now`, optionally `requestAnimationFrame`) with the ones from
- * `api`. Returns a disposable that restores the previous globals.
- *
- * The previous globals are captured *at install time*, so nested installs
- * compose correctly (the disposable restores to whatever was current when
- * this call was made, not to the original real values).
- *
- * `setTimeout.originalFn` is preserved on the installed function so callers
- * like the component-explorer host can escape virtual time when polling.
- * If `api.setTimeout` does not already carry `originalFn`, it is copied from
- * the previous global (or defaulted to the real `setTimeout`) so wrapping
- * APIs such as a logging wrapper don't drop the back-door.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 export function pushGlobalTimeApi(api: TimeApi): IDisposable {
 	const previous = captureGlobalTimeApi();
 	const previousPerformanceNowDescriptor = globalThis.performance

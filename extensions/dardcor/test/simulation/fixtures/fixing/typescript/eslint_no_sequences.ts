@@ -6,7 +6,7 @@ Math.max(1, 2)
 const list = (1, 2, 3, 4, 5)
 console.log(Math.max(list))
 
-// tricky
+
 export interface Node<T> {
 	payload: T;
 	parent: Node<T> | undefined;

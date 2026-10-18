@@ -62,14 +62,14 @@ export const IAgentSdkDownloader = createDecorator<IAgentSdkDownloader>('agentSd
 
 export type AgentSdkDownloadPhase = 'started' | 'progress' | 'completed' | 'failed';
 
-/**
- * A process-global download-progress sample fired on
- * {@link IAgentSdkDownloader.onDidDownloadProgress}. The downloader owns the
- * lifecycle: one `started`, throttled `progress` frames, then exactly one
- * terminal `completed` / `failed` — all sharing a `downloadId`. Concurrent
- * `loadSdkRoot` callers for the same tarball are deduped, so they observe one
- * shared download (one `downloadId`).
- */
+
+
+
+
+
+
+
+
 export interface IAgentSdkDownloadProgress {
 	readonly downloadId: string;
 	readonly packageId: string;
@@ -84,13 +84,13 @@ export interface IAgentSdkDownloadProgress {
 export interface IAgentSdkDownloader {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Fires while a tarball is being fetched (cold cache only): one `started`,
-	 * throttled `progress` samples, then one terminal `completed` / `failed`.
-	 * Never fires for dev-override or cache-hit resolutions (no bytes move).
-	 * Process-global so a single subscriber (the protocol server) can forward
-	 * progress to clients regardless of which session triggered the fetch.
-	 */
+
+
+
+
+
+
+
 	readonly onDidDownloadProgress: Event<IAgentSdkDownloadProgress>;
 
 	hasDownloadConsent(pkg: IAgentSdkPackage): boolean;
@@ -130,18 +130,18 @@ export class AgentSdkDownloader extends Disposable implements IAgentSdkDownloade
 	private readonly _pendingDownloads = new Map<string, Promise<string>>();
 	private readonly _explicitProgressInterest = new Map<string, number>();
 
-	/**
-	 * Negative cache: most recent failure per package id, with an expiry.
-	 * While within the window, `loadSdkRoot` re-throws the cached error
-	 * immediately instead of re-attempting the download. Without this, a
-	 * broken CDN causes every SDK method call (poll-driven UIs hit this
-	 * hard) to fire a fresh request.
-	 *
-	 * Keyed by `pkg.id` (not the finer cacheDir): CDN failures are
-	 * effectively global per SDK (DNS, proxy auth, 5xx) and per-target
-	 * latching wouldn't protect against the actual failure modes — the
-	 * broader latch is intentional.
-	 */
+
+
+
+
+
+
+
+
+
+
+
+
 	private readonly _failureLatch = new Map<string, { error: Error; expiresAt: number }>();
 
 	constructor(
@@ -309,7 +309,7 @@ export class AgentSdkDownloader extends Disposable implements IAgentSdkDownloade
 		await this._delIgnoringMissing(tmpDirUri);
 		await this._fileService.createFolder(tmpDirUri);
 
-		// Fire the download lifecycle on the process-global event so a single
+
 		const downloadId = generateUuid();
 		let lastReceived = 0;
 		let lastTotal: number | undefined;

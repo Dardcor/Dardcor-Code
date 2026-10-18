@@ -101,7 +101,7 @@ export class TypeScriptReferencesCodeLensProvider extends TypeScriptBaseCodeLens
 			case PConst.Kind.const:
 			case PConst.Kind.let:
 			case PConst.Kind.variable:
-				// Only show references for exported variables
+
 				if (/\bexport\b/.test(item.kindModifiers)) {
 					return getSymbolRange(document, item);
 				}

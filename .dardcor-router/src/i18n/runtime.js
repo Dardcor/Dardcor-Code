@@ -30,7 +30,7 @@ async function loadTranslations(locale) {
   }
 }
 
-// Translate text - exported for use in components
+
 export function translate(text) {
   if (!text || typeof text !== "string") return text;
   const trimmed = text.trim();
@@ -39,7 +39,7 @@ export function translate(text) {
   return translationMap[trimmed] || text;
 }
 
-// Get current locale - exported for use in components
+
 export function getCurrentLocale() {
   return currentLocale;
 }

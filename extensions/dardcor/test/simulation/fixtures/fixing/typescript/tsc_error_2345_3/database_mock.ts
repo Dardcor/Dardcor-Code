@@ -8,6 +8,6 @@ export function connect(address: string, options: { timeout?: number, loose: boo
 	// TODO: Actually connect
 }
 export function findRow(table: string, conditions: [string, string][], order?: string, limit?: number): string[] {
-	// TODO: Actually find row
+
 	return []
 }

@@ -5,7 +5,7 @@ export function connectLegacy(address: string, options: { timeout?: number, loos
 	connect(address, options.timeout ?? 1000, options.loose);
 }
 export function findRow(table: string, conditions: [string, string][], order?: string, limit?: number): string[] {
-	// TODO: Actually find row
+
 	return []
 }
 export function connectReal(address: string, options: { timeout?: number, loose: boolean } = { loose: false }): void {

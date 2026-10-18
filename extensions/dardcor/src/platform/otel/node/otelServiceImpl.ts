@@ -120,7 +120,7 @@ export class NodeOTelService implements IOTelService {
 				resource,
 				spanProcessors: this._spanProcessors,
 			});
-			// global OTel provider is the extension's own provider. Attaching extra span processors to
+
 			Object.defineProperty(tracerProvider, '__dardcorChatOwnProvider', { value: true });
 			tracerProvider.register();
 			this._tracer = api.trace.getTracer(this.config.serviceName, this.config.serviceVersion);
@@ -680,12 +680,12 @@ function toOTelSpanKind(kind: SpanKind | undefined): number {
 	}
 }
 
-/**
- * Operation names that follow the GenAI semantic conventions and should be
- * exported to the user's OTLP endpoint. Debug-panel-only spans (e.g.,
- * `content_event`, `user_message`) are excluded from external export but
- * still visible in the in-memory span store for the Agent Debug Log panel.
- */
+
+
+
+
+
+
 const EXPORTABLE_OPERATION_NAMES: ReadonlySet<string> = new Set([
 	GenAiOperationName.CHAT,
 	GenAiOperationName.INVOKE_AGENT,

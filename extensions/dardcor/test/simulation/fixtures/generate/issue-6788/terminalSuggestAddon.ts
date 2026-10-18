@@ -47,28 +47,28 @@ export type PwshCompletion = {
 };
 
 
-/**
- * A map of the pwsh result type enum's value to the corresponding icon to use in completions.
- *
- * | Value | Name              | Description
- * |-------|-------------------|------------
- * | 0     | Text              | An unknown result type, kept as text only
- * | 1     | History           | A history result type like the items out of get-history
- * | 2     | Command           | A command result type like the items out of get-command
- * | 3     | ProviderItem      | A provider item
- * | 4     | ProviderContainer | A provider container
- * | 5     | Property          | A property result type like the property items out of get-member
- * | 6     | Method            | A method result type like the method items out of get-member
- * | 7     | ParameterName     | A parameter name result type like the Parameters property out of get-command items
- * | 8     | ParameterValue    | A parameter value result type
- * | 9     | Variable          | A variable result type like the items out of get-childitem variable:
- * | 10    | Namespace         | A namespace
- * | 11    | Type              | A type name
- * | 12    | Keyword           | A keyword
- * | 13    | DynamicKeyword    | A dynamic keyword
- *
- * @see https://docs.microsoft.com/en-us/dotnet/api/system.management.automation.completionresulttype?view=powershellsdk-7.0.0
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const pwshTypeToIconMap: { [type: string]: ThemeIcon | undefined } = {
 	0: Codicon.symbolText,
 	1: Codicon.history,
@@ -111,7 +111,7 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 	private _suggestWidget?: SimpleSuggestWidget;
 	private _enableWidget: boolean = true;
 
-	// TODO: Remove these in favor of prompt input state
+
 	private _leadingLineContent?: string;
 	private _cursorIndexDelta: number = 0;
 
@@ -119,7 +119,7 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 	private _lastAcceptedCompletionTimestamp: number = 0;
 	private _lastUserData?: string;
 
-	static requestCompletionsSequence = '\x1b[24~e'; // F12,e
+	static requestCompletionsSequence = '\x1b[24~e';
 
 	private readonly _onBell = this._register(new Emitter<void>());
 	readonly onBell = this._onBell.event;
@@ -176,8 +176,8 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 	}
 
 	private _requestCompletions(): void {
-		// Ensure that a key has been pressed since the last accepted completion in order to prevent
-		// completions being requested again right after accepting a completion
+
+
 		if (this._lastUserDataTimestamp > this._lastAcceptedCompletionTimestamp) {
 			this._onAcceptedCompletion.fire(SuggestAddon.requestCompletionsSequence);
 		}
@@ -187,17 +187,17 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		const config = this._configurationService.getValue<ITerminalSuggestConfiguration>(terminalSuggestConfigSection);
 
 		if (!this._mostRecentPromptInputState || promptInputState.cursorIndex > this._mostRecentPromptInputState.cursorIndex) {
-			// If input has been added
+
 			let sent = false;
 
-			// Quick suggestions
+
 			if (!this._terminalSuggestWidgetVisibleContextKey.get()) {
 				if (config.quickSuggestions) {
 					const completionPrefix = promptInputState.value.substring(0, promptInputState.cursorIndex);
 					if (promptInputState.cursorIndex === 1 || completionPrefix.match(/([\s\[])[^\s]$/)) {
-						// Never request completions if the last key sequence was up or down as the user was likely
-						// navigating history
-						if (this._lastUserData !== /*up*/'\x1b[A' && this._lastUserData !== /*down*/'\x1b[B') {
+
+
+						if (this._lastUserData !==  '\x1b[A' && this._lastUserData !==  '\x1b[B') {
 							this._requestCompletions();
 							sent = true;
 						}
@@ -205,7 +205,7 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 				}
 			}
 
-			// Trigger characters - this happens even if the widget is showing
+
 			if (config.suggestOnTriggerCharacters && !sent) {
 				const lastChar = promptInputState.value.at(promptInputState.cursorIndex - 1);
 				if (lastChar?.match(/[\\\/\-]/)) {
@@ -222,14 +222,14 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 
 		this._currentPromptInputState = promptInputState;
 
-		// Hide the widget if the latest character was a space
+
 		if (this._currentPromptInputState.cursorIndex > 1 && this._currentPromptInputState.value.at(this._currentPromptInputState.cursorIndex - 1) === ' ') {
 			this.hideSuggestWidget();
 			return;
 		}
 
-		// Hide the widget if the cursor moves to the left of the initial position as the
-		// completions are no longer valid
+
+
 		if (this._currentPromptInputState.cursorIndex < this._initialPromptInputState.cursorIndex) {
 			this.hideSuggestWidget();
 			return;
@@ -241,7 +241,7 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 			this._suggestWidget.setLineContext(lineContext);
 		}
 
-		// Hide and clear model if there are no more items
+
 		if (!this._suggestWidget.hasCompletions()) {
 			this.hideSuggestWidget();
 			return;
@@ -251,7 +251,7 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		if (!dimensions.width || !dimensions.height) {
 			return;
 		}
-		// TODO: What do frozen and auto do?
+
 		const xtermBox = this._screen!.getBoundingClientRect();
 
 		this._suggestWidget.showSuggestions(0, false, false, {
@@ -266,7 +266,7 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 			return false;
 		}
 
-		// Pass the sequence along to the capability
+
 		const [command, ...args] = data.split(';');
 		switch (command) {
 			case VSCodeSuggestOscPt.Completions:
@@ -279,12 +279,12 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 				return this._handleCompletionsBashFirstWordSequence(this._terminal, data, command, args);
 		}
 
-		// Unrecognized sequence
+
 		return false;
 	}
 
 	private _handleCompletionsSequence(terminal: Terminal, data: string, command: string, args: string[]): void {
-		// Nothing to handle if the terminal is not attached
+
 		if (!terminal.element || !this._enableWidget || !this._promptInputModel) {
 			return;
 		}
@@ -292,14 +292,14 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		let replacementIndex = 0;
 		let replacementLength = this._promptInputModel.cursorIndex;
 
-		const payload = data.slice(command.length + args[0].length + args[1].length + args[2].length + 4/*semi-colons*/);
+		const payload = data.slice(command.length + args[0].length + args[1].length + args[2].length + 4 );
 		const rawCompletions: PwshCompletion | PwshCompletion[] | CompressedPwshCompletion[] | CompressedPwshCompletion = args.length === 0 || payload.length === 0 ? undefined : JSON.parse(payload);
 		const completions = parseCompletionsFromShell(rawCompletions);
 
 		this._leadingLineContent = this._promptInputModel.value.substring(0, this._promptInputModel.cursorIndex);
 
 		const firstChar = this._leadingLineContent.length === 0 ? '' : this._leadingLineContent[0];
-		// This is a TabExpansion2 result
+
 		if (this._leadingLineContent.trim().includes(' ') || firstChar === '[') {
 			replacementIndex = parseInt(args[0]);
 			replacementLength = parseInt(args[1]);
@@ -321,8 +321,8 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		this._handleCompletionModel(model);
 	}
 
-	// TODO: These aren't persisted across reloads
-	// TODO: Allow triggering anywhere in the first word based on the cached completions
+
+
 	private _cachedBashAliases: Set<SimpleCompletionItem> = new Set();
 	private _cachedBashBuiltins: Set<SimpleCompletionItem> = new Set();
 	private _cachedBashCommands: Set<SimpleCompletionItem> = new Set();
@@ -330,7 +330,7 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 	private _cachedFirstWord?: SimpleCompletionItem[];
 	private _handleCompletionsBashFirstWordSequence(terminal: Terminal, data: string, command: string, args: string[]): boolean {
 		const type = args[0];
-		const completionList: string[] = data.slice(command.length + type.length + 2/*semi-colons*/).split(';');
+		const completionList: string[] = data.slice(command.length + type.length + 2 ).split(';');
 		let set: Set<SimpleCompletionItem>;
 		switch (type) {
 			case 'alias': set = this._cachedBashAliases; break;
@@ -351,13 +351,13 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 				detail: type
 			}));
 		}
-		// Invalidate compound list cache
+
 		this._cachedFirstWord = undefined;
 		return true;
 	}
 
 	private _handleCompletionsBashSequence(terminal: Terminal, data: string, command: string, args: string[]): void {
-		// Nothing to handle if the terminal is not attached
+
 		if (!terminal.element) {
 			return;
 		}
@@ -369,10 +369,10 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 			return;
 		}
 
-		const completionList: string[] = data.slice(command.length + args[0].length + args[1].length + args[2].length + 4/*semi-colons*/).split(';');
-		// TODO: Create a trigger suggest command which encapsulates sendSequence and uses cached if available
+		const completionList: string[] = data.slice(command.length + args[0].length + args[1].length + args[2].length + 4 ).split(';');
+
 		let completions: SimpleCompletionItem[];
-		// TODO: This 100 is a hack just for the prototype, this should get it based on some terminal input model
+
 		if (replacementIndex !== 100 && completionList.length > 0) {
 			completions = completionList.map(label => {
 				return new SimpleCompletionItem({
@@ -436,7 +436,7 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		if (!dimensions.width || !dimensions.height) {
 			return;
 		}
-		// TODO: What do frozen and auto do?
+
 		const xtermBox = this._screen!.getBoundingClientRect();
 		this._initialPromptInputState = {
 			value: this._promptInputModel.value,
@@ -500,19 +500,19 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 
 		const currentPromptInputState = this._currentPromptInputState ?? initialPromptInputState;
 
-		// The replacement text is any text after the replacement index for the completions, this
-		// includes any text that was there before the completions were requested and any text added
-		// since to refine the completion.
+
+
+
 		const replacementText = currentPromptInputState.value.substring(this._model.replacementIndex, currentPromptInputState.cursorIndex);
 
-		// Right side of replacement text in the same word
+
 		let rightSideReplacementText = '';
 		if (
-			// The line didn't end with ghost text
+
 			(currentPromptInputState.ghostTextIndex === -1 || currentPromptInputState.ghostTextIndex > currentPromptInputState.cursorIndex) &&
-			// There is more than one charatcer
+
 			currentPromptInputState.value.length > currentPromptInputState.cursorIndex + 1 &&
-			// THe next character is not a space
+
 			currentPromptInputState.value.at(currentPromptInputState.cursorIndex) !== ' '
 		) {
 			const spaceIndex = currentPromptInputState.value.substring(currentPromptInputState.cursorIndex, currentPromptInputState.ghostTextIndex === -1 ? undefined : currentPromptInputState.ghostTextIndex).indexOf(' ');
@@ -544,22 +544,22 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 			}
 		}
 
-		// For folders, allow the next completion request to get completions for that folder
+
 		if (completion.icon === Codicon.folder) {
 			this._lastAcceptedCompletionTimestamp = 0;
 		}
 
 
 
-		// Send the completion
+
 		this._onAcceptedCompletion.fire([
-			// Backspace (left) to remove all additional input
+
 			'\x7F'.repeat(replacementText.length),
-			// Delete (right) to remove any additional text in the same word
+
 			'\x1b[3~'.repeat(rightSideReplacementText.length),
-			// Write the completion
+
 			completion.label,
-			// Run on enter if needed
+
 			runOnEnter ? '\r' : ''
 		].join(''));
 

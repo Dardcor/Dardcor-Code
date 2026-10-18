@@ -44,7 +44,7 @@ const languageModelToolsExtensionPoint = extensionsRegistry.ExtensionsRegistry.r
 				id: {
 					description: localize('toolId', "A unique id for this tool."),
 					type: 'string',
-					// Borrow OpenAI's requirement for tool names
+
 					pattern: '^[\\w-]+$'
 				},
 				name: {

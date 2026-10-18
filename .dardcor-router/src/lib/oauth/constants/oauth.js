@@ -1,6 +1,6 @@
-/**
- * OAuth Configuration Constants — static data lives in registry, re-exported here for consumers.
- */
+
+
+
 import { platform, arch } from "os";
 import { ANTIGRAVITY_OAUTH_CLIENT, GOOGLE_OAUTH_CLIENT } from "open-sse/providers/shared.js";
 import { PROVIDER_OAUTH, PROVIDERS as REGISTRY_PROVIDERS } from "open-sse/providers/index.js";

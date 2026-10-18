@@ -443,7 +443,7 @@ export async function POST(request) {
         }
 
         case "vertex": {
-          // Raw key: probe global endpoint (always 404 for unknown model, never 401)
+
           const saJson = (() => { try { const p = JSON.parse(apiKey); return p.type === "service_account" ? p : null; } catch { return null; } })();
           if (saJson) {
             isValid = !!(saJson.client_email && saJson.private_key && saJson.project_id);

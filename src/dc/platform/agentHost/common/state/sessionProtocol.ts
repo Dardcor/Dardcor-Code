@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Most types are re-exported from the auto-generated protocol layer.
+
 
 
 export type {
@@ -81,7 +81,7 @@ export type { ResourceChange, ResourceWatchState } from './protocol/channels-res
 export { AhpErrorCodes, JsonRpcErrorCodes } from './protocol/errors.js';
 export type { AhpErrorCode, JsonRpcErrorCode } from './protocol/errors.js';
 
-// Snapshot type (re-exported from state). The generated `Snapshot.state`
+
 import type { Snapshot as ProtocolSnapshot } from './protocol/state.js';
 export type IStateSnapshot = ProtocolSnapshot;
 

@@ -272,7 +272,7 @@ describe('ChatDebugFileLoggerService', () => {
 	it('isDebugLogUri allows the global root while a workspace is open', async () => {
 		const globalTmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'chatdebug-global-'));
 		try {
-			// Window has a workspace (storageUri = tmpDir) plus a global root.
+
 			const workspaceService = new ChatDebugFileLoggerService(
 				otelService as unknown as IOTelService,
 				new TestFileSystemService() as unknown as IFileSystemService,
@@ -285,7 +285,7 @@ describe('ChatDebugFileLoggerService', () => {
 			);
 			disposables.add(workspaceService);
 
-			// A log under the global root (where a no-workspace session was written)
+
 			const globalLogUri = URI.joinPath(URI.file(globalTmpDir), 'debug-logs', 'hist-session', 'main.jsonl');
 			expect(workspaceService.isDebugLogUri(globalLogUri)).toBe(true);
 
@@ -344,7 +344,7 @@ describe('ChatDebugFileLoggerService', () => {
 	it('resolves a historical session from global storage when reopened in a workspace window', async () => {
 		const globalTmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'chatdebug-global-'));
 		try {
-			// Phase 1: session logged with no workspace open → written to global storage.
+
 			const noWorkspaceService = new ChatDebugFileLoggerService(
 				otelService as unknown as IOTelService,
 				new TestFileSystemService() as unknown as IFileSystemService,
@@ -899,11 +899,11 @@ describe('ChatDebugFileLoggerService', () => {
 		it('aggregates sessions across workspace and global roots', async () => {
 			const globalTmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'chatdebug-global-'));
 			try {
-				// A session written to the global root by a previous no-workspace window.
+
 				await fs.promises.mkdir(path.join(globalTmpDir, 'debug-logs', 'global-session'), { recursive: true });
 				await fs.promises.writeFile(path.join(globalTmpDir, 'debug-logs', 'global-session', 'main.jsonl'), '{}');
 
-				// Current window has a workspace (storageUri = tmpDir) plus the same global root.
+
 				const workspaceService = new ChatDebugFileLoggerService(
 					otelService as unknown as IOTelService,
 					new TestFileSystemService() as unknown as IFileSystemService,

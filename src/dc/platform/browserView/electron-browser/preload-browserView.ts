@@ -220,7 +220,7 @@ function init() {
 	};
 
 	try {
-		// Use `contextBridge` APIs to expose globals to the same isolated world where this preload script runs (worldId 999).
+
 		contextBridge.exposeInIsolatedWorld(999, 'browserViewAPI', isolatedHelpers);
 		contextBridge.exposeInMainWorld('__vscode_helpers', mainWorldHelpers);
 	} catch (error) {

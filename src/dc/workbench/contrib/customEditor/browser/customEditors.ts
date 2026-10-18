@@ -81,7 +81,7 @@ export class CustomEditorService extends Disposable implements ICustomEditorServ
 			this._onDidChangeEditorTypes.fire();
 		}));
 
-		// These set the context keys for each editor group and the global context
+
 		const activeCustomEditorContextKeyProvider: IEditorGroupContextKeyProvider<string> = {
 			contextKey: CONTEXT_ACTIVE_CUSTOM_EDITOR_ID,
 			getGroupContextKeyValue: group => this.getActiveCustomEditorId(group),

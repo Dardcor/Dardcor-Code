@@ -140,7 +140,7 @@ export class NodeJSFileWatcherLibrary extends Disposable {
 				await thenRegisterOrDispose(this.doWatch(isDirectory), disposables);
 			} else if (change) {
 				if (typeof change.cId === 'number' || typeof this.request.correlationId === 'number') {
-					// because the event will appear on the global listener already.
+
 					this.onFileChange({ resource, type: change.type, cId: this.request.correlationId }, true );
 				}
 			}

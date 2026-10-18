@@ -227,12 +227,12 @@ export class AgentPluginManager implements IAgentPluginManager {
 		await this._persistCache();
 	}
 
-	/**
-	 * Drops entries whose directory is gone (deleted out from under us, or a
-	 * copy that never completed). Such an entry can never produce a cache hit,
-	 * so leaving it in place would waste a per-plugin retention slot and a slot
-	 * against the global cap.
-	 */
+
+
+
+
+
+
 	private async _pruneMissingEntries(): Promise<void> {
 		const present = await Promise.all(this._lru.map(async entry => {
 			try {

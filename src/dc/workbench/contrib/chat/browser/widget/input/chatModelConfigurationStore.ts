@@ -27,8 +27,8 @@ export class ChatModelConfigurationStore extends Disposable implements IModelCon
 	) {
 		super();
 
-		// This event ALSO fires for global model-configuration writes (e.g. another
-		// editor calling `setModelConfiguration`, which mirrors to the global service
+
+
 		this._register(this.languageModelsService.onDidChangeLanguageModels(() => {
 			if (this._overrides.size === 0) {
 				return;
@@ -47,16 +47,16 @@ export class ChatModelConfigurationStore extends Disposable implements IModelCon
 		}));
 	}
 
-	/**
-	 * Returns this editor's snapshot of the given model's configuration. The
-	 * resolution order is:
-	 *   1. In-memory snapshot (this editor's live value).
-	 *   2. Scoped storage bucket. A present entry wins even when empty, since an
-	 *      empty entry records an explicit reset-to-default.
-	 *   3. The profile-global value (migration fallback, only when no scoped
-	 *      entry exists).
-	 * The merged result is cached so subsequent reads are O(1).
-	 */
+
+
+
+
+
+
+
+
+
+
 	getModelConfiguration(modelId: string): IStringDictionary<unknown> | undefined {
 		let override = this._overrides.get(modelId);
 		if (!override) {
@@ -72,21 +72,21 @@ export class ChatModelConfigurationStore extends Disposable implements IModelCon
 	async setModelConfiguration(modelId: string, values: IStringDictionary<unknown>): Promise<void> {
 		const changed = this._applyLocalModelConfiguration(modelId, values);
 		if (!changed) {
-			// global value.
+
 			return;
 		}
 
-		// Mirror the change to the profile-global model configuration. The
-		// global value is what newly created stores read as their migration
-		// default cleanly clears the global override.
+
+
+
 		await this.languageModelsService.setModelConfiguration(modelId, values);
 	}
 
-	/**
-	 * Applies the change to this editor's scoped state only (in-memory snapshot
-	 * and persisted bucket). Returns `true` when something actually changed, so
-	 * callers can skip propagating no-op updates to the profile-global value.
-	 */
+
+
+
+
+
 	private _applyLocalModelConfiguration(modelId: string, values: IStringDictionary<unknown>): boolean {
 		const schemaDefaults = this._schemaDefaults(modelId);
 		const stored = computeStoredConfiguration(this.getModelConfiguration(modelId) ?? {}, values, schemaDefaults);
@@ -99,7 +99,7 @@ export class ChatModelConfigurationStore extends Disposable implements IModelCon
 
 		this._overrides.set(modelId, nextOverride);
 
-		// remembered and does not fall back to the profile-global value on the
+
 		bucket[modelId] = stored;
 		this._writeBucket(bucket);
 
@@ -120,7 +120,7 @@ export class ChatModelConfigurationStore extends Disposable implements IModelCon
 		const filtered = metadata
 			? filterConfigurationToSchema(values, metadata.configurationSchema)
 			: { ...values };
-		// change it must NOT write the profile-global value, since restoring a
+
 		this._applyLocalModelConfiguration(modelId, filtered);
 	}
 

@@ -18,7 +18,7 @@ export interface ShellContext {
 	terminal?: string;
 	hostname?: string;
 	shellPath?: string;
-	/** the environment variables of the shell, note that only exported variables are included */
+
 	environmentVariables?: EnvironmentVariable[];
 	alias?: string;
 }

@@ -3,6 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Define Url global for both browser and node runtimes
+
 
 declare const URL: typeof import('url').URL;

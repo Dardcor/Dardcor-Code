@@ -278,7 +278,7 @@ export class DevinCliExecutor extends BaseExecutor {
       `devin acp → model=${model}, bin=${devinBin}, cwd=${workspaceCwd}`
     );
 
-    // NOTE: this replaces the user's global devin MCP config for the subprocess.
+
     let mcpConfigDir = null;
     const mcpServers = {};
     const mcpJson = process.env.DEVIN_MCP_SERVERS?.trim();

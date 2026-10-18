@@ -470,7 +470,7 @@ class TypeScriptRefactorProvider implements vscode.CodeActionProvider<TsCodeActi
 				}
 			}
 
-			// Show when on the same line as an exported symbols without a name (handles default exports)
+
 			if (!node.nameSpan && /\bexport\b/.test(node.kindModifiers) && node.spans.length) {
 				const convertedSpan = typeConverters.Range.fromTextSpan(node.spans[0]);
 				if (range.intersection(new vscode.Range(convertedSpan.start.line, 0, convertedSpan.start.line, Number.MAX_SAFE_INTEGER))) {

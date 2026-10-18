@@ -147,8 +147,8 @@ export function isDardcorLowRiskCommand(command: string): boolean {
 	if (!normalized || /[\r\n;&|`$<>]/.test(normalized)) {
 		return false;
 	}
-	// Even a read command must stay inside the workspace and avoid shell-level
-	// paths that can escape it. The terminal sandbox remains an additional layer.
+
+
 	if (/(?:^|\s)(?:\.\.[\\/]|~[\\/]|[a-z]:[\\/]|\\\\[^\s]*|\/(?:[^\s/]+))/i.test(normalized)) {
 		return false;
 	}
@@ -165,8 +165,8 @@ export function isDardcorLowRiskCommand(command: string): boolean {
 		return true;
 	}
 
-	// Package scripts execute repository-controlled code, so even familiar
-	// verification commands are not safe to auto-approve as read-only actions.
+
+
 	return false;
 }
 
@@ -204,15 +204,16 @@ const DARDCORE_STATEFUL_TOOLS = new Set([
 	'handle_browser_dialog', 'set_artifacts', 'set_artifact_rules', 'run_subagent', 'confirm_terminal_command',
 ]);
 
-/**
- * Applies the chat-session access mode to every Router tool before it runs.
- * Unknown and state-changing tools fail closed; only explicitly read-only tools
- * and a small safe-command allowlist can proceed without a confirmation.
- */
+
+
+
+
+
 export function requiresDardcorToolConfirmation(
 	toolName: string,
 	args: Record<string, unknown> | undefined,
 	permissionLevel: string | undefined,
+	externalReadRequiresConfirmation = false,
 ): boolean {
 	const knownTool = DARDCORE_READ_ONLY_TOOLS.has(toolName) || DARDCORE_COMMAND_TOOLS.has(toolName) || DARDCORE_STATEFUL_TOOLS.has(toolName);
 	if (!knownTool) {
@@ -228,10 +229,10 @@ export function requiresDardcorToolConfirmation(
 		return requiresDardcorCommandConfirmation(toolName, command, permissionLevel);
 	}
 	if (DARDCORE_READ_ONLY_TOOLS.has(toolName)) {
-		return false;
+		return externalReadRequiresConfirmation;
 	}
-	// Network access, browser interactions, file writes, subagents, and unknown
-	// tools can have side effects and therefore need a one-time user decision.
+
+
 	return true;
 }
 
@@ -282,8 +283,8 @@ export function summarizeDardcorToolAction(toolName: string, args: Record<string
 }
 
 export function getDardcorEffectivePermissionLevel(permissionLevel: string | undefined, autoApprovePolicyRestricted: boolean): string | undefined {
-	// Legacy Autopilot represents task continuation. It must not silently grant
-	// Full access; the separate access picker controls action permissions.
+
+
 	if (permissionLevel === 'autopilot') {
 		return 'default';
 	}

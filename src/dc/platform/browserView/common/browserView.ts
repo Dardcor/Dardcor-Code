@@ -483,9 +483,9 @@ export interface IBrowserViewService {
 
 	getSelectedText(id: string): Promise<string>;
 
-	/**
-	 * Clear all storage data for the global browser session
-	 */
+
+
+
 	clearGlobalStorage(): Promise<void>;
 
 	clearWorkspaceStorage(workspaceId: string): Promise<void>;

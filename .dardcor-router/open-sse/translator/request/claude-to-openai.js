@@ -52,7 +52,7 @@ export function claudeToOpenAIRequest(model, body, stream) {
     }
   }
 
-  // (distinct from the global immediate-next check in concerns/toolCall, runs on the openai leg).
+
   fixMissingToolResponsesOpenAI(result.messages);
 
   if (body.tools && Array.isArray(body.tools)) {

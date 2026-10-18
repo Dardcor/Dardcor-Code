@@ -110,12 +110,12 @@ export interface IWorktreeMetadata {
 	readonly repositoryRoot?: URI;
 }
 
-/**
- * The `<repo>.worktrees` sibling directory where per-session isolated
- * worktrees are created, e.g. `/src/vscode` → `/src/vscode.worktrees`.
- * Defined in {@link ../../common/worktreePaths.js} so browser-layer trust gates
- * can share the same implementation; re-exported here for existing importers.
- */
+
+
+
+
+
+
 export { getWorktreesRoot };
 
 export function getWorktreeName(branchName: string, branchPrefix: string = ''): string {

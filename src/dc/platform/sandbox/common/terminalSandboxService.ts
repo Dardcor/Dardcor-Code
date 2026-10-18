@@ -59,11 +59,11 @@ export interface ITerminalSandboxPrecheckInputs {
 
 export interface ITerminalSandboxCommand {
 	keyword: string;
-	/**
-	 * Command arguments after the executable token. These are used for
-	 * argument-sensitive sandbox allow-list rules, such as matching a specific
-	 * subcommand while ignoring global options.
-	 */
+
+
+
+
+
 	args: readonly string[];
 }
 

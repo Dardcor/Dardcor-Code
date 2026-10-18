@@ -7,21 +7,23 @@ import { ServicesAccessor } from '../../../../../platform/instantiation/common/i
 import { raceCancellationError } from '../../../../../base/common/async.js';
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
 import { CancellationError, isCancellationError } from '../../../../../base/common/errors.js';
-import { ICommandService } from '../../../../../platform/commands/common/commands.js';
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
-import { IBrowserViewModel, IBrowserViewWorkbenchService } from '../../../browserView/common/browserView.js';
+import { BrowserViewSharingState, IBrowserViewModel, IBrowserViewWorkbenchService } from '../../../browserView/common/browserView.js';
 import { BrowserEditorInput } from '../../../browserView/common/browserEditorInput.js';
+import { BrowserViewStorageScope } from '../../../../../platform/browserView/common/browserView.js';
 import { IPlaywrightService } from '../../../../../platform/browserView/common/playwrightService.js';
 import { formatAgentToolError } from '../../../../../platform/agentHost/common/agentToolRuntime.js';
 import type { AgentToolExecutionStatus } from '../../../../../platform/agentHost/common/agentToolRuntime.js';
+import { URI } from '../../../../../base/common/uri.js';
+import { IAgentNetworkFilterService } from '../../../../../platform/networkFilter/common/networkFilterService.js';
 import { getDardcorBrowserSnapshotChanges, performDardcorBrowserClick } from './dardcorBrowserActions.js';
 
-/** Service instances resolved during invokeFunction and safe to retain across asynchronous browser work. */
+
 export interface IDardcorBrowserAgentServices {
 	readonly browserService: IBrowserViewWorkbenchService;
 	readonly editorService: IEditorService;
-	readonly commandService: ICommandService;
 	readonly playwrightService: IPlaywrightService;
+	readonly agentNetworkFilterService: IAgentNetworkFilterService;
 }
 
 export interface IDardcorBrowserAgentToolResult {
@@ -29,8 +31,6 @@ export interface IDardcorBrowserAgentToolResult {
 	readonly executionStatus?: AgentToolExecutionStatus;
 	readonly image?: { mimeType: 'image/png'; base64: string };
 }
-
-const BROWSER_VIEW_OPEN_TIMEOUT_MS = 15000;
 
 function getAllBrowserViews(browserService: IBrowserViewWorkbenchService): BrowserEditorInput[] {
 	const viewsById = new Map<string, BrowserEditorInput>();
@@ -53,52 +53,10 @@ function normalizeBrowserAgentUrl(value: string): string {
 	}
 }
 
-function waitForBrowserView(
-	browserService: IBrowserViewWorkbenchService,
-	predicate: (view: BrowserEditorInput) => boolean,
-	timeoutMs: number,
-	token: CancellationToken,
-): Promise<BrowserEditorInput> {
-	return new Promise((resolve, reject) => {
-		let changeListener: { dispose(): void } | undefined;
-		let cancellationListener: { dispose(): void } | undefined;
-		let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
-		let settled = false;
-		const cleanup = () => {
-			changeListener?.dispose();
-			cancellationListener?.dispose();
-			if (timeoutHandle !== undefined) {
-				clearTimeout(timeoutHandle);
-			}
-		};
-		const finish = (callback: () => void) => {
-			if (settled) {
-				return;
-			}
-			settled = true;
-			cleanup();
-			callback();
-		};
-		const resolveMatchingView = () => {
-			try {
-				const view = getAllBrowserViews(browserService).find(predicate);
-				if (view) {
-					finish(() => resolve(view));
-				}
-			} catch (error) {
-				finish(() => reject(error));
-			}
-		};
 
-		if (token.isCancellationRequested) {
-			finish(() => reject(new CancellationError()));
-			return;
-		}
-		changeListener = browserService.onDidChangeBrowserViews(resolveMatchingView);
-		cancellationListener = token.onCancellationRequested(() => finish(() => reject(new CancellationError())));
-		timeoutHandle = setTimeout(() => finish(() => reject(new Error(`Timed out after ${timeoutMs}ms waiting for the integrated browser tab to become available.`))), timeoutMs);
-		resolveMatchingView();
-	});
+async function isBrowserViewSharedWithAgent(view: BrowserEditorInput): Promise<boolean> {
+	const model = await view.resolve();
+	return model.sharingState === BrowserViewSharingState.Shared;
 }
 
 export interface IDardcorInteractiveElement {
@@ -1173,25 +1131,25 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 
 export class DardcorBrowserAgentController {
 
-	/** Must stay synchronous: ServicesAccessor expires when invokeFunction's callback returns. */
+
 	public static resolveServices(accessor: ServicesAccessor): IDardcorBrowserAgentServices {
 		return {
 			browserService: accessor.get(IBrowserViewWorkbenchService),
 			editorService: accessor.get(IEditorService),
-			commandService: accessor.get(ICommandService),
 			playwrightService: accessor.get(IPlaywrightService),
+			agentNetworkFilterService: accessor.get(IAgentNetworkFilterService),
 		};
 	}
 
 	public static async resolveBrowserView(
 		services: IDardcorBrowserAgentServices,
-		options?: { pageId?: string; url?: string; openIfMissing?: boolean; forceNew?: boolean },
+		options?: { pageId?: string; url?: string; openIfMissing?: boolean; forceNew?: boolean; agentSessionId?: string },
 		token: CancellationToken = CancellationToken.None,
 	): Promise<BrowserEditorInput | undefined> {
 		if (token.isCancellationRequested) {
 			throw new CancellationError();
 		}
-		const { browserService, editorService, commandService } = services;
+		const { browserService, editorService } = services;
 		const allViews = getAllBrowserViews(browserService);
 
 		if (options?.pageId && !options?.forceNew) {
@@ -1201,8 +1159,10 @@ export class DardcorBrowserAgentController {
 				normalizeBrowserAgentUrl(view.url) === normalizeBrowserAgentUrl(needle) || view.url.includes(needle)
 			));
 			if (candidates.length === 1) {
-				await editorService.openEditor(candidates[0], { preserveFocus: true, pinned: true });
-				await candidates[0].resolve();
+				if (!await isBrowserViewSharedWithAgent(candidates[0])) {
+					throw new Error(`Browser tab "${needle}" is not shared with the agent. Share that tab explicitly in the Browser Editor or request a new isolated agent tab.`);
+				}
+				await editorService.openEditor(candidates[0], { preserveFocus: false, pinned: true });
 				return candidates[0];
 			}
 			if (candidates.length > 1) {
@@ -1213,28 +1173,27 @@ export class DardcorBrowserAgentController {
 
 		if (!options?.forceNew) {
 			const targetUrl = options?.url ? normalizeBrowserAgentUrl(options.url) : undefined;
-			const exactUrlMatch = targetUrl ? allViews.find(view => !!view.url && normalizeBrowserAgentUrl(view.url) === targetUrl) : undefined;
-			if (exactUrlMatch) {
-				await editorService.openEditor(exactUrlMatch, { preserveFocus: true, pinned: true });
-				await exactUrlMatch.resolve();
-				return exactUrlMatch;
-			}
-			const activePane = editorService.activeEditorPane;
-			if (activePane?.input instanceof BrowserEditorInput) {
-				await activePane.input.resolve();
-				return activePane.input;
-			}
-			for (const pane of editorService.visibleEditorPanes) {
-				if (pane.input instanceof BrowserEditorInput) {
-					await pane.input.resolve();
-					return pane.input;
+			const exactUrlMatches = targetUrl ? allViews.filter(view => !!view.url && normalizeBrowserAgentUrl(view.url) === targetUrl) : [];
+			for (const exactUrlMatch of exactUrlMatches) {
+				if (await isBrowserViewSharedWithAgent(exactUrlMatch)) {
+					await editorService.openEditor(exactUrlMatch, { preserveFocus: false, pinned: true });
+					return exactUrlMatch;
 				}
 			}
-			if (allViews.length > 0) {
-				const latestView = allViews[allViews.length - 1];
-				await editorService.openEditor(latestView, { preserveFocus: true, pinned: true });
-				await latestView.resolve();
-				return latestView;
+			const visibleViews = [
+				...(editorService.activeEditorPane?.input instanceof BrowserEditorInput ? [editorService.activeEditorPane.input] : []),
+				...editorService.visibleEditorPanes.map(pane => pane.input).filter((input): input is BrowserEditorInput => input instanceof BrowserEditorInput),
+			];
+			for (const visibleView of visibleViews) {
+				if (await isBrowserViewSharedWithAgent(visibleView)) {
+					return visibleView;
+				}
+			}
+			for (const knownView of allViews.slice().reverse()) {
+				if (await isBrowserViewSharedWithAgent(knownView)) {
+					await editorService.openEditor(knownView, { preserveFocus: false, pinned: true });
+					return knownView;
+				}
 			}
 		}
 
@@ -1243,23 +1202,30 @@ export class DardcorBrowserAgentController {
 			const targetUrl = /^https?:\/\//i.test(rawUrl) || rawUrl.startsWith('file:') || rawUrl.startsWith('data:')
 				? rawUrl
 				: `http://${rawUrl}`;
-			const existingViewIds = new Set(getAllBrowserViews(browserService).map(view => view.id));
-
-			await commandService.executeCommand('workbench.action.browser.open', {
-				url: targetUrl,
-				openToSide: false,
-				lockGroup: false
+			const agentSessionId = options.agentSessionId?.trim() || 'dardcor-router-agent';
+			const createdBrowserView = browserService.createBrowserView({
+				owner: { type: 'agent', sessionId: agentSessionId },
+				session: { scope: BrowserViewStorageScope.Agent, affinity: agentSessionId },
+				initialAudiences: [{ type: 'agent', sessionId: agentSessionId }],
+				initialUrl: targetUrl,
 			});
-
-			const expectedUrl = normalizeBrowserAgentUrl(targetUrl);
-			const created = await waitForBrowserView(browserService, view => {
-				const isNewView = !existingViewIds.has(view.id);
-				return (options?.forceNew ? isNewView : true)
-					&& !!view.url
-					&& normalizeBrowserAgentUrl(view.url) === expectedUrl;
-			}, BROWSER_VIEW_OPEN_TIMEOUT_MS, token);
-			await editorService.openEditor(created, { preserveFocus: true, pinned: true });
-			await created.resolve();
+			let created: BrowserEditorInput;
+			try {
+				created = await raceCancellationError(createdBrowserView, token);
+			} catch (error) {
+				if (isCancellationError(error)) {
+					void createdBrowserView.then(view => view.dispose(), () => undefined);
+				}
+				throw error;
+			}
+			if (token.isCancellationRequested) {
+				created.dispose();
+				throw new CancellationError();
+			}
+			await editorService.openEditor(created, { preserveFocus: false, pinned: true });
+			if (!await isBrowserViewSharedWithAgent(created)) {
+				throw new Error(`The isolated agent browser tab for ${targetUrl} was created without agent access.`);
+			}
 			return created;
 		}
 
@@ -1511,19 +1477,31 @@ export class DardcorBrowserAgentController {
 	): Promise<IDardcorBrowserAgentToolResult> {
 		const normalizedName = toolName.toLowerCase().trim();
 		const { editorService, playwrightService } = services;
+		const assertNetworkTargetAllowed = (url: string): void => {
+			const uri = URI.parse(url);
+			if (!services.agentNetworkFilterService.isUriAllowed(uri)) {
+				throw new Error(services.agentNetworkFilterService.formatError(uri));
+			}
+		};
+		const requestedUrl = typeof args?.url === 'string' ? args.url.trim() : (typeof args?.uri === 'string' ? args.uri.trim() : '');
+		if (requestedUrl) {
+			assertNetworkTargetAllowed(/^https?:\/\//i.test(requestedUrl) || requestedUrl.startsWith('file:') || requestedUrl.startsWith('data:') ? requestedUrl : `http://${requestedUrl}`);
+		}
 
 		if (normalizedName === 'open_browser_page' || normalizedName === 'navigate_browser' || normalizedName === 'navigate_page') {
 			const rawUrl = typeof args?.url === 'string' ? args.url.trim() : (typeof args?.uri === 'string' ? args.uri.trim() : '');
 			const targetUrl = /^https?:\/\//i.test(rawUrl) || rawUrl.startsWith('file:') || rawUrl.startsWith('data:')
 				? rawUrl
 				: (rawUrl ? `http://${rawUrl}` : 'http://localhost:3000');
+			assertNetworkTargetAllowed(targetUrl);
 
 			setStage('resolving or creating the integrated browser tab');
 			const view = await DardcorBrowserAgentController.resolveBrowserView(services, {
 				pageId: args?.pageId,
 				url: targetUrl,
 				openIfMissing: true,
-				forceNew: !!args?.forceNew
+				forceNew: !!args?.forceNew,
+				agentSessionId: sessionId
 			}, token);
 
 			if (!view) {
@@ -1542,12 +1520,15 @@ export class DardcorBrowserAgentController {
 			await playwrightService.startTrackingPage(view.id);
 			setStage('waiting for Playwright to confirm page readiness');
 			const ready = await raceCancellationError(playwrightService.waitForPageReady(sessionId, view.id, 15000), token);
+			assertNetworkTargetAllowed(ready.url);
 
 			return await DardcorBrowserAgentController.withPageCDPSession(services, view, async ({ model, evaluate }) => {
 				setStage('waiting for the initial page render to stabilize');
 				await DardcorBrowserAgentController.waitTillHTMLStable(evaluate, 4000);
 				setStage('capturing the initial browser snapshot and diagnostics');
 				await evaluate(`window.__dardcorBrowserAgentRuntime.wakeOverlay('🌐 Loaded ' + document.title)`);
+				const currentUrl = await evaluate<string>('location.href');
+				assertNetworkTargetAllowed(currentUrl);
 				const snapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
 				const consoleLogs = await DardcorBrowserAgentController.captureBrowserDiagnostics(playwrightService, view, sessionId, model);
 				return {
@@ -1564,11 +1545,15 @@ export class DardcorBrowserAgentController {
 		const view = await DardcorBrowserAgentController.resolveBrowserView(services, {
 			pageId: args?.pageId,
 			url: args?.url,
-			openIfMissing: Boolean(args?.url)
+			openIfMissing: Boolean(args?.url),
+			agentSessionId: sessionId
 		}, token);
 
 		if (!view) {
 			return { executionStatus: 'failed', output: 'No active browser tab found. Call `open_browser_page` with a URL first.' };
+		}
+		if (view.url) {
+			assertNetworkTargetAllowed(view.url);
 		}
 
 		setStage('opening the active browser tab in the editor');
@@ -1579,6 +1564,11 @@ export class DardcorBrowserAgentController {
 		setStage(`performing ${normalizedName} and collecting post-action evidence`);
 		return await DardcorBrowserAgentController.withPageCDPSession(services, view, async ({ model, sendPageCommand, evaluate }) => {
 			const captureConsoleLogs = async (): Promise<string> => DardcorBrowserAgentController.captureBrowserDiagnostics(playwrightService, view, sessionId, model);
+			const collectPageSnapshot = async (): Promise<IDardcorPageSnapshot> => {
+				const currentUrl = await evaluate<string>('location.href');
+				assertNetworkTargetAllowed(currentUrl);
+				return evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+			};
 			const moveCursorAndMouse = async (x: number, y: number, label: string, targetRect?: { left: number; top: number; width: number; height: number }): Promise<void> => {
 				const start = await evaluate<{ x: number; y: number }>(`(() => { const state = window.__dardcorBrowserAgentRuntime.state; return { x: Number.isFinite(state.cursorX) ? state.cursorX : Math.round(innerWidth / 2), y: Number.isFinite(state.cursorY) ? state.cursorY : Math.round(innerHeight / 2) }; })()`);
 				const startX = start?.x ?? Math.round(1024 / 2);
@@ -1612,7 +1602,7 @@ export class DardcorBrowserAgentController {
 			};
 			const formatActionFailure = async (message: string): Promise<IDardcorBrowserAgentToolResult> => {
 				try {
-					const snapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+					const snapshot = await collectPageSnapshot();
 					return {
 						executionStatus: 'failed',
 						output: DardcorBrowserAgentController.formatPageSnapshot(snapshot, `❌ Browser action failed: ${message}`, await captureConsoleLogs())
@@ -1630,7 +1620,7 @@ export class DardcorBrowserAgentController {
 				case 'read_page': {
 					await DardcorBrowserAgentController.waitTillHTMLStable(evaluate, 1500);
 					await evaluate(`window.__dardcorBrowserAgentRuntime.wakeOverlay('🔍 Scanning page elements...')`);
-					const snapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+					const snapshot = await collectPageSnapshot();
 					const consoleLogs = await captureConsoleLogs();
 					return {
 						output: DardcorBrowserAgentController.formatPageSnapshot(snapshot, undefined, consoleLogs)
@@ -1662,7 +1652,7 @@ export class DardcorBrowserAgentController {
 					`, 12000);
 
 					if (!prep || !prep.found) {
-						const fallbackSnapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+						const fallbackSnapshot = await collectPageSnapshot();
 						const consoleLogs = await captureConsoleLogs();
 						return {
 							output: DardcorBrowserAgentController.formatPageSnapshot(
@@ -1672,7 +1662,7 @@ export class DardcorBrowserAgentController {
 							)
 						};
 					}
-					const beforeSnapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+					const beforeSnapshot = await collectPageSnapshot();
 					const actionPoint = await getActionPoint(prep, 'click');
 					prep.x = actionPoint.x;
 					prep.y = actionPoint.y;
@@ -1685,7 +1675,7 @@ export class DardcorBrowserAgentController {
 					await evaluate(`window.__dardcorBrowserAgentRuntime.animatePress(${prep.x}, ${prep.y})`);
 
 					await DardcorBrowserAgentController.waitTillHTMLStable(evaluate, 2600);
-					const snapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+					const snapshot = await collectPageSnapshot();
 					const consoleLogs = await captureConsoleLogs();
 					const observedChanges = getDardcorBrowserSnapshotChanges(beforeSnapshot, snapshot);
 
@@ -1732,7 +1722,7 @@ export class DardcorBrowserAgentController {
 					}
 
 					if (!prep || !prep.found) {
-						const fallbackSnapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+						const fallbackSnapshot = await collectPageSnapshot();
 						const consoleLogs = await captureConsoleLogs();
 						return {
 							output: DardcorBrowserAgentController.formatPageSnapshot(
@@ -1763,7 +1753,7 @@ export class DardcorBrowserAgentController {
 					await evaluate(`window.__dardcorBrowserAgentRuntime.animatePress(${prep.x}, ${prep.y})`);
 
 					await DardcorBrowserAgentController.waitTillHTMLStable(evaluate, pressEnter ? 3000 : 1200);
-					const snapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+					const snapshot = await collectPageSnapshot();
 					const consoleLogs = await captureConsoleLogs();
 
 					return {
@@ -1795,7 +1785,7 @@ export class DardcorBrowserAgentController {
 								prep.selector
 							);
 						}
-						const snapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+						const snapshot = await collectPageSnapshot();
 						const consoleLogs = await captureConsoleLogs();
 						return {
 							output: DardcorBrowserAgentController.formatPageSnapshot(
@@ -1819,7 +1809,7 @@ export class DardcorBrowserAgentController {
 					);
 
 					await DardcorBrowserAgentController.waitTillHTMLStable(evaluate, 1500);
-					const snapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+					const snapshot = await collectPageSnapshot();
 					const consoleLogs = await captureConsoleLogs();
 					return {
 						executionStatus: 'succeeded',
@@ -1846,7 +1836,7 @@ export class DardcorBrowserAgentController {
 					`, 10000);
 
 					if (!prep || !prep.found) {
-						const fallbackSnapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+						const fallbackSnapshot = await collectPageSnapshot();
 						const consoleLogs = await captureConsoleLogs();
 						return {
 							output: DardcorBrowserAgentController.formatPageSnapshot(
@@ -1864,7 +1854,7 @@ export class DardcorBrowserAgentController {
 					await moveCursorAndMouse(prep.x, prep.y, '✨ Hovering', prep.rect);
 
 					await new Promise(r => setTimeout(r, 300));
-					const snapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+					const snapshot = await collectPageSnapshot();
 					const consoleLogs = await captureConsoleLogs();
 					return {
 						output: DardcorBrowserAgentController.formatPageSnapshot(
@@ -1887,7 +1877,7 @@ export class DardcorBrowserAgentController {
 					);
 
 					await DardcorBrowserAgentController.waitTillHTMLStable(evaluate, 1500);
-					const snapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+					const snapshot = await collectPageSnapshot();
 					const consoleLogs = await captureConsoleLogs();
 					return {
 						output: DardcorBrowserAgentController.formatPageSnapshot(
@@ -1910,7 +1900,7 @@ export class DardcorBrowserAgentController {
 					`, 10000);
 
 					if (!prep || !prep.found) {
-						const fallbackSnapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+						const fallbackSnapshot = await collectPageSnapshot();
 						const consoleLogs = await captureConsoleLogs();
 						return {
 							output: DardcorBrowserAgentController.formatPageSnapshot(
@@ -1973,7 +1963,7 @@ export class DardcorBrowserAgentController {
 					}
 
 					await DardcorBrowserAgentController.waitTillHTMLStable(evaluate, 1500);
-					const snapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+					const snapshot = await collectPageSnapshot();
 					const consoleLogs = await captureConsoleLogs();
 					return {
 						output: DardcorBrowserAgentController.formatPageSnapshot(
@@ -2023,7 +2013,7 @@ export class DardcorBrowserAgentController {
 					}
 
 					await DardcorBrowserAgentController.waitTillHTMLStable(evaluate, 1600);
-					const snapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+					const snapshot = await collectPageSnapshot();
 					const consoleLogs = await captureConsoleLogs();
 					return {
 						output: DardcorBrowserAgentController.formatPageSnapshot(
@@ -2094,7 +2084,7 @@ export class DardcorBrowserAgentController {
 
 					let snapshot: IDardcorPageSnapshot | undefined;
 					try {
-						snapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+						snapshot = await collectPageSnapshot();
 					} catch (error) {
 						if (!readinessFailure) {
 							throw error;
@@ -2138,7 +2128,7 @@ export class DardcorBrowserAgentController {
 					}
 
 					await DardcorBrowserAgentController.waitTillHTMLStable(evaluate, 1200);
-					const snapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+					const snapshot = await collectPageSnapshot();
 					const consoleLogs = await captureConsoleLogs();
 					return {
 						executionStatus: scriptFailed ? 'failed' : 'succeeded',
@@ -2198,7 +2188,7 @@ export class DardcorBrowserAgentController {
 						promptText: promptText || undefined
 					});
 
-					const snapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+					const snapshot = await collectPageSnapshot();
 					const consoleLogs = await captureConsoleLogs();
 					return {
 						output: DardcorBrowserAgentController.formatPageSnapshot(
@@ -2213,7 +2203,7 @@ export class DardcorBrowserAgentController {
 				case 'screenshot_page': {
 					await evaluate(`window.__dardcorBrowserAgentRuntime.wakeOverlay('📸 Capturing page screenshot...')`);
 					const buf = await model.captureScreenshot({ quality: 85, format: 'png' });
-					const snapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+					const snapshot = await collectPageSnapshot();
 					const consoleLogs = await captureConsoleLogs();
 					const byteSize = buf ? buf.byteLength : 0;
 					if (byteSize === 0) {
@@ -2234,7 +2224,7 @@ export class DardcorBrowserAgentController {
 				}
 
 				default: {
-					const snapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
+					const snapshot = await collectPageSnapshot();
 					const consoleLogs = await captureConsoleLogs();
 					return {
 						output: DardcorBrowserAgentController.formatPageSnapshot(snapshot, undefined, consoleLogs)

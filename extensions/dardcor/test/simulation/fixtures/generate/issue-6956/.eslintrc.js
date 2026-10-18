@@ -14,7 +14,7 @@ module.exports = {
 		},
 	},
 	rules: {
-		// Temporary until CDP is moved out, which is where most violations are:
+
 		'@typescript-eslint/ban-types': 'off',
 
 		'@typescript-eslint/no-var-requires': 'off',

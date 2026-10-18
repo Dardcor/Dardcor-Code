@@ -53,7 +53,7 @@ export class FetcherService extends Disposable implements IFetcherService {
 			const response = await this.fetch(url, options);
 
 			if (!response.ok) {
-				// Return what we've collected so far if request fails
+
 				return items;
 			}
 
@@ -92,7 +92,7 @@ export class FetcherService extends Disposable implements IFetcherService {
 		const reportEvent: ReportFetchEvent = e => this._onDidFetch.fire(e);
 		const useElectronFetcher = getShadowedConfig<boolean>(configurationService, experimentationService, ConfigKey.Shared.DebugUseElectronFetcher, ConfigKey.TeamInternal.DebugExpUseElectronFetcher);
 		const electronFetcher = ElectronFetcher.create(envService, reportEvent);
-		const useNodeFetcher = !(useElectronFetcher && electronFetcher) && getShadowedConfig<boolean>(configurationService, experimentationService, ConfigKey.Shared.DebugUseNodeFetcher, ConfigKey.TeamInternal.DebugExpUseNodeFetcher); // Node https wins over Node fetch. (historical order)
+		const useNodeFetcher = !(useElectronFetcher && electronFetcher) && getShadowedConfig<boolean>(configurationService, experimentationService, ConfigKey.Shared.DebugUseNodeFetcher, ConfigKey.TeamInternal.DebugExpUseNodeFetcher);
 		const useNodeFetchFetcher = !(useElectronFetcher && electronFetcher) && !useNodeFetcher && getShadowedConfig<boolean>(configurationService, experimentationService, ConfigKey.Shared.DebugUseNodeFetchFetcher, ConfigKey.TeamInternal.DebugExpUseNodeFetchFetcher);
 
 		const fetchers = [];
@@ -107,7 +107,7 @@ export class FetcherService extends Disposable implements IFetcherService {
 			}
 		}
 
-		// Node fetch preferred over Node https in fallbacks. (HTTP2 support)
+
 		const nodeFetchFetcher = new NodeFetchFetcher(envService, reportEvent, undefined, this._resolveNodeFetchCacheOptions(configurationService));
 		if (useNodeFetchFetcher) {
 			this._logService.info(`Using the Node fetch fetcher.`);
@@ -177,7 +177,7 @@ export class FetcherService extends Disposable implements IFetcherService {
 			}
 			return res;
 		} catch (err) {
-			// Apply fetcher demotion if fetchWithFallbacks detected a network process crash
+
 			const demotion = (err as any)?._fetcherDemotion;
 			if (demotion) {
 				if (demotion.updatedFetchers) {
@@ -219,7 +219,7 @@ export class FetcherService extends Disposable implements IFetcherService {
 		return this._getAvailableFetchers().some(f => f.isNetworkProcessCrashedError(e));
 	}
 	getUserMessageForFetcherError(err: any): string {
-		// Use the fetcher that recognizes the error, falling back to the primary
+
 		const recognizing = this._getAvailableFetchers().find(f => f.isFetcherError(err));
 		return (recognizing ?? this._getAvailableFetchers()[0]).getUserMessageForFetcherError(err);
 	}

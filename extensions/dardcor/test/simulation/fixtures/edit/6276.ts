@@ -141,7 +141,7 @@ export class InlineSuggestionHintsContentWidget extends Disposable implements IC
 
 	private readonly toolBar: CustomizedMenuWorkbenchToolBar;
 
-	// TODO@hediet: deprecate MenuId.InlineCompletionsActions
+
 	private readonly inlineCompletionsActionsMenus = this._register(this._menuService.createMenu(
 		MenuId.InlineCompletionsActions,
 		this._contextKeyService
@@ -195,7 +195,7 @@ export class InlineSuggestionHintsContentWidget extends Disposable implements IC
 			&& this.lastCurrentSuggestionIdx === currentSuggestionIdx
 			&& this.lastSuggestionCount === suggestionCount
 			&& equals(this.lastCommands, extraCommands)) {
-			// nothing to update
+
 			return;
 		}
 
@@ -315,7 +315,7 @@ export class CustomizedMenuWorkbenchToolBar extends WorkbenchToolBar {
 
 	setAdditionalSecondaryActions(actions: IAction[]): void {
 		if (equals(this.additionalActions, actions, (a, b) => a === b)) {
-			// don't update if the actions are the same
+
 			return;
 		}
 

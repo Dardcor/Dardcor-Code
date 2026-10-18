@@ -56,10 +56,10 @@ export interface IQuickInputOptions {
 	setContextKey(id?: string): void;
 	linkOpenerDelegate(content: string): void;
 	returnFocus(): void;
-	/**
-	 * @todo With IHover in vs/editor, can we depend on the service directly
-	 * instead of passing it through a hover delegate?
-	 */
+
+
+
+
 	hoverDelegate: IHoverDelegate;
 	styles: IQuickInputStyles;
 }
@@ -89,7 +89,7 @@ export type Writeable<T> = { -readonly [P in keyof T]: T[P] };
 export const backButton = {
 	iconClass: ThemeIcon.asClassName(Codicon.quickInputBack),
 	tooltip: localize('quickInput.back', "Back"),
-	handle: -1 // TODO
+	handle: -1
 };
 
 export interface QuickInputUI {
@@ -343,20 +343,20 @@ abstract class QuickInput extends Disposable implements IQuickInput {
 		);
 		this.ui.show(this);
 
-		// update properties in the controller that get reset in the ui.show() call
+
 		this.visible = true;
-		// This ensures the message/prompt gets rendered
+
 		this._lastValidationMessage = undefined;
-		// This ensures the input box has the right severity applied
+
 		this._lastSeverity = undefined;
 		if (this.buttons.length) {
-			// if there are buttons, the ui.show() clears them out of the UI so we should
-			// rerender them.
+
+
 			this.buttonsUpdated = true;
 		}
 		if (this.toggles.length) {
-			// if there are toggles, the ui.show() clears them out of the UI so we should
-			// rerender them.
+
+
 			this.togglesUpdated = true;
 		}
 
@@ -450,9 +450,9 @@ abstract class QuickInput extends Disposable implements IQuickInput {
 		}
 		if (this.togglesUpdated) {
 			this.togglesUpdated = false;
-			// HACK: Filter out toggles here that are not concrete Toggle objects. This is to workaround
-			// a layering issue as quick input's interface is in common but Toggle is in browser and
-			// it requires a HTMLElement on its interface
+
+
+
 			const concreteToggles = this.toggles?.filter(opts => opts instanceof Toggle) as Toggle[] ?? [];
 			this.ui.inputBox.toggles = concreteToggles;
 		}
@@ -757,10 +757,10 @@ export class QuickPick<T extends IQuickPickItem, O extends { useSeparators: bool
 
 	get keyMods() {
 		if (this._quickNavigate) {
-			// Disable keyMods when quick navigate is enabled
-			// because in this model the interaction is purely
-			// keyboard driven and Ctrl/Alt are typically
-			// pressed and hold during this interaction.
+
+
+
+
 			return NO_KEY_MODS;
 		}
 		return this.ui.keyMods;
@@ -876,19 +876,19 @@ export class QuickPick<T extends IQuickPickItem, O extends { useSeparators: bool
 		if (!this.visible) {
 			this.visibleDisposables.add(
 				this.ui.inputBox.onDidChange(value => {
-					this.doSetValue(value, true /* skip update since this originates from the UI */);
+					this.doSetValue(value, true  );
 				}));
 			this.visibleDisposables.add(this.ui.onDidAccept(() => {
 				if (this.canSelectMany) {
-					// if there are no checked elements, it means that an onDidChangeSelection never fired to overwrite
-					// `_selectedItems`. In that case, we should emit one with an empty array to ensure that
-					// `.selectedItems` is up to date.
+
+
+
 					if (!this.ui.list.getCheckedElements().length) {
 						this._selectedItems = [];
 						this.onDidChangeSelectionEmitter.fire(this.selectedItems);
 					}
 				} else if (this.activeItems[0]) {
-					// For single-select, we set `selectedItems` to the item that was accepted.
+
 					this._selectedItems = [this.activeItems[0]];
 					this.onDidChangeSelectionEmitter.fire(this.selectedItems);
 				}
@@ -899,11 +899,11 @@ export class QuickPick<T extends IQuickPickItem, O extends { useSeparators: bool
 			}));
 			this.visibleDisposables.add(this._focusEventBufferer.wrapEvent(
 				this.ui.list.onDidChangeFocus,
-				// Only fire the last event
+
 				(_, e) => e
 			)(focusedItems => {
 				if (this.activeItemsUpdated) {
-					return; // Expect another event.
+					return;
 				}
 				if (this.activeItemsToConfirm !== this._activeItems && equals(focusedItems, this._activeItems, (a, b) => a === b)) {
 					return;
@@ -924,7 +924,7 @@ export class QuickPick<T extends IQuickPickItem, O extends { useSeparators: bool
 				this._selectedItems = selectedItems as T[];
 				this.onDidChangeSelectionEmitter.fire(selectedItems as T[]);
 				if (selectedItems.length) {
-					this.handleAccept(dom.isMouseEvent(event) && event.button === 1 /* mouse middle click */);
+					this.handleAccept(dom.isMouseEvent(event) && event.button === 1  );
 				}
 			}));
 			this.visibleDisposables.add(this.ui.list.onChangedCheckedElements(checkedItems => {
@@ -942,16 +942,16 @@ export class QuickPick<T extends IQuickPickItem, O extends { useSeparators: bool
 			this.visibleDisposables.add(this.registerQuickNavigation());
 			this.valueSelectionUpdated = true;
 		}
-		super.show(); // TODO: Why have show() bubble up while update() trickles down?
+		super.show();
 	}
 
 	private handleAccept(inBackground: boolean): void {
 
-		// Figure out veto via `onWillAccept` event
+
 		let veto = false;
 		this.onWillAcceptEmitter.fire({ veto: () => veto = true });
 
-		// Continue with `onDidAccept` if no veto
+
 		if (!veto) {
 			this.onDidAcceptEmitter.fire({ inBackground });
 		}
@@ -966,7 +966,7 @@ export class QuickPick<T extends IQuickPickItem, O extends { useSeparators: bool
 			const keyboardEvent: StandardKeyboardEvent = new StandardKeyboardEvent(e);
 			const keyCode = keyboardEvent.keyCode;
 
-			// Select element when keys are pressed that signal it
+
 			const quickNavKeys = this._quickNavigate.keybindings;
 			const wasTriggerKeyPressed = quickNavKeys.some(k => {
 				const chords = k.getChords();
@@ -976,7 +976,7 @@ export class QuickPick<T extends IQuickPickItem, O extends { useSeparators: bool
 
 				if (chords[0].shiftKey && keyCode === KeyCode.Shift) {
 					if (keyboardEvent.ctrlKey || keyboardEvent.altKey || keyboardEvent.metaKey) {
-						return false; // this is an optimistic check for the shift key being used to navigate back in quick input
+						return false;
 					}
 
 					return true;
@@ -1003,9 +1003,9 @@ export class QuickPick<T extends IQuickPickItem, O extends { useSeparators: bool
 					this.onDidChangeSelectionEmitter.fire(this.selectedItems);
 					this.handleAccept(false);
 				}
-				// Unset quick navigate after press. It is only valid once
-				// and should not result in any behaviour change afterwards
-				// if the picker remains open because there was no active item
+
+
+
 				this._quickNavigate = undefined;
 			}
 		});
@@ -1015,7 +1015,7 @@ export class QuickPick<T extends IQuickPickItem, O extends { useSeparators: bool
 		if (!this.visible) {
 			return;
 		}
-		// store the scrollTop before it is reset
+
 		const scrollTopBefore = this.keepScrollPosition ? this.scrollTop : 0;
 		const hasDescription = !!this.description;
 		const visibilities: Visibilities = {
@@ -1046,10 +1046,10 @@ export class QuickPick<T extends IQuickPickItem, O extends { useSeparators: bool
 		}
 
 		let ariaLabel = this.ariaLabel;
-		// Only set aria label to the input box placeholder if we actually have an input box.
+
 		if (!ariaLabel && visibilities.inputBox) {
 			ariaLabel = this.placeholder || QuickPick.DEFAULT_ARIA_LABEL;
-			// If we have a title, include it in the aria label.
+
 			if (this.title) {
 				ariaLabel += ` - ${this.title}`;
 			}
@@ -1066,20 +1066,20 @@ export class QuickPick<T extends IQuickPickItem, O extends { useSeparators: bool
 			this.itemsUpdated = false;
 			this._focusEventBufferer.bufferEvents(() => {
 				this.ui.list.setElements(this.items);
-				// We want focus to exist in the list if there are items so that space can be used to toggle
+
 				this.ui.list.shouldLoop = !this.canSelectMany;
 				this.ui.list.filter(this.filterValue(this.ui.inputBox.value));
 				switch (this._itemActivation) {
 					case ItemActivation.NONE:
-						this._itemActivation = ItemActivation.FIRST; // only valid once, then unset
+						this._itemActivation = ItemActivation.FIRST;
 						break;
 					case ItemActivation.SECOND:
 						this.ui.list.focus(QuickPickFocus.Second);
-						this._itemActivation = ItemActivation.FIRST; // only valid once, then unset
+						this._itemActivation = ItemActivation.FIRST;
 						break;
 					case ItemActivation.LAST:
 						this.ui.list.focus(QuickPickFocus.Last);
-						this._itemActivation = ItemActivation.FIRST; // only valid once, then unset
+						this._itemActivation = ItemActivation.FIRST;
 						break;
 					default:
 						this.trySelectFirst();
@@ -1118,17 +1118,17 @@ export class QuickPick<T extends IQuickPickItem, O extends { useSeparators: bool
 		this.ui.customButton.label = this.customLabel || '';
 		this.ui.customButton.element.title = this.customHover || '';
 		if (!visibilities.inputBox) {
-			// we need to move focus into the tree to detect keybindings
-			// properly when the input box is not visible (quick nav)
+
+
 			this.ui.list.domFocus();
 
-			// Focus the first element in the list if multiselect is enabled
+
 			if (this.canSelectMany) {
 				this.ui.list.focus(QuickPickFocus.First);
 			}
 		}
 
-		// Set the scroll position to what it was before updating the items
+
 		if (this.keepScrollPosition) {
 			this.scrollTop = scrollTopBefore;
 		}
@@ -1136,7 +1136,7 @@ export class QuickPick<T extends IQuickPickItem, O extends { useSeparators: bool
 
 	focus(focus: QuickPickFocus): void {
 		this.ui.list.focus(focus);
-		// To allow things like space to check/uncheck items
+
 		if (this.canSelectMany) {
 			this.ui.list.domFocus();
 		}
@@ -1144,7 +1144,7 @@ export class QuickPick<T extends IQuickPickItem, O extends { useSeparators: bool
 
 	accept(inBackground?: boolean | undefined): void {
 		if (inBackground && !this._canAcceptInBackground) {
-			return; // needs to be enabled
+			return;
 		}
 
 		if (this.activeItems[0]) {
@@ -1300,7 +1300,7 @@ export class QuickInputHoverDelegate extends WorkbenchHoverDelegate {
 	}
 
 	private getOverrideOptions(options: IHoverDelegateOptions): Partial<IHoverOptions> {
-		// Only show the hover hint if the content is of a decent size
+
 		const showHoverHint = (
 			dom.isHTMLElement(options.content)
 				? options.content.textContent ?? ''

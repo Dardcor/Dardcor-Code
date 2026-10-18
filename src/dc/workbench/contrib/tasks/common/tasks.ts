@@ -245,10 +245,10 @@ export interface ICommandConfiguration {
 
 	taskSelector?: string;
 
-	/**
-	 * Whether to suppress the task name when merging global args
-	 *
-	 */
+
+
+
+
 	suppressTaskName?: boolean;
 
 	presentation?: IPresentationOptions;

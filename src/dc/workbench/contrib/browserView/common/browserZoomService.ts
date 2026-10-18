@@ -18,10 +18,10 @@ const BROWSER_ZOOM_PER_HOST_STORAGE_KEY = 'browserView.zoomPerHost';
 export const MATCH_WINDOW_ZOOM_LABEL = 'Match Window';
 
 export interface IBrowserZoomChangeEvent {
-	/**
-	 * The host (e.g. `"example.com"`) whose zoom changed, or `undefined`
-	 * when the global default zoom level changed.
-	 */
+
+
+
+
 	readonly host: string | undefined;
 
 	readonly isEphemeralChange: boolean;

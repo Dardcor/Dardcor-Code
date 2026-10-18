@@ -30,9 +30,9 @@ interface JQueryAjaxSettings {
     dataFilter?(data: any, ty: any): any;
     dataType?: string;
     error?(jqXHR: JQueryXHR, textStatus: string, errorThrown: string): any;
-    /**
-     * Whether to trigger global Ajax event handlers for this request. The default is true. Set to false to prevent the global handlers like ajaxStart or ajaxStop from being triggered. This can be used to control various Ajax Events.
-     */
+
+
+
     global?: boolean;
     headers?: { [key: string]: any; };
     ifModified?: boolean;
@@ -46,9 +46,9 @@ interface JQueryAjaxSettings {
     scriptCharset?: string;
     statusCode?: { [key: string]: any; };
     success?(data: any, textStatus: string, jqXHR: JQueryXHR): any;
-    /**
-     * Set a timeout (in milliseconds) for the request. This will override any global timeout set with $.ajaxSetup(). The timeout period starts at the point the $.ajax call is made; if several other requests are in progress and the browser has no connections available, it is possible for a request to time out before it can be sent. In jQuery 1.4.x and below, the XMLHttpRequest object will be in an invalid state if the request times out; accessing any object members may throw an exception. In Firefox 3.0+ only, script and JSONP requests cannot be cancelled by a timeout; the script will run even if it arrives after the timeout period.
-     */
+
+
+
     timeout?: number;
     traditional?: boolean;
     type?: string;
@@ -305,11 +305,11 @@ interface JQueryStatic {
 
     (html: string, attributes: Object): JQuery;
 
-    /**
-     * Relinquish jQuery's control of the $ variable.
-     *
-     * @param removeAll A Boolean indicating whether to remove all jQuery variables from the global scope (including jQuery itself).
-     */
+
+
+
+
+
     noConflict(removeAll?: boolean): JQueryStatic;
 
     when<T>(...deferreds: Array<T | JQueryPromise<T> >): JQueryPromise<T>;
@@ -376,13 +376,13 @@ interface JQueryStatic {
 
     globalEval(code: string): any;
 
-    /**
-     * Finds the elements of an array which satisfy a filter function. The original array is not affected.
-     *
-     * @param array The array to search through.
-     * @param func The function to process each item against. The first argument to the function is the item, and the second argument is the index. The function should return a Boolean value.  this will be the global window object.
-     * @param invert If "invert" is false, or not provided, then the function returns an array consisting of all elements for which "callback" returns true. If "invert" is true, then the function returns an array consisting of all elements for which "callback" returns false.
-     */
+
+
+
+
+
+
+
     grep<T>(array: T[], func: (elementOfArray?: T, indexInArray?: number) => boolean, invert?: boolean): T[];
 
     inArray<T>(value: T, array: T[], fromIndex?: number): number;

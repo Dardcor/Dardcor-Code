@@ -6,12 +6,12 @@
 "use strict";
 
 (function () {
-	/**
-	 * @param {number} value
-	 * @param {number} min
-	 * @param {number} max
-	 * @return {number}
-	 */
+
+
+
+
+
+
 	function clamp(value, min, max) {
 		return Math.min(Math.max(value, min), max);
 	}
@@ -28,9 +28,9 @@
 		throw new Error(`Could not load settings`);
 	}
 
-	/**
-	 * Enable image-rendering: pixelated for images scaled by more than this.
-	 */
+
+
+
 	const PIXELATION_THRESHOLD = 3;
 
 	const SCALE_PINCH_FACTOR = 0.075;

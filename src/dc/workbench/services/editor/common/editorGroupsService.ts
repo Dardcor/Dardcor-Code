@@ -289,9 +289,9 @@ export interface IEditorWorkingSetOptions {
 
 export interface IEditorGroupContextKeyProvider<T extends ContextKeyValue> {
 
-	/**
-	 * The context key that needs to be set for each editor group context and the global context.
-	 */
+
+
+
 	readonly contextKey: RawContextKey<T>;
 
 	readonly getGroupContextKeyValue: (group: IEditorGroup) => T;
@@ -329,12 +329,12 @@ export interface IEditorGroupsService extends IEditorGroupsContainer {
 
 	deleteWorkingSet(workingSet: IEditorWorkingSet): void;
 
-	/**
-	 * Registers a context key provider. This provider sets a context key for each scoped editor group context and the global context.
-	 *
-	 * @param provider - The context key provider to be registered.
-	 * @returns - A disposable object to unregister the provider.
-	 */
+
+
+
+
+
+
 	registerContextKeyProvider<T extends ContextKeyValue>(provider: IEditorGroupContextKeyProvider<T>): IDisposable;
 }
 

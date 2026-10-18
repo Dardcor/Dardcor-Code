@@ -166,7 +166,7 @@ export class ChatQueuePickerActionItem extends BaseActionViewItem {
 	private _getDropdownActions(): IActionWidgetDropdownAction[] {
 		const isSteerDefault = this._isSteerDefault();
 
-		// even the global scope; either way, the queue/steer keybindings' `when` clauses would
+
 		const lookupContext = this.contextKeyService.createOverlay([
 			[ChatContextKeys.inputHasText.key, true],
 			[ChatContextKeys.inChatInput.key, true],

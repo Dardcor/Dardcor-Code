@@ -45,6 +45,12 @@ dardcor.lsif
 dardcor.db
 /.profile-oss
 product.overrides.json
+/.dardcor-code/
+/.dardcor-router/.dardcor-code/
+/extensions/dardcor/.dardcor-code/launch.json
+/extensions/dardcor/.dardcor-code/mcp.json
+/extensions/dardcor/.dardcor-code/settings.json
+/extensions/dardcor/.dardcor-code/tasks.json
 
 # Local Customizations (.github)
 .github/agents/*.local.md
@@ -61,3 +67,6 @@ product.overrides.json
 *.key
 keys/
 secrets/
+
+# Workflow-generated local run state
+/Workflow/

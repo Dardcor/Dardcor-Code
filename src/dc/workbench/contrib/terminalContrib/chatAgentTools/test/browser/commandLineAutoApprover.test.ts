@@ -412,7 +412,7 @@ suite('CommandLineAutoApprover', () => {
 				setAutoApprove({
 					'/^echo.*/s': true,
 					'/^git\\s+/i': true,
-					'/rm|del/g': false   // global flag
+					'/rm|del/g': false
 				});
 
 				ok(await isAutoApproved('echo hello\nworld'));

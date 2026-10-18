@@ -32,10 +32,10 @@ import { handleDebugSession } from './dardcorDebugCommandSession';
 //@ts-ignore
 import powershellScript from '../node/dardcorDebugWorker/dardcorDebugWorker.ps1';
 
-// When enabled, holds the storage location of binaries for the PATH:
+
 const WAS_REGISTERED_STORAGE_KEY = 'dardcor-chat.terminalToDebugging.registered';
-// Nonce exposed to terminals so the legitimate `dardcor-debug` worker can
-// authenticate itself against the URI handler (see VSCODE-410).
+
+
 const DARDCOR_DEBUG_NONCE_STORAGE_KEY = 'dardcor-chat.terminalToDebugging.nonce';
 export const DARDCOR_DEBUG_NONCE_ENV_VAR = 'DARDCOR_DEBUG_NONCE';
 export const DARDCOR_DEBUG_COMMAND = `dardcor-debug`;
@@ -90,8 +90,8 @@ export class DardcorDebugCommandContribution extends Disposable implements vscod
 			return false;
 		}
 
-		// Configure the task to only show on errors to avoid taking focus away
-		// from the terminal in this use case.
+
+
 		def.presentation ??= {};
 		def.presentation.reveal = 'silent';
 		await this.tasksService.ensureTask(workspaceFolder, def);
@@ -105,13 +105,13 @@ export class DardcorDebugCommandContribution extends Disposable implements vscod
 
 		const queryParams = new URLSearchParams(uri.query);
 		const referrer = queryParams.get('referrer');
-		/* __GDPR__
-			"uriHandler" : {
-				"owner": "lramos15",
-				"comment": "Reports when the uri handler is called in the dardcor extension",
-				"referrer": { "classification": "SystemMetaData", "purpose": "BusinessInsight", "comment": "The referrer query param for the uri" }
-			}
-		*/
+
+
+
+
+
+
+
 		this.telemetryService.sendMSFTTelemetryEvent('uriHandler', {
 			referrer: referrer || 'unknown',
 		});
@@ -133,7 +133,7 @@ export class DardcorDebugCommandContribution extends Disposable implements vscod
 
 			rpc.registerMethod('start', async function start(opts: IStartOptions): Promise<void> {
 				if (!opts || opts.nonce !== nonce) {
-					// Reject unauthenticated callers without revealing details to the peer.
+
 					logService.warn(`Rejected debug connection on ${pipePath}: nonce mismatch`);
 					socket.destroy();
 					cts.dispose(true);
@@ -228,7 +228,7 @@ export class DardcorDebugCommandContribution extends Disposable implements vscod
 		const enabled = this.configurationService.getConfig(ConfigKey.TerminalToDebuggerEnabled);
 		const globalStorageUri = this.context.globalStorageUri;
 		if (!globalStorageUri) {
-			// globalStorageUri is not available in extension tests: see MockExtensionContext
+
 			return;
 		}
 
@@ -241,20 +241,20 @@ export class DardcorDebugCommandContribution extends Disposable implements vscod
 		const versionNonce = this.getVersionNonce();
 		if (!enabled) {
 			if (previouslyStoredAt) {
-				// 1. disabling an enabled state
+
 				this.terminalService.removePathContribution('dardcor-debug');
 				await fs.rm(previouslyStoredAt.location, { recursive: true, force: true });
 			}
 		} else if (!previouslyStoredAt) {
-			// 2. enabling a disabled state
+
 			this.terminalService.contributePath('dardcor-debug', storageLocation, { command: DARDCOR_DEBUG_COMMAND });
 			await this.fillStoragePath(storageLocation);
 		} else if (previouslyStoredAt.version !== versionNonce) {
-			// 3. upgrading the worker
+
 			this.terminalService.contributePath('dardcor-debug', storageLocation, { command: DARDCOR_DEBUG_COMMAND });
 			await this.fillStoragePath(storageLocation);
 		} else if (enabled) {
-			// 4. already enabled and up to date, just ensure PATH contribution
+
 			this.terminalService.contributePath('dardcor-debug', storageLocation, { command: DARDCOR_DEBUG_COMMAND });
 		}
 

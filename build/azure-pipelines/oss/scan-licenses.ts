@@ -75,7 +75,7 @@ export async function fetchLicenseFromGitRepo(repositoryUrl: string, commitHash:
 	return undefined;
 }
 
-// These are exported so they can be unit-tested without running main() (see the
+
 
 const CRATES_IO_USER_AGENT = 'vscode-oss-scanner';
 
@@ -1670,7 +1670,7 @@ async function main(): Promise<void> {
 	}
 }
 
-// another module imports the exported helpers (mirrors parse-notices.ts).
+
 if (/scan-licenses(\.[jt]s)?$/.test(process.argv[1] || '')) {
 	main().catch(err => {
 		console.error(err);

@@ -26,7 +26,7 @@ import { IWorkspaceContextService } from '../../../../../platform/workspace/comm
 import { IFileService } from '../../../../../platform/files/common/files.js';
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
 import { VSBuffer } from '../../../../../base/common/buffer.js';
-import { basename, dirname, joinPath } from '../../../../../base/common/resources.js';
+import { basename, dirname, extUriBiasedIgnorePathCase, joinPath } from '../../../../../base/common/resources.js';
 import { EditorResourceAccessor } from '../../../../common/editor.js';
 import { ChatContextKeys } from '../actions/chatContextKeys.js';
 import type { IChatAgentEditedFileEvent, IChatProgressHistoryResponseContent, IChatRequestModeInstructions, IChatRequestVariableData, ISerializableChatAgentData } from '../model/chatModel.js';
@@ -1400,6 +1400,49 @@ export function resolveAgentUri(filePath: string | undefined, rootUri?: URI): UR
 	return joinPath(rootUri, clean);
 }
 
+export interface IAgentFileReadResolution {
+	target: URI;
+	canonicalTarget?: URI;
+	requiresApproval: boolean;
+}
+
+export async function resolveAgentFileReadTarget(fileService: IFileService | undefined, filePath: string | undefined, rootUri: URI | undefined): Promise<IAgentFileReadResolution> {
+	const target = resolveAgentUri(filePath, rootUri);
+	if (!fileService || !filePath?.trim() || !rootUri) {
+		return { target, requiresApproval: true };
+	}
+
+	const lexicalContainment = extUriBiasedIgnorePathCase.isEqualOrParent(target, rootUri);
+
+	try {
+		if (!(await fileService.exists(target))) {
+		return { target, requiresApproval: true };
+		}
+
+		const [realRoot, realTarget] = await Promise.all([
+			fileService.realpath(rootUri),
+			fileService.realpath(target)
+		]);
+
+		if (!realRoot || !realTarget) {
+			return { target, requiresApproval: true };
+		}
+
+		const insideWorkspace = lexicalContainment && extUriBiasedIgnorePathCase.isEqualOrParent(realTarget, realRoot);
+		return {
+			target: realTarget,
+			canonicalTarget: realTarget,
+			requiresApproval: !insideWorkspace
+		};
+	} catch {
+		return { target, requiresApproval: true };
+	}
+}
+
+export async function isAgentFilePathOutsideWorkspace(fileService: IFileService | undefined, filePath: string | undefined, rootUri: URI | undefined): Promise<boolean> {
+	return (await resolveAgentFileReadTarget(fileService, filePath, rootUri)).requiresApproval;
+}
+
 export interface IDynamicSkillInstruction {
 	name: string;
 	description?: string;
@@ -1530,7 +1573,7 @@ export class DardcorThinkingStreamParser {
 				DardcorThinkingStreamParser.ANY_TAG_SEARCH.lastIndex = 0;
 				const match = DardcorThinkingStreamParser.ANY_TAG_SEARCH.exec(remaining);
 				if (!match) {
-					// Tool call body: discard from markdown streaming!
+
 					break;
 				}
 
@@ -1543,7 +1586,7 @@ export class DardcorThinkingStreamParser {
 				}
 				remaining = remaining.slice(matchIndex + matchStr.length);
 			} else {
-				// Normal markdown mode
+
 				DardcorThinkingStreamParser.ANY_TAG_SEARCH.lastIndex = 0;
 				const match = DardcorThinkingStreamParser.ANY_TAG_SEARCH.exec(remaining);
 				if (!match) {
@@ -1588,13 +1631,13 @@ export class DardcorThinkingStreamParser {
 					this._inToolCall = true;
 					remaining = remaining.slice(matchIndex + matchStr.length);
 				} else if (isCloseTool || isOrphanTool) {
-					// Discard orphan tool closing tag or parameter tag!
+
 					const preText = remaining.slice(0, matchIndex);
 					if (preText) {
 						this._emittedMarkdownInTurn += preText;
 						this.callbacks.onMarkdownContent(preText);
 					}
-					// Silently swallow the tool tag
+
 					remaining = remaining.slice(matchIndex + matchStr.length);
 				} else {
 					remaining = remaining.slice(matchIndex + matchStr.length);
@@ -2547,7 +2590,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 		}
 	}
 
-	private async _executeAgentTool(toolName: string, args: any, rootUri?: URI, chatSessionResource?: URI, token: CancellationToken = CancellationToken.None, requestId?: string, approvedByUser = false): Promise<{ output: string; executionStatus?: AgentToolExecutionStatus; browserImage?: { mimeType: 'image/png'; base64: string }; nativeToolInvocation?: boolean; externalEdit?: { uri: URI; editKind: 'create' | 'edit' | 'delete'; initialContent?: string; diff: { added: number; removed: number } } }> {
+	private async _executeAgentTool(toolName: string, args: any, rootUri?: URI, chatSessionResource?: URI, token: CancellationToken = CancellationToken.None, requestId?: string, approvedByUser = false, fileReadResolution?: IAgentFileReadResolution): Promise<{ output: string; executionStatus?: AgentToolExecutionStatus; browserImage?: { mimeType: 'image/png'; base64: string }; nativeToolInvocation?: boolean; externalEdit?: { uri: URI; editKind: 'create' | 'edit' | 'delete'; initialContent?: string; diff: { added: number; removed: number } } }> {
 		let fileService: IFileService | undefined;
 		try {
 			this.instantiationService.invokeFunction(accessor => {
@@ -2637,9 +2680,21 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				if (!fileService) return { output: 'Error: fileService unavailable' };
 				const targetPath = extractAgentFilePath(args);
 				if (!targetPath) return { output: 'Error: Missing filePath parameter.' };
-				const target = resolveUri(targetPath);
+				const target = fileReadResolution?.target ?? resolveUri(targetPath);
 				try {
+					if (fileReadResolution?.canonicalTarget) {
+						const currentTarget = await fileService.realpath(target);
+						if (!currentTarget || !extUriBiasedIgnorePathCase.isEqual(currentTarget, fileReadResolution.canonicalTarget)) {
+							return { output: `File read stopped because the resolved file changed after its access check: ${targetPath}. Request approval again before retrying.` };
+						}
+					}
 					const data = await fileService.readFile(target);
+					if (fileReadResolution?.canonicalTarget) {
+						const currentTarget = await fileService.realpath(target);
+						if (!currentTarget || !extUriBiasedIgnorePathCase.isEqual(currentTarget, fileReadResolution.canonicalTarget)) {
+							return { output: `File contents were withheld because the resolved file changed during the read: ${targetPath}. Request approval again before retrying.` };
+						}
+					}
 					const text = new TextDecoder().decode(data.value.buffer);
 					const lines = text.split('\n');
 					const start = Math.max(1, typeof args?.startLine === 'number' ? args.startLine : 1);
@@ -3689,8 +3744,8 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				let executionStatus: AgentToolExecutionStatus | undefined;
 				const { DardcorBrowserAgentController } = await import('./dardcorBrowserAgentController.js');
 				try {
-					// Resolve services synchronously. ServicesAccessor is invalid after invokeFunction returns,
-					// so it must never be captured by the async browser operation.
+
+
 					const browserServices = this.instantiationService.invokeFunction(accessor => DardcorBrowserAgentController.resolveServices(accessor));
 					const res = await DardcorBrowserAgentController.executeBrowserTool(browserServices, toolName, args, chatSessionResource?.toString() ?? 'dardcor-agent-session', token);
 					output = res.output;
@@ -3723,7 +3778,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 		const calls: Array<{ name: string; args: any }> = [];
 		if (!text) return calls;
 
-		// 1. Markdown codeblock tool calls: ```json or ```tool_call
+
 		const codeBlockRegex = /```(?:tool_call|json:tool|json)\s*([\s\S]*?)(?:```|$)/gi;
 		let match: RegExpExecArray | null;
 		while ((match = codeBlockRegex.exec(text)) !== null) {
@@ -3758,7 +3813,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			}
 		}
 
-		// 2. Tagged tool calls: <tool_call> ... </tool_call>
+
 		const tagRegex = /<(?:tool_call|function_call|tool)>\s*([\s\S]*?)(?:\s*<\/(?:tool_call|function_call|tool)>|$)/gi;
 		while ((match = tagRegex.exec(text)) !== null) {
 			const body = match[1].trim();
@@ -3780,14 +3835,14 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				}
 			} catch { }
 
-			// Parse XML format inside <tool_call>
+
 			const xmlCalls = this._parseXmlFunctionCalls(body);
 			for (const xc of xmlCalls) {
 				calls.push(xc);
 			}
 		}
 
-		// 3. Direct XML function calls: <function=name> or <function name="name">
+
 		const directXmlCalls = this._parseXmlFunctionCalls(text);
 		for (const xc of directXmlCalls) {
 			if (!calls.some(c => c.name === xc.name && JSON.stringify(c.args) === JSON.stringify(xc.args))) {
@@ -4284,8 +4339,8 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			}
 			return false;
 		};
-		const executeAgentToolCancellable = async (toolName: string, args: any, rootUri?: URI, approvedByUser = false) => {
-			const result = await raceCancellation(this._executeAgentTool(toolName, args, rootUri, request.sessionResource, token, request.requestId, approvedByUser), token);
+		const executeAgentToolCancellable = async (toolName: string, args: any, rootUri?: URI, approvedByUser = false, fileReadResolution?: IAgentFileReadResolution) => {
+			const result = await raceCancellation(this._executeAgentTool(toolName, args, rootUri, request.sessionResource, token, request.requestId, approvedByUser, fileReadResolution), token);
 			const resolved = result ?? { output: `Tool action ${toolName} was interrupted before its result was known; inspect terminal, browser, or workspace state before retrying it.` };
 			if (resolved.browserImage && !shouldAttachDardcorBrowserScreenshot(routerModelCapabilities)) {
 				resolved.output += '\n\nA screenshot was captured in the integrated browser, but it was not attached because Router metadata does not confirm vision support. The DOM and accessibility snapshot remain available.';
@@ -4296,7 +4351,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 		const getEffectiveRouterPermission = (): { permissionLevel: ChatPermissionLevel | undefined; fullAccessRestricted: boolean } => {
 			let selectedPermissionLevel = request.permissionLevel;
 			try {
-				// Access is session-scoped and may change while a turn is running; use the live session choice when available.
+
 				const sessionPermissionLevel = this.instantiationService.invokeFunction(accessor =>
 					accessor.get(IChatService).getSession(request.sessionResource)?.inputModel.state.get()?.permissionLevel
 				);
@@ -4464,7 +4519,12 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				const key = commandApprovalKey(command, rootUri?.toString());
 				approvedByUser = approvedCommandKeys.delete(key);
 			}
-			const permissionRequired = requiresDardcorToolConfirmation(toolName, args, permissionLevel);
+			const isFileReadTool = ['read', 'view_file', 'read_file'].includes(toolName);
+			const fileReadResolution = isFileReadTool
+				? await resolveAgentFileReadTarget(fileService, extractAgentFilePath(args), rootUri)
+				: undefined;
+			const externalFileReadRequiresApproval = fileReadResolution?.requiresApproval ?? false;
+			const permissionRequired = requiresDardcorToolConfirmation(toolName, args, permissionLevel, externalFileReadRequiresApproval);
 			if (permissionRequired && !approvedByUser) {
 				const command = isCommandTool
 					? (toolName === 'kill_terminal'
@@ -4477,7 +4537,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					: summarizeDardcorToolAction(toolName, args);
 				const result = await waitForQuestionAnswers(toolCallId, [{
 					header: isTerminalConfirmation ? 'Terminal command approval' : 'Agent action approval',
-					question: `${permission.fullAccessRestricted ? 'Full access is restricted by organization policy. ' : ''}This ${isTerminalConfirmation ? 'terminal action' : 'agent action'} may change state or access an external resource. Allow this exact action once?`,
+					question: `${permission.fullAccessRestricted ? 'Full access is restricted by organization policy. ' : ''}${externalFileReadRequiresApproval ? 'This file is outside the workspace or could not be safely verified. Allow the agent to read it and include its contents in the model context once?' : `This ${isTerminalConfirmation ? 'terminal action' : 'agent action'} may change state or access an external resource. Allow this exact action once?`}`,
 					message: formatApprovalDetails(summary),
 					options: [{ label: isTerminalConfirmation ? 'Skip command' : 'Skip action', recommended: true }, { label: 'Allow once' }],
 					allowFreeformInput: false,
@@ -4492,14 +4552,14 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				}
 				approvedByUser = true;
 			} else if (!permissionRequired) {
-				// Pass the existing session-level decision through the local tool service.
+
 				approvedByUser = true;
 			}
 			const dynamicTool = routerDynamicToolByName.get(toolName);
 			if (dynamicTool) {
 				return this._invokeBuiltinAgentTool(dynamicTool.id, args, request.sessionResource, rootUri, request.requestId, token, approvedByUser);
 			}
-			return executeAgentToolCancellable(toolName, args, rootUri, approvedByUser);
+			return executeAgentToolCancellable(toolName, args, rootUri, approvedByUser, fileReadResolution);
 		};
 
 		try {

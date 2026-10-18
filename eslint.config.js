@@ -1057,7 +1057,7 @@ export default defineConfig(
 				'origin',
 				'orientation',
 				'context',
-				// Below are globals that are unsupported in ESM
+
 				'__dirname',
 				'__filename',
 				'require'

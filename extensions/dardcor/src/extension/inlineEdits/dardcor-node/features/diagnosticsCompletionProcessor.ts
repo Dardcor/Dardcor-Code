@@ -52,7 +52,7 @@ function diagnosticCompletionRunResultEquals(a: IDiagnosticsCompletionState, b: 
 	return a.completionItem === b.completionItem;
 }
 
-// Only exported for testing
+
 export class DiagnosticsCollection {
 
 	private _diagnostics: Diagnostic[] = [];

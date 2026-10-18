@@ -52,7 +52,7 @@ export const nodeClis = new Set([
 	'cap',
 ]);
 
-// generate global package list from global package.json file
+
 const getGlobalPackagesGenerator: Fig.Generator = {
 	custom: async (tokens, executeCommand, generatorContext) => {
 		const { stdout: yarnGlobalDir } = await executeCommand({

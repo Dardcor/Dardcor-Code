@@ -12,11 +12,11 @@ export class MarkdownEditorProvider extends Disposable implements vscode.CustomT
 
 	public static readonly viewType = 'vscode.markdown.editor';
 
-	/**
-	 * Memento key under which the last chosen edit/read-only mode is remembered.
-	 * The value is a single global default shared by every Markdown editor, so
-	 * flipping the lock in one editor becomes the initial mode for the next.
-	 */
+
+
+
+
+
 	static readonly #readonlyStateKey = 'markdown.editor.readonly';
 
 	readonly #mediaRoot: vscode.Uri;
@@ -82,7 +82,7 @@ export class MarkdownEditorProvider extends Disposable implements vscode.CustomT
 					break;
 				}
 				case 'setReadonly': {
-					// Remember the edit/read-only choice as the global default for the
+
 					await this.#globalState.update(MarkdownEditorProvider.#readonlyStateKey, !!message.readonly);
 					break;
 				}

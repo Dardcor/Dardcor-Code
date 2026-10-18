@@ -22,7 +22,7 @@ const checkOpenClawInstalled = async () => {
   try {
     const isWindows = os.platform() === "win32";
     const command = isWindows ? "where openclaw" : "which openclaw";
-    // On Windows, inject %APPDATA%\npm into PATH so npm global packages are found
+
     const env = isWindows
       ? { ...process.env, PATH: `${process.env.APPDATA}\\npm;${process.env.PATH}` }
       : process.env;

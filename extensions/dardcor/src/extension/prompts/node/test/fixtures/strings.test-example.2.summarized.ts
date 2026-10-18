@@ -1,13 +1,13 @@
 
 suite('Strings', () => {
-	/* Lines 9-104 omitted */
+
 
 	test('format', () => {/* Lines 106-114 omitted */});
 
 	test('format2', () => {/* Lines 117-125 omitted */});
 
 	test('lcut', () => {
-		/* Lines 128-136 omitted */
+
 		assert.strictEqual(strings.lcut('a', 10), 'a');
 	});
 
@@ -114,15 +114,15 @@ suite('Strings', () => {
 	});
 
 	test('createRegExp', () => {
-		// Empty
+
 		assert.throws(() => strings.createRegExp('', false));
 
-		// Escapes appropriately
+
 		assert.strictEqual(strings.createRegExp('abc', false).source, 'abc');
 		assert.strictEqual(strings.createRegExp('([^ ,.]*)', false).source, '\\(\\[\\^ ,\\.\\]\\*\\)');
 		assert.strictEqual(strings.createRegExp('([^ ,.]*)', true).source, '([^ ,.]*)');
 
-		// Whole word
+
 		assert.strictEqual(strings.createRegExp('abc', false, { wholeWord: true }).source, '\\babc\\b');
 		assert.strictEqual(strings.createRegExp('abc', true, { wholeWord: true }).source, '\\babc\\b');
 		assert.strictEqual(strings.createRegExp(' abc', true, { wholeWord: true }).source, ' abc\\b');

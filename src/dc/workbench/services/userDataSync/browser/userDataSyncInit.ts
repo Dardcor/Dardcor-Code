@@ -141,7 +141,7 @@ export class UserDataSyncInitializer implements IUserDataInitializer {
 			const userDataSyncStoreClient = disposables.add(new UserDataSyncStoreClient(userDataSyncStore.url, this.productService, this.requestService, this.logService, this.environmentService, this.fileService, this.storageService));
 			userDataSyncStoreClient.setAuthToken(authenticationSession.accessToken, authenticationSession.providerId);
 
-			// Cache global state data for global state initialization
+
 			this.globalStateUserData = await userDataSyncStoreClient.readResource(SyncResource.GlobalState, null);
 
 			if (this.globalStateUserData) {
@@ -149,7 +149,7 @@ export class UserDataSyncInitializer implements IUserDataInitializer {
 				if (userDataSyncStoreType) {
 					await this.userDataSyncStoreManagementService.switch(userDataSyncStoreType);
 
-					// Unset cached global state data if urls are changed
+
 					if (!isEqual(userDataSyncStore.url, this.userDataSyncStoreManagementService.userDataSyncStore?.url)) {
 						this.logService.info('Switched settings sync store');
 						this.globalStateUserData = null;

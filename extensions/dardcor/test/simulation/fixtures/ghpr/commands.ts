@@ -43,7 +43,7 @@ const _onDidUpdatePR = new vscode.EventEmitter<PullRequest | void>();
 export const onDidUpdatePR: vscode.Event<PullRequest | void> = _onDidUpdatePR.event;
 
 function ensurePR(folderRepoManager: FolderRepositoryManager, pr?: PRNode | PullRequestModel): PullRequestModel {
-	// If the command is called from the command palette, no arguments are passed.
+
 	if (!pr) {
 		if (!folderRepoManager.activePullRequest) {
 			vscode.window.showErrorMessage(vscode.l10n.t('Unable to find current pull request.'));
@@ -66,7 +66,7 @@ export async function openDescription(
 ) {
 	const pullRequest = ensurePR(folderManager, pullRequestModel);
 	descriptionNode?.reveal(descriptionNode, { select: true, focus: true });
-	// Create and show a new webview
+
 	await PullRequestOverviewPanel.createOrShow(context.extensionUri, folderManager, pullRequest);
 
 	if (notificationProvider?.hasNotification(pullRequest)) {
@@ -213,7 +213,7 @@ export function registerCommands(
 				const suggestEditText = `${suggestEditMessage}\`\`\`diff\n${diff}\n\`\`\``;
 				await folderManager.activePullRequest.createIssueComment(suggestEditText);
 
-				// Reset HEAD and then apply reverse diff
+
 				await vscode.commands.executeCommand('git.unstageAll');
 
 				const tempFilePath = pathLib.join(
@@ -260,7 +260,7 @@ export function registerCommands(
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand('pr.openOriginalFile', async (e: GitFileChangeNode) => {
-			// if this is an image, encode it as a base64 data URI
+
 			const folderManager = reposManager.getManagerForIssueModel(e.pullRequest);
 			if (folderManager) {
 				const imageDataURI = await asImageDataURI(e.changeModel.parentFilePath, folderManager.repository);
@@ -369,7 +369,7 @@ export function registerCommands(
 			if (error) {
 				await vscode.window.showErrorMessage(`Deleting local pull request branch failed: ${error}`);
 			} else {
-				// fire and forget
+
 				vscode.commands.executeCommand('pr.refreshList');
 			}
 		}),
@@ -399,7 +399,7 @@ export function registerCommands(
 		vscode.commands.registerCommand(
 			'pr.create',
 			async (args?: { repoPath: string; compareBranch: string } | Repository) => {
-				// The arguments this is called with are either from the SCM view, or manually passed.
+
 				if (isSourceControl(args)) {
 					(await chooseReviewManager(args.rootUri.fsPath))?.createPullRequest();
 				} else {
@@ -429,7 +429,7 @@ export function registerCommands(
 	context.subscriptions.push(
 		vscode.commands.registerCommand('pr.pick', async (pr: PRNode | DescriptionNode | PullRequestModel) => {
 			if (pr === undefined) {
-				// This is unexpected, but has happened a few times.
+
 				Logger.error('Unexpectedly received undefined when picking a PR.');
 				return vscode.window.showErrorMessage(vscode.l10n.t('No pull request was selected to checkout, please try again.'));
 			}
@@ -465,7 +465,7 @@ export function registerCommands(
 	context.subscriptions.push(
 		vscode.commands.registerCommand('pr.pickOnVscodeDev', async (pr: PRNode | DescriptionNode | PullRequestModel) => {
 			if (pr === undefined) {
-				// This is unexpected, but has happened a few times.
+
 				Logger.error('Unexpectedly received undefined when picking a PR.');
 				return vscode.window.showErrorMessage(vscode.l10n.t('No pull request was selected to checkout, please try again.'));
 			}
@@ -531,7 +531,7 @@ export function registerCommands(
 				return;
 			}
 			const pullRequest = ensurePR(folderManager, pr);
-			// TODO check is codespaces
+
 
 			const isCrossRepository =
 				pullRequest.base &&
@@ -721,7 +721,7 @@ export function registerCommands(
 			const pr = descriptionNode.pullRequestModel;
 			const pullRequest = ensurePR(folderManager, pr);
 			descriptionNode.reveal(descriptionNode, { select: true, focus: true });
-			// Create and show a new webview
+
 			PullRequestOverviewPanel.createOrShow(context.extensionUri, folderManager, pullRequest, true);
 
 		}),
@@ -976,15 +976,15 @@ ${contents}
 		vscode.commands.registerCommand('pr.markFileAsViewed', async (treeNode: FileChangeNode | vscode.Uri | undefined) => {
 			try {
 				if (treeNode === undefined) {
-					// Use the active editor to enable keybindings
+
 					treeNode = vscode.window.activeTextEditor?.document.uri;
 				}
 
 				if (treeNode instanceof FileChangeNode) {
 					await treeNode.markFileAsViewed();
 				} else if (treeNode) {
-					// When the argument is a uri it came from the editor menu and we should also close the file
-					// Do the close first to improve perceived performance of marking as viewed.
+
+
 					const tab = vscode.window.tabGroups.activeTabGroup.activeTab;
 					if (tab) {
 						let compareUri: vscode.Uri | undefined = undefined;
@@ -1011,7 +1011,7 @@ ${contents}
 		vscode.commands.registerCommand('pr.unmarkFileAsViewed', async (treeNode: FileChangeNode | vscode.Uri | undefined) => {
 			try {
 				if (treeNode === undefined) {
-					// Use the active editor to enable keybindings
+
 					treeNode = vscode.window.activeTextEditor?.document.uri;
 				}
 
@@ -1156,7 +1156,7 @@ ${contents}
 			return vscode.window.showErrorMessage(vscode.l10n.t('Current file isn\'t a pull request diff.'));
 		}
 
-		// Find the next diff in the current file to scroll to
+
 		const visibleRange = editor.visibleRanges[0];
 		const iterateThroughDiffs = next ? diffs : diffs.reverse();
 		for (const diff of iterateThroughDiffs) {
@@ -1171,7 +1171,7 @@ ${contents}
 			}
 		}
 
-		// There is no new range to reveal, time to go to the next file.
+
 		const folderManager = reposManager.getManagerForFile(editorUri);
 		if (!folderManager) {
 			return vscode.window.showErrorMessage(vscode.l10n.t('Unable to find a repository for pull request.'));
@@ -1196,7 +1196,7 @@ ${contents}
 				}
 			}
 		}
-		// No further files in PR.
+
 		const goInCircle = next ? vscode.l10n.t('Go to first diff') : vscode.l10n.t('Go to last diff');
 		return vscode.window.showInformationMessage(vscode.l10n.t('There are no more diffs in this pull request.'), goInCircle).then(result => {
 			if (result === goInCircle) {

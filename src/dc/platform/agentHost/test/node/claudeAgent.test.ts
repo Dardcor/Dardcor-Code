@@ -5423,7 +5423,7 @@ suite('ClaudeAgent — per-session provider', () => {
 	});
 
 	test('with a runtime host-default transport flip, a live session is not rerouted on an ordinary (non-switch) rebuild', async () => {
-		// the host-global default flips underneath it. Otherwise signing into
+
 		const ctx = createTestContext(disposables, {
 			rootConfig: { [AgentHostConfigKey.AllowSignedOutWhenUsable]: true },
 			nativeAccount: NATIVE_ACCOUNT,

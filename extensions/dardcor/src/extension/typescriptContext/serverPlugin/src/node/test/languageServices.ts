@@ -335,7 +335,7 @@ export class LanguageServicesSession extends ComputeContextSession {
 	}
 
 	private static makeKey(config: tt.ParsedCommandLine): string {
-		const hash = crypto.createHash('md5'); // CodeQL [SM04514] The 'md5' algorithm is used to compute a shorter string to represent command line arguments in a map. It has no security implications.
+		const hash = crypto.createHash('md5');
 		hash.update(JSON.stringify(config.options, undefined, 0));
 		return hash.digest('base64');
 	}

@@ -7,9 +7,9 @@ import { INodeProcess, IProcessEnvironment } from '../../../common/platform.js';
 import { ISandboxConfiguration } from '../common/sandboxTypes.js';
 import { IpcRenderer, ProcessMemoryInfo, WebFrame, WebUtils } from './electronTypes.js';
 
-/**
- * In Electron renderers we cannot expose all of the `process` global of node.js
- */
+
+
+
 export interface ISandboxNodeProcess extends INodeProcess {
 
 	readonly platform: string;
@@ -64,10 +64,10 @@ export const process: ISandboxNodeProcess = vscodeGlobal.process;
 export const context: ISandboxContext = vscodeGlobal.context;
 export const webUtils: WebUtils = vscodeGlobal.webUtils;
 
-/**
- * A set of globals only available to main windows that depend
- * on `preload.js`.
- */
+
+
+
+
 export interface IMainWindowSandboxGlobals {
 	readonly ipcRenderer: IpcRenderer;
 	readonly ipcMessagePort: IpcMessagePort;
@@ -77,10 +77,10 @@ export interface IMainWindowSandboxGlobals {
 	readonly webUtils: WebUtils;
 }
 
-/**
- * A set of globals that are available in all windows that either
- * depend on `preload.js` or `preload-aux.js`.
- */
+
+
+
+
 export interface ISandboxGlobals {
 	readonly ipcRenderer: Pick<import('./electronTypes.js').IpcRenderer, 'send' | 'invoke'>;
 	readonly webFrame: import('./electronTypes.js').WebFrame;

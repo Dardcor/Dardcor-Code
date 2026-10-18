@@ -29,27 +29,27 @@ function _computeRanges(model: ISimpleTextModel, offSide: boolean): FoldingRegio
 	const result = new RangesCollector();
 	const previousRegions: PreviousRegion[] = [];
 	const line = model.getLineCount() + 1;
-	previousRegions.push({ indent: -1, endAbove: line, line }); // sentinel, to make sure there's at least one entry
+	previousRegions.push({ indent: -1, endAbove: line, line });
 	for (let line = model.getLineCount(); line > 0; line--) {
 		const lineContent = model.getLineContent(line);
 		const indent = computeIndentLevel(lineContent, tabSize);
 		let previous = previousRegions[previousRegions.length - 1];
 		if (indent === -1) {
 			if (offSide) {
-				// for offSide languages, empty lines are associated to the previous block
-				// note: the next block is already written to the results, so this only
-				// impacts the end position of the block before
+
+
+
 				previous.endAbove = line;
 			}
-			continue; // only whitespace
+			continue;
 		}
 		if (previous.indent > indent) {
-			// discard all regions with larger indent
+
 			do {
 				previousRegions.pop();
 				previous = previousRegions[previousRegions.length - 1];
 			} while (previous.indent > indent);
-			// new folding range
+
 			const endLineNumber = previous.endAbove - 1;
 			if (endLineNumber - line >= 1) { // needs at east size 1
 				result.insertFirst(line, endLineNumber, indent);
@@ -58,7 +58,7 @@ function _computeRanges(model: ISimpleTextModel, offSide: boolean): FoldingRegio
 		if (previous.indent === indent) {
 			previous.endAbove = line;
 		} else { // previous.indent < indent
-			// new region with a bigger indent
+
 			previousRegions.push({ indent, endAbove: line, line });
 		}
 	}
@@ -66,9 +66,9 @@ function _computeRanges(model: ISimpleTextModel, offSide: boolean): FoldingRegio
 }
 
 interface PreviousRegion {
-	indent: number; // indent or -2 if a marker
-	endAbove: number; // end line number for the region above
-	line: number; // start line of the region. Only used for marker regions.
+	indent: number;
+	endAbove: number;
+	line: number;
 }
 
 const MAX_FOLDING_REGIONS = 0xFFFF;
@@ -100,7 +100,7 @@ class RangesCollector {
 		}
 	}
 	public toIndentRanges() {
-		// reverse and create arrays of the exact length
+
 		const startIndexes = new Uint32Array(this._length);
 		const endIndexes = new Uint32Array(this._length);
 		for (let i = this._length - 1, k = 0; i >= 0; i--, k++) {
@@ -111,11 +111,11 @@ class RangesCollector {
 	}
 }
 
-/**
- * Returns:
- *  - -1 => the line consists of whitespace
- *  - otherwise => the indent level is returned value
- */
+
+
+
+
+
 export function computeIndentLevel(line: string, tabSize: number): number {
 	let indent = 0;
 	let i = 0;
@@ -133,7 +133,7 @@ export function computeIndentLevel(line: string, tabSize: number): number {
 	}
 
 	if (i === len) {
-		return -1; // line only consists of whitespace
+		return -1;
 	}
 	return indent;
 }
@@ -183,9 +183,9 @@ export class FoldingRegions {
 	public getEndLineNumber(index: number): number {
 		return this._endIndexes[index] & MAX_LINE_NUMBER;
 	}
-	// public toRegion(index: number): FoldingRegion {
-	// 	return new FoldingRegion(this, index);
-	// }
+
+
+
 	public getParentIndex(index: number) {
 		this.ensureParentIndices();
 		const parent = ((this._startIndexes[index] & MASK_INDENT) >>> 24) + ((this._endIndexes[index] & MASK_INDENT) >>> 16);
@@ -200,7 +200,7 @@ export class FoldingRegions {
 	private findIndex(line: number) {
 		let low = 0, high = this._startIndexes.length;
 		if (high === 0) {
-			return -1; // no children
+			return -1;
 		}
 		while (low < high) {
 			const mid = Math.floor((low + high) / 2);

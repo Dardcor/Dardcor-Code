@@ -29,7 +29,7 @@ export function globalTransaction(fn: (tx: ITransaction) => void) {
 		} finally {
 			tx.finish();
 
-			// Which is why we only clear the global transaction after finish.
+
 			_globalTransaction = undefined;
 		}
 	}

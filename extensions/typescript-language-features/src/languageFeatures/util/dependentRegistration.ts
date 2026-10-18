@@ -90,11 +90,11 @@ export function requireMinVersion(
 	);
 }
 
-/**
- * Requires that a configuration value has been modified from its default value in either the global or workspace scope
- *
- * Does not check the value, only that it has been modified from the default.
- */
+
+
+
+
+
 export function requireHasModifiedUnifiedConfig(
 	configValue: string,
 	fallbackSection: string,

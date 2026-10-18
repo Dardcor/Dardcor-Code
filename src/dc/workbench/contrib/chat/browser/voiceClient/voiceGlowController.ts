@@ -54,11 +54,11 @@ function rimMotionParams(theme: GlowThemeKind, duration: number) {
 		spread: 0.28,
 		drift: dark ? 33 : 40,
 		opacityDepth: dark ? 0.48 : 0.45,
-		/** Depth of the global height swell. */
+
 		breathDepth: dark ? 0.34 : 0.22,
 		opacityPeriod: (dark ? 1.9 : 2.6) * scale,
 		sizePeriod: (dark ? 2.6 : 4.6) * scale,
-		/** Period of the global height swell. */
+
 		breathPeriod: (dark ? 2.4 : 5.5) * scale,
 	};
 }

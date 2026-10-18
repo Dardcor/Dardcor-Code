@@ -64,7 +64,7 @@ export function getUserPrompt(promptPieces: PromptPieces): UserPromptResult {
 	let nDiffsInPrompt: number;
 
 	if (opts.globalBudget !== undefined) {
-		// that set a global budget without precomputing (e.g. tests).
+
 		const cascade = precomputedCascade ?? runGlobalBudgetCascade(activeDoc, xtabHistory, langCtx, computeTokens, opts, neighborSnippets, opts.globalBudget);
 		recentlyViewedCodeSnippets = cascade.codeSnippets;
 		recentlyViewedSubsections = cascade.subsections;

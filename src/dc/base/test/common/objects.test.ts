@@ -146,7 +146,7 @@ suite('Objects', () => {
 		assert.strictEqual(objects.stableStringify(a), objects.stableStringify(b));
 		assert.strictEqual(objects.stableStringify(a), '{"a":2,"b":1,"c":{"x":2,"y":1}}');
 
-		// global replacer-array was used).
+
 		assert.strictEqual(
 			objects.stableStringify({ outer: { inner: 1 } }),
 			'{"outer":{"inner":1}}'

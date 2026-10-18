@@ -2052,7 +2052,7 @@ suite('serializeSendOptions', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('preserves request-scoped options through persist/restore', () => {
-		// the restored request falls back to the profile-global value.
+
 		const serialized = serializeSendOptions({
 			userSelectedModelId: 'copilot/gpt',
 			userSelectedModelConfiguration: { thinkingEffort: 'high', contextSize: 2000 },

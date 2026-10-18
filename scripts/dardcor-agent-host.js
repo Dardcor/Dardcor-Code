@@ -35,7 +35,7 @@ async function main() {
 
 	const port = args.port || process.env['DARDCOR_AGENT_HOST_PORT'] || process.env['VSCODE_AGENT_HOST_PORT'] || '8081';
 
-	/** @type {string[]} */
+
 	const serverArgs = ['--port', String(port)];
 	if (args.host) {
 		serverArgs.push('--host', String(args.host));
@@ -62,10 +62,10 @@ async function main() {
 	await startServer(serverArgs);
 }
 
-/**
- * @param {string[]} programArgs
- * @returns {Promise<void>}
- */
+
+
+
+
 function startServer(programArgs) {
 	return new Promise((resolve) => {
 		const env = { ...process.env };

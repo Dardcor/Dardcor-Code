@@ -265,16 +265,16 @@ export interface PluginCustomization extends ContainerCustomizationBase {
 
 export interface ClientPluginCustomization extends PluginCustomization {
 	nonce?: string;
-	/**
-	 * Explicit enablement decisions for children this plugin contributes,
-	 * keyed by child name (for MCP servers, the server name as it appears in
-	 * the bundled `.mcp.json`).
-	 *
-	 * Bundled children are discovered by the host rather than published by the
-	 * client, so the client cannot attach `enablement` to them directly. This
-	 * carries the client's global decision for each one; the host applies it
-	 * under the child's durable key.
-	 */
+
+
+
+
+
+
+
+
+
+
 	childEnablement?: Record<string, CustomizationEnablement[]>;
 }
 
@@ -323,23 +323,23 @@ export interface HookCustomization extends ChildCustomizationBase {
 
 export interface McpServerCustomization extends CustomizationBase {
 	type: CustomizationType.McpServer;
-	/**
-	 * Explicit enablement decisions for this customization, one entry per scope
-	 * that has one. This is a wire contract: producers MUST publish entries
-	 * sorted by descending specificity (Session, Workspace, then Global).
-	 * The agent host emits at most one Workspace entry, for the session's primary
-	 * working directory. Consumers MAY treat
-	 * `enablement[0]` as the decisive decision and
-	 * `enablement?.[0]?.enabled ?? true` as the effective enabled value. An
-	 * absent or empty array means no explicit decision exists, so the
-	 * customization is enabled by default.
-	 *
-	 * Flows in both directions. A client publishes this alongside a customization
-	 * to assert its global decision, which is authoritative for the Global scope;
-	 * a client always includes its global entry, even when enabled. The host
-	 * publishes the fully resolved set across all scopes, and consumers derive
-	 * the effective enabled value from that set.
-	 */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	enablement?: CustomizationEnablement[];
 	state: McpServerState;
 	channel?: URI;

@@ -22,10 +22,10 @@ export interface ISnapshotOptions {
 	extension?: string;
 }
 
-/**
- * This is exported only for tests against the snapshotting itself! Use
- * {@link assertSnapshot} as a consumer!
- */
+
+
+
+
 export class SnapshotContext {
 	private nextIndex = 0;
 	protected snapshotsDir: URI;

@@ -4,25 +4,25 @@
 import Generator from 'yeoman-generator';
 import * as prompts from './prompts.js';
 
-/**
- * @typedef {import('./index.js').ExtensionConfig} ExtensionConfig
- */
+
+
+
 
 
 const chalk = new Chalk();
 
-/**
- * @type {import('./index.js').ExtensionGenerator}
- */
+
+
+
 export default {
     id: 'ext-command-ts',
     aliases: ['ts', 'command-ts'],
     name: 'New Extension (TypeScript)',
     insidersName: 'New Extension with Proposed API (TypeScript)',
-    /**
-     * @param {Generator} generator
-     * @param {ExtensionConfig} extensionConfig
-     */
+
+
+
+
     prompting: async (generator, extensionConfig) => {
         await prompts.askForExtensionDisplayName(generator, extensionConfig);
         await prompts.askForExtensionId(generator, extensionConfig);
@@ -32,10 +32,10 @@ export default {
         await prompts.askForBundler(generator, extensionConfig);
         await prompts.askForPackageManager(generator, extensionConfig);
     },
-    /**
-     * @param {Generator} generator
-     * @param {ExtensionConfig} extensionConfig
-     */
+
+
+
+
     writing: (generator, extensionConfig) => {
         const bundler = extensionConfig.bundler;
         if (bundler && (bundler === 'webpack' || bundler === 'esbuild')) {
@@ -75,10 +75,10 @@ export default {
         extensionConfig.proposedAPI = extensionConfig.insiders;
     },
 
-    /**
-     * @param {Generator} generator
-     * @param {ExtensionConfig} extensionConfig
-     */
+
+
+
+
     endMessage: (generator, extensionConfig) => {
         if (extensionConfig.bundler === 'webpack') {
             generator.log(chalk.yellow(`To run the extension you need to install the recommended extension 'amodio.tsl-problem-matcher'.`));

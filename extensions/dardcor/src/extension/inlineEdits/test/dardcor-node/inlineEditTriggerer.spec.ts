@@ -990,7 +990,7 @@ suite('InlineEditTriggerer', () => {
 			const doc2 = createTextDocument(undefined, Uri.file('tracked2.py'));
 			triggerTextSelectionChange(doc2.textEditor, new Selection(0, 0, 0, 0));
 
-			// still sets lastEditTimestamp, which is a global field)
+
 			assert.isTrue(true, 'Test verifies that ignored doc change does not throw');
 		});
 

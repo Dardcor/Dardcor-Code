@@ -539,7 +539,7 @@ export {
 	ChangesetOperationTargetKind, type ChangesetOperationFollowUp, type ChangesetOperationTarget
 } from './protocol/commands.js';
 
-// chat channel). Re-exported here so consumers can import them from the glue
+
 export {
 	ChatInputAnswerState,
 	ChatInputAnswerValueKind,

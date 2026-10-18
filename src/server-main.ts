@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import './bootstrap-server.js'; // this MUST come before other imports as it changes global state
+import './bootstrap-server.js';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import * as http from 'node:http';
@@ -302,7 +302,7 @@ async function loadCode(nlsConfiguration: INLSConfiguration) {
 		delete process.env['VSCODE_DEV_INJECT_NODE_MODULE_LOOKUP_PATH'];
 	}
 
-	// Remove global paths from the node module lookup (node.js only)
+
 	removeGlobalNodeJsModuleLookupPaths();
 
 	await bootstrapESM();

@@ -68,7 +68,9 @@ export class BrowserViewMainService extends Disposable implements IBrowserViewMa
 	) {
 		super();
 		this._register(this.agentNetworkFilterService.onDidChange(() => {
-			BrowserSession.updateNetworkFiltering();
+			void BrowserSession.updateNetworkFiltering().catch(error => {
+				this.logService.error('[BrowserViewMainService] Failed to close agent browser connections after a network policy change.', error);
+			});
 			this._updateAgentAccess();
 		}));
 	}

@@ -262,7 +262,7 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 		const configurationService = this._register(new ConfigurationService(userDataProfilesService.defaultProfile.settingsResource, fileService, policyService, logService));
 		services.set(IConfigurationService, configurationService);
 
-		// Storage (global access only)
+
 		const storageService = new RemoteStorageService(undefined, { defaultProfile: userDataProfilesService.defaultProfile, currentProfile: userDataProfilesService.defaultProfile }, mainProcessService, environmentService);
 		services.set(IStorageService, storageService);
 		this._register(toDisposable(() => storageService.flush()));
@@ -458,7 +458,7 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 
 	private registerErrorHandler(logService: ILogService): void {
 
-		// Listen on global error events
+
 		process.on('uncaughtException', error => onUnexpectedError(error));
 		process.on('unhandledRejection', (reason: unknown) => onUnexpectedError(reason));
 

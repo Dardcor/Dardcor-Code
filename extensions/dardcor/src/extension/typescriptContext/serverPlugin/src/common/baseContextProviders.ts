@@ -155,7 +155,7 @@ export class SignatureRunnable extends FunctionLikeContextRunnable {
 
 	private static computeId(session: ComputeContextSession, declaration: tt.FunctionLikeDeclarationBase): string {
 		const { sourceFile, startPos, endPos } = SignatureRunnable.getSourceFileAndPositions(declaration);
-		const hash = session.host.createHash('md5'); // CodeQL [SM04514] The 'md5' algorithm is used to compute a shorter string to represent a symbol in a map. It has no security implications.
+		const hash = session.host.createHash('md5');
 		hash.update(sourceFile.fileName);
 		hash.update(`[${startPos},${endPos}]`);
 		return `SignatureRunnable:${hash.digest('base64')}`;

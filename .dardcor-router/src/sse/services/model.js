@@ -1,9 +1,9 @@
-// Re-export from open-sse with localDb integration
+
 import { getModelAliases, getComboByName, getProviderNodes, getProviderConnections } from "@/lib/localDb";
 import { parseModel as parseModelCore, resolveModelAliasFromMap, getModelInfoCore } from "open-sse/services/model.js";
 import REGISTRY from "open-sse/providers/registry/index.js";
 
-// Local provider alias overrides (HMR-friendly, applied on top of open-sse map)
+
 const LOCAL_PROVIDER_ALIASES = {
   xmtp: "xiaomi-tokenplan",
   "xiaomi-tokenplan": "xiaomi-tokenplan",
@@ -24,23 +24,23 @@ export function parseModel(modelStr) {
   return parsed;
 }
 
-/**
- * Resolve model alias from localDb
- */
+
+
+
 export async function resolveModelAlias(alias) {
   const aliases = await getModelAliases();
   return resolveModelAliasFromMap(alias, aliases);
 }
 
-/**
- * Get full model info (parse or resolve)
- */
+
+
+
 export async function getModelInfo(modelStr) {
   const parsed = parseModel(modelStr);
 
   if (!parsed.isAlias) {
-    // Provider-node prefixes are user-defined. They must not override built-in
-    // provider ids/aliases such as `cf`, `cloudflare-ai`, `openai`, or `hf`.
+
+
     if (!RESERVED_PROVIDER_PREFIXES.has(parsed.providerAlias)) {
       const openaiNodes = await getProviderNodes({ type: "openai-compatible" });
       const matchedOpenAI = openaiNodes.find((node) => node.prefix === parsed.providerAlias);
@@ -66,29 +66,29 @@ export async function getModelInfo(modelStr) {
     };
   }
 
-  // Check if this is a combo name before resolving as alias
-  // This prevents combo names from being incorrectly routed to providers
+
+
   const combo = await getComboByName(parsed.model);
   if (combo) {
-    // Return null provider to signal this should be handled as combo
-    // The caller (handleChat) will detect this and handle it as combo
+
+
     return { provider: null, model: parsed.model };
   }
 
-  // Check explicit model aliases configured in localDb
+
   const aliases = await getModelAliases();
   const resolvedAlias = resolveModelAliasFromMap(parsed.model, aliases);
   if (resolvedAlias) {
     return resolvedAlias;
   }
 
-  // OpenCode free models routing (zero-config, public access)
+
   const mLower = parsed.model?.toLowerCase() || "";
   if (mLower.endsWith("-free") || mLower === "big-pickle" || mLower.startsWith("space-bunny")) {
     return { provider: "opencode", model: parsed.model };
   }
 
-  // Smart Routing: Check active provider connections in SQLite
+
   try {
     const conns = await getProviderConnections();
     const activeProviderIds = new Set(
@@ -96,7 +96,7 @@ export async function getModelInfo(modelStr) {
     );
 
     if (activeProviderIds.size > 0) {
-      // 1. Check if any active provider explicitly advertises this model in registry
+
       for (const entry of REGISTRY) {
         if (activeProviderIds.has(entry.id)) {
           if (entry.models?.some((m) => m.id === parsed.model || m.name === parsed.model)) {
@@ -105,10 +105,10 @@ export async function getModelInfo(modelStr) {
         }
       }
 
-      // 2. Check family matching and intelligent fallback for active providers
+
       const modelLower = parsed.model.toLowerCase();
 
-      // Auto / generic / default routing when standard provider is not active
+
       if (["auto", "default", "chat", "gpt-4o", "gpt-4o-mini", "gpt-4"].includes(modelLower)) {
         if (!activeProviderIds.has("openai")) {
           if (activeProviderIds.has("antigravity")) {
@@ -125,7 +125,7 @@ export async function getModelInfo(modelStr) {
         }
       }
 
-      // Gemini family routing
+
       if (modelLower.startsWith("gemini-") || modelLower === "gemini") {
         if (activeProviderIds.has("antigravity") && !activeProviderIds.has("gemini") && !activeProviderIds.has("gemini-cli")) {
           if (modelLower.includes("3.7")) {
@@ -141,7 +141,7 @@ export async function getModelInfo(modelStr) {
         }
       }
 
-      // Claude family routing
+
       if (modelLower.startsWith("claude-") || modelLower === "claude") {
         if (activeProviderIds.has("antigravity") && !activeProviderIds.has("anthropic") && !activeProviderIds.has("claude-oauth")) {
           if (modelLower.includes("opus")) {
@@ -155,7 +155,7 @@ export async function getModelInfo(modelStr) {
         return { provider: "antigravity", model: "gpt-oss-120b-medium" };
       }
 
-      // If only 1 active provider in DB, fallback all unmatched models to it
+
       if (activeProviderIds.size === 1) {
         const onlyProvider = Array.from(activeProviderIds)[0];
         if (onlyProvider === "antigravity") {
@@ -171,12 +171,12 @@ export async function getModelInfo(modelStr) {
   return getModelInfoCore(modelStr, aliases);
 }
 
-/**
- * Check if model is a combo and get models list
- * @returns {Promise<string[]|null>} Array of models or null if not a combo
- */
+
+
+
+
 export async function getComboModels(modelStr) {
-  // Only check if it's not in provider/model format
+
   if (modelStr.includes("/")) return null;
 
   const combo = await getComboByName(modelStr);

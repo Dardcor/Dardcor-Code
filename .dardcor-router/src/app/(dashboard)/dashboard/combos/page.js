@@ -12,7 +12,7 @@ import { isOpenAICompatibleProvider, isAnthropicCompatibleProvider } from "@/sha
 
 const VALID_NAME_REGEX = /^[a-zA-Z0-9_.\-]+$/;
 
-// Capacity adapter: global fallback pools of models per input-modality capability.
+
 const CAPACITY_ADAPTER_CAPS = [
   { key: "vision", label: "Vision", icon: "visibility", desc: "Images" },
   { key: "audioInput", label: "Audio", icon: "graphic_eq", desc: "Audio input" },

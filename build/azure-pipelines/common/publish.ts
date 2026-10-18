@@ -920,7 +920,7 @@ async function processArtifact(
 		const type = getRealType(unprocessedType);
 		const size = fs.statSync(filePath).size;
 		const stream = fs.createReadStream(filePath);
-		const [hash, sha256hash] = await Promise.all([hashStream('sha1', stream), hashStream('sha256', stream)]); // CodeQL [SM04514] Using SHA1 only for legacy reasons, we are actually only respecting SHA256
+		const [hash, sha256hash] = await Promise.all([hashStream('sha1', stream), hashStream('sha256', stream)]);
 		const asset: Asset = { platform, type, url, hash: hash.toString('hex'), sha256hash: sha256hash.toString('hex'), size, supportsFastUpdate: true };
 		log('Creating asset...');
 

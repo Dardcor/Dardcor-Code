@@ -430,7 +430,7 @@ export class BrowserMain extends Disposable {
 		if (await userDataInitializationService.requiresInitialization()) {
 			mark('code/willInitRequiredUserData');
 
-			// Initialize required resources - settings & global state
+
 			await userDataInitializationService.initializeRequiredResources();
 
 			if (configurationService instanceof WorkspaceService) {

@@ -25,11 +25,11 @@ class Builds {
 
 	async fetchBuilds(runtime = Runtime.WebLocal, goodCommit?: string, badCommit?: string, releasedOnly?: boolean): Promise<IBuild[]> {
 
-		// Fetch all released insider builds
+
 		const allBuilds = await this.fetchAllBuilds(runtime, releasedOnly);
 
-		let goodCommitIndex = allBuilds.length - 1;  // last build (oldest) by default
-		let badCommitIndex = 0;                      // first build (newest) by default
+		let goodCommitIndex = allBuilds.length - 1;
+		let badCommitIndex = 0;
 
 		if (typeof goodCommit === 'string') {
 			const candidateGoodCommitIndex = this.indexOf(goodCommit, allBuilds);
@@ -53,10 +53,10 @@ class Builds {
 			throw new Error(`Provided bad commit ${chalk.green(badCommit)} cannot be older or same as good commit ${chalk.green(goodCommit)}.`);
 		}
 
-		// Build a range based on the bad and good commits if any
+
 		const buildsInRange = allBuilds.slice(badCommitIndex, goodCommitIndex + 1);
 
-		// Drop those builds that are not on main branch
+
 		return buildsInRange;
 	}
 
@@ -124,7 +124,7 @@ class Builds {
 				console.log(`${chalk.gray('[build]')} using ${chalk.green(path)} for the next build to try`);
 			}
 
-			return; // assume the build is cached
+			return;
 		}
 
 		if (pathExists && options?.forceReDownload) {
@@ -132,7 +132,7 @@ class Builds {
 			rmSync(getBuildPath(commit), { recursive: true });
 		}
 
-		// Download
+
 		const url = `https://update.code.visualstudio.com/commit:${commit}/${this.getPlatformName(runtime)}/insider`;
 		console.log(`${chalk.gray('[build]')} downloading build from ${chalk.green(url)}...`);
 		await fileGet(url, path);
@@ -141,13 +141,13 @@ class Builds {
 		console.log(`${chalk.gray('[build]')} validating build sha256 hash...`);
 
 
-		// Unzip
+
 		let destination: string;
 		if (runtime === Runtime.DesktopLocal && platform === Platform.WindowsX64 || platform === Platform.WindowsArm) {
-			// zip does not contain a single top level folder to use...
+
 			destination = path.substring(0, path.lastIndexOf('.zip'));
 		} else {
-			// zip contains a single top level folder to use
+
 			destination = dirname(path);
 		}
 		console.log(`${chalk.gray('[build]')} unzipping build to ${chalk.green(destination)}...`);
@@ -157,8 +157,8 @@ class Builds {
 	private async getBuildArchiveName({ runtime, commit }: IBuild): Promise<string> {
 		switch (runtime) {
 
-			// We currently do not have ARM enabled servers
-			// so we fallback to x64 until we ship ARM.
+
+
 			case Runtime.WebLocal:
 			case Runtime.WebRemote:
 				switch (platform) {
@@ -175,10 +175,10 @@ class Builds {
 						return 'vscode-server-win32-x64-web.zip';
 				}
 
-			// Every platform has its own name scheme, hilarious right?
-			// - macOS: just the name, nice! (e.g. VSCode-darwin.zip)
-			// - Linux: includes some unix timestamp (e.g. code-insider-x64-1639979337.tar.gz)
-			// - Windows: includes the version (e.g. VSCode-win32-x64-1.64.0-insider.zip)
+
+
+
+
 			case Runtime.DesktopLocal:
 				switch (platform) {
 					case Platform.MacOSX64:
@@ -187,7 +187,7 @@ class Builds {
 						return 'VSCode-darwin-arm64.zip';
 					case Platform.LinuxX64:
 					case Platform.LinuxArm:
-						return (await this.fetchBuildMeta({ runtime, commit })).url.split('/').pop()!; // e.g. https://az764295.vo.msecnd.net/insider/807bf598bea406dcb272a9fced54697986e87768/code-insider-x64-1639979337.tar.gz
+						return (await this.fetchBuildMeta({ runtime, commit })).url.split('/').pop()!;
 					case Platform.WindowsX64:
 					case Platform.WindowsArm: {
 						const buildMeta = await this.fetchBuildMeta({ runtime, commit });
@@ -216,8 +216,8 @@ class Builds {
 						return 'vscode-server-win32-x64-web';
 				}
 
-			// Here, only Windows does not play by our rules and adds the version number
-			// - Windows: includes the version (e.g. VSCode-win32-x64-1.64.0-insider)
+
+
 			case Runtime.DesktopLocal:
 				switch (platform) {
 					case Platform.MacOSX64:
@@ -292,7 +292,7 @@ class Builds {
 					case Platform.LinuxArm: {
 						const oldLocation = join(buildPath, buildName, 'server.sh');
 						if (await exists(oldLocation)) {
-							return oldLocation; // only valid until 1.64.x
+							return oldLocation;
 						}
 
 						return join(buildPath, buildName, 'bin', 'code-server-insiders');
@@ -301,7 +301,7 @@ class Builds {
 					case Platform.WindowsArm: {
 						const oldLocation = join(buildPath, buildName, 'server.cmd');
 						if (await exists(oldLocation)) {
-							return oldLocation; // only valid until 1.64.x
+							return oldLocation;
 						}
 
 						return join(buildPath, buildName, 'bin', 'code-server-insiders.cmd');

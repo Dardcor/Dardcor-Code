@@ -322,7 +322,7 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 						validate: async (outcome, workspace, accessor) => {
 							assert.strictEqual(outcome.type, 'inlineEdit');
 							const diagnostics = await getWorkspaceDiagnostics(accessor, workspace, 'tsc');
-							const filtered = diagnostics.filter(d => d.code !== 2307 && d.code !== 2305); // filter module not found, module has not exported member
+							const filtered = diagnostics.filter(d => d.code !== 2307 && d.code !== 2305);
 							assert.equal(filtered.length, 0, 'only module not found diagnostics');
 						}
 					}
@@ -432,7 +432,7 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 								assert.ok(match, 'contains npm install cypress');
 							} else if (outcome.type === 'inlineEdit') {
 								const diagnostics = await getWorkspaceDiagnostics(accessor, workspace, 'tsc');
-								const filtered = diagnostics.filter(d => d.code !== 2307 && d.code !== 2305); // filter module not found, module has not exported member
+								const filtered = diagnostics.filter(d => d.code !== 2307 && d.code !== 2305);
 								assert.equal(filtered.length, 0, 'only module not found diagnostics');
 							} else {
 								assert.fail('unexpected outcome type');

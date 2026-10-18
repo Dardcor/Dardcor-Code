@@ -20,14 +20,14 @@ export interface RunWithFakedTimersOptions {
 	readonly onHistory?: (history: readonly RecordedTimerEvent[]) => void;
 }
 
-/**
- * Run `fn` with a virtual clock installed as the global time API.
- *
- * After `fn` resolves, the virtual queue is drained (so any timers `fn`
- * scheduled and `await`ed for, transitively, complete deterministically).
- * If `fn` throws, the queue is *not* drained — the original error is
- * re-thrown immediately.
- */
+
+
+
+
+
+
+
+
 export async function runWithFakedTimers<T>(
 	options: RunWithFakedTimersOptions,
 	fn: () => Promise<T>,

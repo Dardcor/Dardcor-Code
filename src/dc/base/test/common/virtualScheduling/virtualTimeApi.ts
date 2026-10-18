@@ -150,5 +150,5 @@ export function createVirtualTimeApi(
 	return api;
 }
 
-// Re-exported for convenience: many tests want to install both at once.
+
 export { pushGlobalTimeApi } from './globalTimeApi.js';

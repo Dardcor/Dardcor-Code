@@ -403,8 +403,8 @@ export class OpenPermissionPickerAction extends Action2 {
 				id: MenuId.ChatInput,
 				order: 1,
 				group: 'navigation',
-				// Keep access visibility aligned with the model picker. The input toolbar's
-				// scoped context does not consistently expose `inChatInput`.
+
+
 				when: chatInputModelPickerMenuWhen,
 			},
 		});
@@ -437,8 +437,8 @@ export class OpenModePickerAction extends Action2 {
 				primary: KeyMod.CtrlCmd | KeyCode.Period,
 				weight: KeybindingWeight.EditorContrib
 			},
-			// Keep the command in the menu so ChatInputPart can host its picker
-			// invisibly for the existing Ctrl+. command and keyboard shortcut.
+
+
 			menu: [
 				{
 					id: MenuId.ChatInput,

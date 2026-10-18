@@ -43,7 +43,7 @@ export async function getShellIntegrationInjection(
 	productService: IProductService,
 	skipStickyBit: boolean = false
 ): Promise<IShellIntegrationConfigInjection | IShellIntegrationInjectionFailure> {
-	// The global setting is disabled
+
 	if (!options.shellIntegration.enabled) {
 		return { type: 'failure', reason: ShellIntegrationInjectionFailureReason.InjectionSettingDisabled };
 	}

@@ -28,7 +28,7 @@ function doGetUserDataPath(cliArgs: NativeParsedArgs, productName: string): stri
 		return join(portablePath, 'user-data');
 	}
 
-	// 2. Support global VSCODE_APPDATA environment variable
+
 	const appDataPath = process.env['VSCODE_APPDATA'];
 	if (appDataPath) {
 		return join(appDataPath, productName);

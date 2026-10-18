@@ -33,7 +33,7 @@ const require = createRequire(import.meta.url);
 interface ParsedExtHostArgs {
 	transformURIs?: boolean;
 	skipWorkspaceStorageLock?: boolean;
-	supportGlobalNavigator?: boolean; // enable global navigator object in nodejs
+	supportGlobalNavigator?: boolean;
 	useHostProxy?: 'true' | 'false';
 }
 
@@ -119,7 +119,7 @@ function patchProcess(allowExit: boolean) {
 
 }
 
-// NodeJS since v21 defines navigator as a global object. This will likely surprise many extensions and potentially break them
+
 if (!args.supportGlobalNavigator) {
 	Object.defineProperty(globalThis, 'navigator', {
 		get: () => {

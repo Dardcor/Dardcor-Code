@@ -662,7 +662,7 @@ export class QueryGlobTester {
 		}) ?? [];
 
 		if (this._excludeExpression.length === 0) {
-			// even if there are no folderQueries, we want to observe  the global excludes
+
 			this._excludeExpression = [config.excludePattern || {}];
 		}
 

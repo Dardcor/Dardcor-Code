@@ -823,7 +823,7 @@ export class ExtHostChatAgents2 extends Disposable implements ExtHostChatAgentsS
 			return undefined;
 		}
 
-		// internal caller (e.g. the management UI populating a global list)
+
 		if (!sessionResource) {
 			return undefined;
 		}

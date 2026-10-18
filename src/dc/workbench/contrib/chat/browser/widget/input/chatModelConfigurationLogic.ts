@@ -97,26 +97,26 @@ function matchesJSONSchemaType(value: unknown, type: string): boolean {
 	}
 }
 
-/**
- * Resolves the effective configuration for a model within a single
- * `(location, sessionType)` scope.
- *
- * A *present* stored entry — even an empty one, which marks an explicit
- * reset-to-default — wins and is merged over the schema defaults. Only a
- * *missing* entry (`undefined`) falls back to the profile-global value, which is
- * the one-time migration for setups that pre-date per-editor scoping.
- *
- * Schema defaults are merged in every branch so a value the user never
- * explicitly set (e.g. a model's default `contextSize`) is always present in the
- * resolved configuration. Otherwise the model picker — which paints the schema
- * default when a key is absent — would show one value while the request and the
- * context-usage widget, which read the resolved configuration, fall back to the
- * model's full native window. See issue #320393.
- *
- * Distinguishing "present but empty" from "absent" is what prevents a newly
- * opened editor from reverting an explicit default selection back to a stale
- * profile-global value. See issue #320393.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 export function resolveModelConfiguration(
 	storedEntry: IStringDictionary<unknown> | undefined,
 	schemaDefaults: IStringDictionary<unknown>,
@@ -128,15 +128,15 @@ export function resolveModelConfiguration(
 	return globalConfig ? { ...schemaDefaults, ...globalConfig } : { ...schemaDefaults };
 }
 
-/**
- * Computes the entry to persist for a model after applying `values` on top of the
- * `current` effective configuration. Values equal to their schema default are
- * stripped so storage holds only genuine user overrides.
- *
- * The result may be an empty object: callers are expected to still persist it so
- * that an explicit reset-to-default is remembered and does not fall back to the
- * profile-global value on the next read. See issue #320393.
- */
+
+
+
+
+
+
+
+
+
 export function computeStoredConfiguration(
 	current: IStringDictionary<unknown>,
 	values: IStringDictionary<unknown>,

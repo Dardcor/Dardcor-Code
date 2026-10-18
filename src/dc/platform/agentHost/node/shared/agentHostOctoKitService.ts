@@ -99,16 +99,16 @@ export interface IAgentHostOctoKitService {
 
 	getIssueOrPullRequest(owner: string, repo: string, number: number, token: string, signal: AbortSignal): Promise<GitHubIssueOrPullRequest>;
 
-	/**
-	 * Enables auto-merge on a pull request so GitHub merges it automatically
-	 * once all required reviews and status checks pass.
-	 *
-	 * Issues the GraphQL `enablePullRequestAutoMerge` mutation. `pullRequestId`
-	 * is the pull request's GraphQL global node id (see
-	 * {@link CreatedPullRequest.nodeId}). Throws on GraphQL or transport errors,
-	 * including when the repository does not allow the requested merge method or
-	 * auto-merge is not enabled for the repository.
-	 */
+
+
+
+
+
+
+
+
+
+
 	enablePullRequestAutoMerge(pullRequestId: string, mergeMethod: AutoMergeMethod, token: string, signal: AbortSignal): Promise<void>;
 }
 

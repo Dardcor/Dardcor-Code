@@ -61,16 +61,16 @@ type VariableResolver = (str: string) => Promise<string>;
 
 export interface IMergedEnvironmentVariableCollection {
 	readonly collections: ReadonlyMap<string, IEnvironmentVariableCollection>;
-	/**
-	 * Gets the variable map for a given scope.
-	 * @param scope The scope to get the variable map for. If undefined, the global scope is used.
-	 */
+
+
+
+
 	getVariableMap(scope: EnvironmentVariableScope | undefined): Map<string, IExtensionOwnedEnvironmentVariableMutator[]>;
-	/**
-	 * Gets the description map for a given scope.
-	 * @param scope The scope to get the description map for. If undefined, description map for the
-	 * global scope is returned.
-	 */
+
+
+
+
+
 	getDescriptionMap(scope: EnvironmentVariableScope | undefined): Map<string, string | undefined>;
 	applyToProcessEnvironment(env: IProcessEnvironment, scope: EnvironmentVariableScope | undefined, variableResolver?: VariableResolver): Promise<void>;
 

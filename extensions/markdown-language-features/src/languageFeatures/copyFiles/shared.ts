@@ -278,7 +278,7 @@ function escapeMarkdownLinkPath(mdPath: string): string {
 }
 
 function escapeBrackets(value: string): string {
-	value = value.replace(/[\[\]]/g, '\\$&'); // CodeQL [SM02383] The Markdown is fully sanitized after being rendered.
+	value = value.replace(/[\[\]]/g, '\\$&');
 	return value;
 }
 

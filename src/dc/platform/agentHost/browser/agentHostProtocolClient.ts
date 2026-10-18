@@ -186,17 +186,17 @@ export class AgentHostProtocolClient extends Disposable implements IAgentConnect
 
 	private readonly _subscriptionsAwaitingRestore = new Set<string>();
 
-	/**
-	 * Set while an authentication-restore pass is in flight, cleared only once
-	 * the whole pass completes.
-	 *
-	 * Authentication state on the host is process-global and survives a
-	 * transport drop, so an ordinary reconnect needs no re-authentication. But
-	 * a drop *during* the restore pass leaves the host holding whichever
-	 * credentials happened to arrive first, and the next reconnect usually
-	 * resolves to a `replay` — which never re-runs authentication. This flag
-	 * carries that debt forward so the next successful attempt finishes it.
-	 */
+
+
+
+
+
+
+
+
+
+
+
 	private _authenticationRestorePending = false;
 
 	private _lastReadTime = Date.now();
@@ -1646,7 +1646,7 @@ export class AgentHostProtocolClient extends Disposable implements IAgentConnect
 	}
 
 	private _updateTerminalAutoApproveEnabled(): void {
-		// workspace-aware too. Resolving only the global value here would let a
+
 		const enabled = this._configurationService.getValue<boolean>(TERMINAL_AUTO_APPROVE_ENABLED_SETTING_ID) !== false;
 		this._dispatchRootConfig({ [AgentHostTerminalAutoApproveEnabledConfigKey]: enabled });
 	}

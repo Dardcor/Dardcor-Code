@@ -39,7 +39,7 @@ const UTF8 = 'utf8';
 export async function resolveTerminalEncoding(verbose?: boolean): Promise<string> {
 	let rawEncodingPromise: Promise<string | undefined>;
 
-	// Support a global environment variable to win over other mechanics
+
 	const cliEncodingEnv = process.env['VSCODE_CLI_ENCODING'];
 	if (cliEncodingEnv) {
 		if (verbose) {

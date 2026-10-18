@@ -137,7 +137,7 @@ export class PlaywrightService extends Disposable implements IPlaywrightService 
 			viewId => this.startTrackingPage(viewId),
 		);
 
-		// Keep the global tracked set in sync with group events. When a
+
 		session.registerDisposable(group.onDidAddView(e => {
 			if (!this._trackedPages.has(e.viewId)) {
 				this._trackedPages.add(e.viewId);
@@ -191,8 +191,8 @@ export class PlaywrightService extends Disposable implements IPlaywrightService 
 			this._fireTrackedPages();
 		}
 
-		// Publish the in-flight operation before yielding so concurrent browser
-		// actions wait for the same page attachment instead of racing Playwright.
+
+
 		const tracking = attachPlaywrightPageToGroups(viewId, sessions.map(session => session.group));
 		this._pendingPageTracking.set(viewId, tracking);
 		try {
@@ -761,7 +761,7 @@ class PlaywrightSession extends Disposable {
 			this.logService.debug(`[PlaywrightSession] Matched BrowserView ${viewIdItem.viewId} to Chromium target ${pageItem.targetId}.`);
 		}
 
-		// A single outstanding pair is unambiguous. Never FIFO-match concurrent tabs.
+
 		if (this._viewIdQueue.length === 1 && this._pageQueue.length === 1) {
 			const viewIdItem = this._viewIdQueue.shift()!;
 			const pageItem = this._pageQueue.shift()!;

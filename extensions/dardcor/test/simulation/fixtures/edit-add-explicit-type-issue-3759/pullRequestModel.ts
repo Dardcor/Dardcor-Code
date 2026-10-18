@@ -126,7 +126,7 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 	private _onDidChangeComments: vscode.EventEmitter<void> = new vscode.EventEmitter();
 	public readonly onDidChangeComments: vscode.Event<void> = this._onDidChangeComments.event;
 
-	// Whether the pull request is currently checked out locally
+
 	private _isActive: boolean;
 	public get isActive(): boolean {
 		return this._isActive;
@@ -243,18 +243,18 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		}
 	}
 
-	/**
-	 * Validate if the pull request has a valid HEAD.
-	 * Use only when the method can fail silently, otherwise use `validatePullRequestModel`
-	 */
+
+
+
+
 	isResolved(): this is IResolvedPullRequestModel {
 		return !!this.head;
 	}
 
-	/**
-	 * Validate if the pull request has a valid HEAD. Show a warning message to users when the pull request is invalid.
-	 * @param message Human readable action execution failure message.
-	 */
+
+
+
+
 	validatePullRequestModel(message?: string): this is IResolvedPullRequestModel {
 		if (!!this.head) {
 			return true;
@@ -278,10 +278,10 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		return false;
 	}
 
-	/**
-	 * Approve the pull request.
-	 * @param message Optional approval comment text.
-	 */
+
+
+
+
 	async approve(message?: string): Promise<CommonReviewEvent> {
 		const action: Promise<CommonReviewEvent> = (await this.getPendingReviewId())
 			? this.submitReview(ReviewEvent.Approve, message)
@@ -293,10 +293,10 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		});
 	}
 
-	/**
-	 * Request changes on the pull request.
-	 * @param message Optional comment text to leave with the review.
-	 */
+
+
+
+
 	async requestChanges(message?: string): Promise<CommonReviewEvent> {
 		const action: Promise<CommonReviewEvent> = (await this.getPendingReviewId())
 			? this.submitReview(ReviewEvent.RequestChanges, message)
@@ -308,9 +308,9 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		});
 	}
 
-	/**
-	 * Close the pull request.
-	 */
+
+
+
 	async close(): Promise<PullRequest> {
 		const { octokit, remote } = await this.githubRepository.ensure();
 		const ret = await octokit.call(octokit.api.pulls.update, {
@@ -323,11 +323,11 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		return convertRESTPullRequestToRawPullRequest(ret.data, this.githubRepository);
 	}
 
-	/**
-	 * Create a new review.
-	 * @param event The type of review to create, an approval, request for changes, or comment.
-	 * @param message The summary comment text.
-	 */
+
+
+
+
+
 	private async createReview(event: ReviewEvent, message?: string): Promise<CommonReviewEvent> {
 		const { octokit, remote } = await this.githubRepository.ensure();
 
@@ -342,17 +342,17 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		return convertRESTReviewEvent(data, this.githubRepository);
 	}
 
-	/**
-	 * Submit an existing review.
-	 * @param event The type of review to create, an approval, request for changes, or comment.
-	 * @param body The summary comment text.
-	 */
+
+
+
+
+
 	async submitReview(event?: ReviewEvent, body?: string): Promise<CommonReviewEvent> {
 		let pendingReviewId = await this.getPendingReviewId();
 		const { mutate, schema } = await this.githubRepository.ensure();
 
 		if (!pendingReviewId && (event === ReviewEvent.Comment)) {
-			// Create a new review so that we can comment on it.
+
 			pendingReviewId = await this.startReview();
 		}
 
@@ -413,9 +413,9 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		});
 	}
 
-	/**
-	 * Query to see if there is an existing review.
-	 */
+
+
+
 	async getPendingReviewId(): Promise<string | undefined> {
 		const { query, schema } = await this.githubRepository.ensure();
 		const currentUser = await this.githubRepository.getAuthenticatedUser();
@@ -456,9 +456,9 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		}
 	}
 
-	/**
-	 * Delete an existing in progress review.
-	 */
+
+
+
 	async deleteReview(): Promise<{ deletedReviewId: number; deletedReviewComments: IComment[] }> {
 		const pendingReviewId = await this.getPendingReviewId();
 		const { mutate, schema } = await this.githubRepository.ensure();
@@ -482,11 +482,11 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		};
 	}
 
-	/**
-	 * Start a new review.
-	 * @param initialComment The comment text and position information to begin the review with
-	 * @param commitId The optional commit id to start the review on. Defaults to using the current head commit.
-	 */
+
+
+
+
+
 	async startReview(commitId?: string): Promise<string> {
 		const { mutate, schema } = await this.githubRepository.ensure();
 		const { data } = await mutate<StartReviewResponse>({
@@ -508,19 +508,19 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		return data.addPullRequestReview.pullRequestReview.id;
 	}
 
-	/**
-	 * Creates a new review thread, either adding it to an existing pending review, or creating
-	 * a new review.
-	 * @param body The body of the thread's first comment.
-	 * @param commentPath The path to the file being commented on.
-	 * @param startLine The start line on which to add the comment.
-	 * @param endLine The end line on which to add the comment.
-	 * @param side The side the comment should be deleted on, i.e. the original or modified file.
-	 * @param suppressDraftModeUpdate If a draft mode change should event should be suppressed. In the
-	 * case of a single comment add, the review is created and then immediately submitted, so this prevents
-	 * a "Pending" label from flashing on the comment.
-	 * @returns The new review thread object.
-	 */
+
+
+
+
+
+
+
+
+
+
+
+
+
 	async createReviewThread(
 		body: string,
 		commentPath: string,
@@ -570,15 +570,15 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		return newThread;
 	}
 
-	/**
-	 * Creates a new comment in reply to an existing comment
-	 * @param body The text of the comment to be created
-	 * @param inReplyTo The id of the comment this is in reply to
-	 * @param isSingleComment Whether this is a single comment, i.e. one that
-	 * will be immediately submitted and so should not show a pending label
-	 * @param commitId The commit id the comment was made on
-	 * @returns The new comment
-	 */
+
+
+
+
+
+
+
+
+
 	async createCommentReply(
 		body: string,
 		inReplyTo: string,
@@ -629,9 +629,9 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		return newComment;
 	}
 
-	/**
-	 * Check whether there is an existing pending review and update the context key to control what comment actions are shown.
-	 */
+
+
+
 	async validateDraftMode(): Promise<boolean> {
 		const inDraftMode = !!(await this.getPendingReviewId());
 		if (inDraftMode !== this.hasPendingReview) {
@@ -649,11 +649,11 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		}
 	}
 
-	/**
-	 * Edit an existing review comment.
-	 * @param comment The comment to edit
-	 * @param text The new comment text
-	 */
+
+
+
+
+
 	async editReviewComment(comment: IComment, text: string): Promise<IComment> {
 		const { mutate, schema } = await this.githubRepository.ensure();
 		let threadWithComment = this._reviewThreadsCache.find(thread =>
@@ -692,10 +692,10 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		return newComment;
 	}
 
-	/**
-	 * Deletes a review comment.
-	 * @param commentId The comment id to delete
-	 */
+
+
+
+
 	async deleteReviewComment(commentId: string): Promise<void> {
 		try {
 			const { octokit, remote } = await this.githubRepository.ensure();
@@ -728,9 +728,9 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		}
 	}
 
-	/**
-	 * Get existing requests to review.
-	 */
+
+
+
 	async getReviewRequests(): Promise<IAccount[]> {
 		const githubRepository = this.githubRepository;
 		const { remote, octokit } = await githubRepository.ensure();
@@ -743,10 +743,10 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		return result.data.users.map((user: any) => convertRESTUserToAccount(user, githubRepository));
 	}
 
-	/**
-	 * Add reviewers to a pull request
-	 * @param reviewers A list of GitHub logins
-	 */
+
+
+
+
 	async requestReview(reviewers: string[]): Promise<void> {
 		const { octokit, remote } = await this.githubRepository.ensure();
 		await octokit.call(octokit.api.pulls.requestReviewers, {
@@ -757,10 +757,10 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		});
 	}
 
-	/**
-	 * Remove a review request that has not yet been completed
-	 * @param reviewer A GitHub Login
-	 */
+
+
+
+
 	async deleteReviewRequest(reviewers: string[]): Promise<void> {
 		const { octokit, remote } = await this.githubRepository.ensure();
 		await octokit.call(octokit.api.pulls.removeRequestedReviewers, {
@@ -836,9 +836,9 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		}
 	}
 
-	/**
-	 * Get all review comments.
-	 */
+
+
+
 	async initializeReviewComments(): Promise<void> {
 		const { remote, query, schema } = await this.githubRepository.ensure();
 		try {
@@ -864,9 +864,9 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		}
 	}
 
-	/**
-	 * Get a list of the commits within a pull request.
-	 */
+
+
+
 	async getCommits(): Promise<OctokitCommon.PullsListCommitsResponseData> {
 		try {
 			Logger.debug(`Fetch commits of PR #${this.number} - enter`, PullRequestModel.ID);
@@ -885,10 +885,10 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		}
 	}
 
-	/**
-	 * Get all changed files within a commit
-	 * @param commit The commit
-	 */
+
+
+
+
 	async getCommitChangedFiles(
 		commit: OctokitCommon.PullsListCommitsResponseData[0],
 	): Promise<OctokitCommon.ReposGetCommitResponseFiles> {
@@ -915,11 +915,11 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		}
 	}
 
-	/**
-	 * Gets file content for a file at the specified commit
-	 * @param filePath The file path
-	 * @param commit The commit
-	 */
+
+
+
+
+
 	async getFile(filePath: string, commit: string) {
 		const { octokit, remote } = await this.githubRepository.ensure();
 		const fileContent = await octokit.call(octokit.api.repos.getContent, {
@@ -938,9 +938,9 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		return buff.toString();
 	}
 
-	/**
-	 * Get the timeline events of a pull request, including comments, reviews, commits, merges, deletes, and assigns.
-	 */
+
+
+
 	async getTimelineEvents(): Promise<TimelineEvent[]> {
 		Logger.debug(`Fetch timeline events of PR #${this.number} - enter`, PullRequestModel.ID);
 		const { query, remote, schema } = await this.githubRepository.ensure();
@@ -1028,7 +1028,7 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 
 		const pendingReview = reviewEvents.filter(r => r.state.toLowerCase() === 'pending')[0];
 		if (pendingReview) {
-			// Ensures that pending comments made in reply to other reviews are included for the pending review
+
 			pendingReview.comments = reviewComments.filter(c => c.isDraft);
 		}
 	}
@@ -1048,7 +1048,7 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 			})
 		]);
 		if (branch.data.protected && branch.data.protection.required_status_checks && branch.data.protection.required_status_checks.enforcement_level !== 'off') {
-			// We need to add the "review required" check manually.
+
 			return {
 				id: REVIEW_REQUIRED_CHECK_ID,
 				context: 'Branch Protection',
@@ -1060,14 +1060,14 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		return undefined;
 	}
 
-	/**
-	 * Get the status checks of the pull request, those for the last commit.
-	 */
+
+
+
 	async getStatusChecks(): Promise<PullRequestChecks | undefined> {
 		let checks = await this.githubRepository.getStatusChecks(this.number);
 
-		// Fun info: The checks don't include whether a review is required.
-		// Also, unless you're an admin on the repo, you can't just do octokit.repos.getBranchProtection
+
+
 		if ((this.item.mergeable === PullRequestMergeability.NotMergeable) && (!checks || checks.statuses.every(status => status.state === CheckState.Success))) {
 			const reviewRequiredCheck = await this._getReviewRequiredCheck();
 			if (reviewRequiredCheck) {
@@ -1200,9 +1200,9 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		return parsed;
 	}
 
-	/**
-	 * List the changed files in a pull request.
-	 */
+
+
+
 	private async getRawFileChangesInfo(): Promise<IRawFileChange[]> {
 		Logger.debug(
 			`Fetch file changes, base, head and merge base of PR #${this.number} - enter`,
@@ -1236,7 +1236,7 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 				pull_number: this.number,
 			});
 
-			// Use the original base to compare against for merged PRs
+
 			this.mergeBase = this.base.sha;
 
 			return response;
@@ -1255,8 +1255,8 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		let files: IRawFileChange[] = [];
 
 		if (data.files && data.files.length >= MAX_FILE_CHANGES_IN_COMPARE_COMMITS) {
-			// compareCommits will return a maximum of 100 changed files
-			// If we have (maybe) more than that, we'll need to fetch them with listFiles API call
+
+
 			Logger.debug(
 				`More than ${MAX_FILE_CHANGES_IN_COMPARE_COMMITS} files changed, fetching all file changes of PR #${this.number}`,
 				PullRequestModel.ID,
@@ -1267,7 +1267,7 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 				repo: remote.repositoryName,
 			});
 		} else {
-			// if we're under the limit, just use the result from compareCommits, don't make additional API calls.
+
 			files = data.files ? data.files as IRawFileChange[] : [];
 		}
 
@@ -1294,9 +1294,9 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		return !!this.item.allowAutoMerge;
 	}
 
-	/**
-	 * Get the current mergeability of the pull request.
-	 */
+
+
+
 	async getMergeability(): Promise<PullRequestMergeability> {
 		try {
 			Logger.debug(`Fetch pull request mergeability ${this.number} - enter`, PullRequestModel.ID);
@@ -1320,9 +1320,9 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		}
 	}
 
-	/**
-	 * Set a draft pull request as ready to be reviewed.
-	 */
+
+
+
 	async setReadyForReview(): Promise<any> {
 		try {
 			const { mutate, schema } = await this.githubRepository.ensure();
@@ -1413,7 +1413,7 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 	async resolveReviewThread(threadId: string): Promise<void> {
 		const { mutate, schema } = await this.githubRepository.ensure();
 
-		// optimistically update
+
 		const oldThread = this._reviewThreadsCache.find(thread => thread.id === threadId);
 		if (oldThread && oldThread.viewerCanResolve) {
 			oldThread.isResolved = true;
@@ -1432,7 +1432,7 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		});
 
 		if (!data) {
-			// Undo optimistic update
+
 			if (oldThread && oldThread.viewerCanUnresolve) {
 				oldThread.isResolved = false;
 				oldThread.viewerCanResolve = true;
@@ -1453,7 +1453,7 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 	async unresolveReviewThread(threadId: string): Promise<void> {
 		const { mutate, schema } = await this.githubRepository.ensure();
 
-		// optimistically update
+
 		const oldThread = this._reviewThreadsCache.find(thread => thread.id === threadId);
 		if (oldThread && oldThread.viewerCanUnresolve) {
 			oldThread.isResolved = false;
@@ -1472,7 +1472,7 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 		});
 
 		if (!data) {
-			// Undo optimistic update
+
 			if (oldThread && oldThread.viewerCanResolve) {
 				oldThread.isResolved = true;
 				oldThread.viewerCanUnresolve = true;
@@ -1564,8 +1564,8 @@ export class PullRequestModel extends IssueModel<PullRequest> implements IPullRe
 				if (this._fileChangeViewedState[n.path] !== n.viewerViewedState) {
 					changed.push({ fileName: n.path, viewed: n.viewerViewedState });
 				}
-				// No event for setting the file viewed state here.
-				// Instead, wait until all the changes have been made and set the context at the end.
+
+
 				this.setFileViewedState(n.path, n.viewerViewedState, false);
 			});
 

@@ -104,11 +104,11 @@ export namespace GlobalBudgetOptions {
 
 	export const DEFAULT_TOTAL_TOKENS = 7500;
 
-	/**
-	 * The token budget allotted to `currentFile` from the pool: `floor(totalTokens
-	 * * shares.currentFile)`. Used to override the per-part `currentFile.maxTokens`
-	 * cap when clipping the current file under a global budget.
-	 */
+
+
+
+
+
 	export function currentFileBudget(globalBudget: GlobalBudgetOptions): number {
 		return Math.max(0, Math.floor(globalBudget.totalTokens * (globalBudget.shares.currentFile ?? 0)));
 	}
@@ -164,19 +164,19 @@ export namespace GlobalBudgetOptions {
 		}), vUndefined()),
 	});
 
-	/**
-	 * Parse the single experiment-driven JSON config string (modelled after
-	 * `modelConfigurationString`) into a fully-populated {@link GlobalBudgetOptions}.
-	 *
-	 * Any field absent from the JSON falls back to its `DEFAULT_*` value, so
-	 * `'{}'` enables the global budget with the volume-neutral defaults and
-	 * `'{"totalTokens":6000}'` only overrides the pool size. The merged result is
-	 * then run through {@link validate} so semantic misconfigurations (bad share
-	 * sums, duplicate/misordered parts) are reported.
-	 *
-	 * Returns a {@link Result.error} (never throws) so callers can fall back to a
-	 * disabled global budget and report the error via telemetry.
-	 */
+
+
+
+
+
+
+
+
+
+
+
+
+
 	export function fromConfigString(configString: string): Result<GlobalBudgetOptions, string> {
 		let parsed: unknown;
 		try {

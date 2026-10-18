@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 
-/** @type {string[]} */
+
 const upstreamSpecs = [
 	'basename',
 	'cat',

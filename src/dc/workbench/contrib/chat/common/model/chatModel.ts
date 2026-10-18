@@ -1853,9 +1853,9 @@ export interface IExportableRepoData {
 	changedFileCount?: number;
 }
 
-/**
- * A file change exported as a unified diff patch compatible with `git apply`.
- */
+
+
+
 export interface IExportableRepoDiff {
 	relativePath: string;
 	changeType: 'added' | 'modified' | 'deleted' | 'renamed';

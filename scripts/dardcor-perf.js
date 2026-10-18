@@ -14,7 +14,7 @@ const DARDCOR_FOLDER = path.join(__dirname, '..');
 async function main() {
 
 	const args = process.argv;
-	/** @type {string | undefined} */
+
 	let build = undefined;
 
 	if (args.indexOf('--help') === -1 && args.indexOf('-h') === -1) {
@@ -51,10 +51,10 @@ async function main() {
 	process.exit(0);
 }
 
-/**
- * @param {string} buildPath
- * @returns {string}
- */
+
+
+
+
 function getExePath(buildPath) {
 	buildPath = path.normalize(path.resolve(buildPath));
 	if (buildPath === path.normalize(getLocalCLIPath())) {
@@ -86,9 +86,9 @@ function getExePath(buildPath) {
 	return buildPath.endsWith(relativeExePath) ? buildPath : path.join(buildPath, relativeExePath);
 }
 
-/**
- * @returns {string}
- */
+
+
+
 function getLocalCLIPath() {
 	return process.platform === 'win32' ? path.join(DARDCOR_FOLDER, 'scripts', 'dardcor.bat') : path.join(DARDCOR_FOLDER, 'scripts', 'dardcor.sh');
 }

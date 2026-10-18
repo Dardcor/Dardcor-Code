@@ -120,7 +120,7 @@ export class SymbolsQuickAccessProvider extends PickerQuickAccessProvider<ISymbo
 		const openSideBySideDirection = this.configuration.openSideBySideDirection;
 		for (const { symbol, provider } of workspaceSymbols) {
 
-			// - and are not treated explicitly as global symbols (e.g. classes)
+
 			if (options?.skipLocal && !SymbolsQuickAccessProvider.TREAT_AS_GLOBAL_SYMBOL_TYPES.has(symbol.kind) && !!symbol.containerName) {
 				continue;
 			}

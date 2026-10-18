@@ -21,20 +21,20 @@ configurationRegistry.registerConfiguration({
 			enum: ['none', 'manual', 'start', 'default'],
 			default: 'default',
 			scope: ConfigurationScope.APPLICATION,
-			description: localize('updateMode', "Configure whether you receive automatic updates. The updates are fetched from a Microsoft online service."),
+			description: localize('updateMode', "Configure how Dardcor Code checks for and installs application updates."),
 			tags: ['usesOnlineServices'],
 			enumDescriptions: [
 				localize('none', "Disable updates."),
 				localize('manual', "Disable automatic background update checks. Updates will be available if you manually check for updates."),
 				localize('start', "Check for updates only on startup. Disable automatic background update checks."),
-				localize('default', "Enable automatic update checks. Code will check for updates automatically and periodically.")
+				localize('default', "Check periodically. Supported Windows user installers can download and apply updates in the background; other packages may require manual installation.")
 			],
 			policy: {
 				name: 'UpdateMode',
 				category: PolicyCategory.Update,
 				minimumVersion: '1.67',
 				localization: {
-					description: { key: 'updateMode', value: localize('updateMode', "Configure whether you receive automatic updates. The updates are fetched from a Microsoft online service."), },
+					description: { key: 'updateMode', value: localize('updateMode', "Configure how Dardcor Code checks for and installs application updates."), },
 					enumDescriptions: [
 						{
 							key: 'none',
@@ -50,7 +50,7 @@ configurationRegistry.registerConfiguration({
 						},
 						{
 							key: 'default',
-							value: localize('default', "Enable automatic update checks. Code will check for updates automatically and periodically."),
+							value: localize('default', "Check periodically. Supported Windows user installers can download and apply updates in the background; other packages may require manual installation."),
 						}
 					]
 				},
@@ -60,7 +60,7 @@ configurationRegistry.registerConfiguration({
 			type: 'string',
 			default: 'default',
 			scope: ConfigurationScope.APPLICATION,
-			description: localize('updateMode', "Configure whether you receive automatic updates. The updates are fetched from a Microsoft online service."),
+			description: localize('updateMode', "Configure how Dardcor Code checks for and installs application updates."),
 			deprecationMessage: localize('deprecated', "This setting is deprecated, please use '{0}' instead.", 'update.mode')
 		},
 		'update.enableWindowsBackgroundUpdates': {
@@ -68,14 +68,14 @@ configurationRegistry.registerConfiguration({
 			default: true,
 			scope: ConfigurationScope.APPLICATION,
 			title: localize('enableWindowsBackgroundUpdatesTitle', "Enable Background Updates"),
-			description: localize('enableWindowsBackgroundUpdates', "Enable to download and install new VS Code versions in the background."),
+			description: localize('enableWindowsBackgroundUpdates', "Enable background download and installation for supported Windows user installations."),
 			included: isWindows && !isWeb
 		},
 		'update.showReleaseNotes': {
 			type: 'boolean',
 			default: true,
 			scope: ConfigurationScope.APPLICATION,
-			description: localize('showReleaseNotes', "Show Release Notes after an update. The Release Notes are fetched from a Microsoft online service."),
+			description: localize('showReleaseNotes', "Show release notes after a Dardcor Code update."),
 			tags: ['usesOnlineServices'],
 		},
 		'update.showPostInstallInfo': {

@@ -226,9 +226,9 @@ export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
   return originalFetch(url, options);
 }
 
-/**
- * Patched global fetch with env-proxy support and MITM DNS bypass
- */
+
+
+
 async function patchedFetch(url, options = {}) {
   return proxyAwareFetch(url, options, null);
 }

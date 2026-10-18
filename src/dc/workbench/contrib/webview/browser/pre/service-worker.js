@@ -5,7 +5,7 @@
 //@ts-check
 /// <reference lib="webworker" />
 
-/** @type {ServiceWorkerGlobalScope} */
+
 const sw = /** @type {any} */ (self);
 
 const VERSION = 6;
@@ -21,15 +21,15 @@ const searchParams = new URL(location.toString()).searchParams;
 const remoteAuthority = searchParams.get('remoteAuthority');
 const shouldLimitHostResourceResponseBodies = searchParams.get('platform') === 'electron';
 
-/**
- * Origin used for resources
- */
+
+
+
 const resourceBaseAuthority = searchParams.get('vscode-resource-base-authority');
 
-/**
- * @param {string} name
- * @param {Record<string, string>} [options]
- */
+
+
+
+
 const perfMark = (name, options = {}) => {
 	performance.mark(`webview/service-worker/${name}`, {
 		detail: {
@@ -40,44 +40,44 @@ const perfMark = (name, options = {}) => {
 
 perfMark('scriptStart');
 
-/** @type {number} */
+
 const resolveTimeout = 30_000;
 
 
-/**
- * @template T
- * @typedef {{ status: 'ok', value: T } | { status: 'timeout' }} RequestStoreResult
- */
 
 
-/**
- * @template T
- * @typedef {{ resolve: (x: RequestStoreResult<T>) => void, promise: Promise<RequestStoreResult<T>> }} RequestStoreEntry
- */
 
 
-/**
- * @template T
- */
+
+
+
+
+
+
+
+
+
+
+
 class RequestStore {
 	constructor() {
-		/** @type {Map<number, RequestStoreEntry<T>>} */
+
 		this.map = new Map();
-		/** @type {number} */
+
 		this.requestPool = 0;
 	}
 
-	/**
-	 * @returns {{ requestId: number, promise: Promise<RequestStoreResult<T>> }}
-	 */
+
+
+
 	create() {
 		const requestId = ++this.requestPool;
 
-		/** @type {(x: RequestStoreResult<T>) => void} */
+
 		let resolve;
 		const promise = new Promise(r => resolve = r);
 
-		/** @type {RequestStoreEntry<T>} */
+
 		const entry = { resolve, promise };
 		this.map.set(requestId, entry);
 
@@ -93,11 +93,11 @@ class RequestStore {
 		return { requestId, promise };
 	}
 
-	/**
-	 * @param {number} requestId
-	 * @param {T} result
-	 * @returns {boolean}
-	 */
+
+
+
+
+
 	resolve(requestId, result) {
 		const entry = this.map.get(requestId);
 		if (!entry) {
@@ -110,19 +110,19 @@ class RequestStore {
 }
 
 class AsyncSemaphore {
-	/**
-	 * @param {number} maxConcurrency
-	 */
+
+
+
 	constructor(maxConcurrency) {
 		this.maxConcurrency = maxConcurrency;
 		this.activeCount = 0;
-		/** @type {Array<(release: () => void) => void>} */
+
 		this.waiters = [];
 	}
 
-	/**
-	 * @returns {Promise<() => void>}
-	 */
+
+
+
 	acquire() {
 		if (this.activeCount < this.maxConcurrency && this.waiters.length === 0) {
 			this.activeCount++;
@@ -132,9 +132,9 @@ class AsyncSemaphore {
 		return new Promise(resolve => this.waiters.push(resolve));
 	}
 
-	/**
-	 * @returns {() => void}
-	 */
+
+
+
 	createReleaser() {
 		let released = false;
 		return () => {
@@ -153,11 +153,11 @@ class AsyncSemaphore {
 	}
 }
 
-/**
- * @param {() => void} release
- * @param {number} pendingCount
- * @returns {() => void}
- */
+
+
+
+
+
 function createJoinedFinalizer(release, pendingCount) {
 	let remaining = pendingCount;
 	let finished = false;
@@ -174,11 +174,11 @@ function createJoinedFinalizer(release, pendingCount) {
 	};
 }
 
-/**
- * @param {ReadableStream<Uint8Array>} stream
- * @param {() => void} onDidFinish
- * @returns {ReadableStream<Uint8Array>}
- */
+
+
+
+
+
 function trackReadableStreamLifetime(stream, onDidFinish) {
 	const reader = stream.getReader();
 	let finished = false;
@@ -217,25 +217,25 @@ function trackReadableStreamLifetime(stream, onDidFinish) {
 	});
 }
 
-/**
- * Map of requested paths to responses.
- */
-/** @type {RequestStore<ResourceResponse>} */
+
+
+
+
 const resourceRequestStore = new RequestStore();
 
 const hostResourceResponseBodySemaphore = new AsyncSemaphore(maxActiveHostResourceResponseBodies);
 
-/**
- * Safari fallback: map of active chunk-based streaming responses.
- * Maps request id to a WritableStreamDefaultWriter for piping chunks.
- * @type {Map<number, WritableStreamDefaultWriter<Uint8Array>>}
- */
+
+
+
+
+
 const safariResourceStreams = new Map();
 
-/**
- * Map of requested localhost origins to optional redirects.
- */
-/** @type {RequestStore<string|undefined>} */
+
+
+
+
 const localhostRequestStore = new RequestStore();
 
 const unauthorized = () =>
@@ -255,14 +255,14 @@ sw.addEventListener('message', async (event) => {
 		return;
 	}
 
-	/** @type {Client} */
+
 	const source = event.source;
 	switch (event.data.channel) {
 		case 'did-load-resource': {
-			/** @type {ResourceResponse} */
+
 			const response = event.data.data;
 			if (response.status === 200 || response.status === 206) {
-				/** @type {ReadableStream<Uint8Array>} */
+
 				let stream;
 				if (response.stream) {
 					stream = response.stream;
@@ -396,19 +396,19 @@ sw.addEventListener('activate', (event) => {
 });
 
 
-/**
- * @typedef {Object} ResourceRequestUrlComponents
- * @property {string} scheme
- * @property {string} authority
- * @property {string} path
- * @property {string} query
- */
 
-/**
- * @param {FetchEvent} event
- * @param {ResourceRequestUrlComponents} requestUrlComponents
- * @returns {Promise<Response>}
- */
+
+
+
+
+
+
+
+
+
+
+
+
 async function processResourceRequest(
 	event,
 	requestUrlComponents
@@ -431,18 +431,18 @@ async function processResourceRequest(
 
 	const shouldTryCaching = (event.request.method === 'GET' && !event.request.headers.get('range'));
 
-	/**
-	 * @param {RequestStoreResult<ResourceResponse>} result
-	 * @param {Response|undefined} cachedResponse
-	 * @returns {Response}
-	 */
+
+
+
+
+
 	const resolveResourceEntry = (result, cachedResponse, releaseHostResourceResponseBody) => {
 		if (result.status === 'timeout') {
 			releaseHostResourceResponseBody();
 			return requestTimeout();
 		}
 
-		/** @type {Record<string, string>} */
+
 		const accessControlHeaders = {
 			'Access-Control-Allow-Origin': '*',
 			'Cross-Origin-Resource-Policy': 'cross-origin',
@@ -472,7 +472,7 @@ async function processResourceRequest(
 			return notFound();
 		}
 
-		/** @type {Record<string, string>} */
+
 		const headers = {
 			...accessControlHeaders,
 			'Content-Type': entry.mime,
@@ -519,14 +519,14 @@ async function processResourceRequest(
 		}
 	};
 
-	/** @type {Response|undefined} */
+
 	let cached;
 	if (shouldTryCaching) {
 		const cache = await caches.open(resourceCacheName);
 		cached = await cache.match(event.request);
 	}
 
-	/** @type {{ start: number, end?: number } | undefined} */
+
 	let range;
 	const rangeHeader = event.request.headers.get('range');
 	if (rangeHeader) {
@@ -547,7 +547,7 @@ async function processResourceRequest(
 		}
 	}
 
-	/** @type {Client[] | undefined} */
+
 	let parentClients;
 	if (webviewId) {
 		parentClients = await getOuterIframeClient(webviewId);
@@ -591,11 +591,11 @@ async function processResourceRequest(
 	}
 }
 
-/**
- * @param {FetchEvent} event
- * @param {URL} requestUrl
- * @returns {Promise<Response>}
- */
+
+
+
+
+
 async function processLocalhostRequest(
 	event,
 	requestUrl
@@ -612,10 +612,10 @@ async function processLocalhostRequest(
 
 	const origin = requestUrl.origin;
 
-	/**
-	 * @param {RequestStoreResult<string|undefined>} result
-	 * @returns {Promise<Response>}
-	 */
+
+
+
+
 	const resolveRedirect = async function (result) {
 		if (result.status !== 'ok' || !result.value) {
 			return fetch(event.request);
@@ -650,19 +650,19 @@ async function processLocalhostRequest(
 	return promise.then(resolveRedirect);
 }
 
-/**
- * @param {Client} client
- * @returns {string|null}
- */
+
+
+
+
 function getWebviewIdForClient(client) {
 	const requesterClientUrl = new URL(client.url);
 	return requesterClientUrl.searchParams.get('id');
 }
 
-/**
- * @param {string} webviewId
- * @returns {Promise<Client[]>}
- */
+
+
+
+
 async function getOuterIframeClient(webviewId) {
 	const allClients = await sw.clients.matchAll({ includeUncontrolled: true });
 	return allClients.filter(client => {
@@ -672,10 +672,10 @@ async function getOuterIframeClient(webviewId) {
 	});
 }
 
-/**
- * @param {string} clientId
- * @returns {Promise<Client|undefined>}
- */
+
+
+
+
 async function getWorkerClientForId(clientId) {
 	const allDedicatedWorkerClients = await sw.clients.matchAll({ type: 'worker' });
 	const allSharedWorkerClients = await sw.clients.matchAll({ type: 'sharedworker' });
@@ -684,14 +684,3 @@ async function getWorkerClientForId(clientId) {
 		return client.id === clientId;
 	});
 }
-
-
-/**
- * @typedef {(
- *   | { readonly status: 200, id: number, path: string, mime: string, stream: ReadableStream<Uint8Array>, etag: string|undefined, mtime: number | undefined }
- *   | { readonly status: 206, id: number, path: string, mime: string, stream: ReadableStream<Uint8Array>, range: string, etag: string|undefined, mtime: number | undefined }
- *   | { readonly status: 304, id: number, path: string, mime: string, mtime: number | undefined }
- *   | { readonly status: 401, id: number, path: string }
- *   | { readonly status: 404, id: number, path: string }
- * )} ResourceResponse
- */

@@ -150,10 +150,10 @@ export interface IBaseCommandProperties {
 
 	options?: ICommandOptionsConfig;
 
-	/**
-	 * The arguments passed to the command or additional arguments passed to the
-	 * command when using a global command.
-	 */
+
+
+
+
 	args?: CommandString[];
 }
 
@@ -241,11 +241,11 @@ export interface IBaseTaskRunnerConfiguration {
 
 	taskSelector?: string;
 
-	/**
-	 * The problem matcher(s) to used if a global command is executed (e.g. no tasks
-	 * are defined). A tasks.json file can either contain a global problemMatcher
-	 * property or a tasks property but not both.
-	 */
+
+
+
+
+
 	problemMatcher?: ProblemMatcherConfig.ProblemMatcherType;
 
 	/**
@@ -257,17 +257,17 @@ export interface IBaseTaskRunnerConfiguration {
 	 */
 	isWatching?: boolean;
 
-	/**
-	 * Specifies whether a global command is a background task.
-	 */
+
+
+
 	isBackground?: boolean;
 
 	promptOnClose?: boolean;
 
-	/**
-	 * The configuration of the available tasks. A tasks.json file can either
-	 * contain a global problemMatcher property or a tasks property but not both.
-	 */
+
+
+
+
 	tasks?: Array<ICustomTask | IConfiguringTask>;
 
 	declares?: ProblemMatcherConfig.INamedProblemMatcher[];
@@ -1384,7 +1384,7 @@ namespace CustomTask {
 	}
 
 	export function fillGlobals(task: Tasks.CustomTask, globals: IGlobals): void {
-		// We only merge a command from a global definition if there is no dependsOn
+
 		if (CommandConfiguration.hasCommand(task.command) || task.configurationProperties.dependsOn === undefined) {
 			task.command = CommandConfiguration.fillGlobals(task.command, globals.command, task.configurationProperties.name);
 		}

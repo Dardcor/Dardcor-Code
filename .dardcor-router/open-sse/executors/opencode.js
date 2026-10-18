@@ -127,7 +127,7 @@ function nativeSession(headers) {
   return null;
 }
 
-// Reuse one stable session per downstream identity to prevent burning per-session rate limits.
+
 const stableOpencodeSessions = new Map();
 const MAX_STABLE_SESSIONS = 1000;
 const stableSessionCleanup = setInterval(() => {
@@ -198,7 +198,7 @@ function lastUserText(body) {
   return "";
 }
 
-// Derive a deterministic request ID from the session and user message for turn continuity.
+
 export function deriveRequestId(sessionId, body) {
   const text = lastUserText(body);
   if (!text) return generateRequestId();
@@ -349,7 +349,7 @@ function normalizeResponsesTools(body) {
   }
 }
 
-// Strip prior-turn reasoning tokens: pooled public credentials reject foreign encrypted content with 400.
+
 function sanitizeResponsesItems(body) {
   if (!Array.isArray(body.input)) return;
   body.input = body.input.filter((item) => {
@@ -416,7 +416,7 @@ export class OpenCodeExecutor extends BaseExecutor {
     const cleanModel = baseModelId(model || body?.model).replace(/^(?:opencode|oc)\//i, "").trim();
     if (body && typeof body === "object") {
       body.model = cleanModel;
-      // Zen rejects non-streaming requests on free models with 403 FreeTierError.
+
       body.stream = true;
     }
     if (isResponsesModel(cleanModel) && body && typeof body === "object") {

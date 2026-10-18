@@ -730,7 +730,7 @@ export function defineComponentFixture(options: ComponentFixtureOptions): Themed
 			disposableStore.add(pushRandomOverwrite(42));
 
 			const virtualTimeEnabled = (options.virtualTime?.enabled ?? true) && context.host.kind !== 'explorer-ui';
-			// The tracker is global and therefore unsafe when fixtures render in parallel,
+
 			const leakDetectionEnabled = true && context.host.kind !== 'explorer-ui';
 			if (leakDetectionEnabled) {
 				ModifierKeyEmitter.getInstance();
@@ -750,7 +750,7 @@ export function defineComponentFixture(options: ComponentFixtureOptions): Themed
 			const virtualTimeApi = createVirtualTimeApi(clock, { fakeRequestAnimationFrame: true });
 			const teardownDrainMs = options.virtualTime?.teardownDrainMs ?? 1100;
 
-			//   3. tear down virtual time (uninstall global API, dispose `p`)
+
 			context.addDisposable({
 				dispose: async () => {
 					let teardownTimeApi: IDisposable | undefined;

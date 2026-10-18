@@ -180,7 +180,7 @@ export async function runWithFakedTimers<T>(options: { useFakeTimers?: boolean; 
 		globalInstallDisposable.dispose();
 
 		try {
-			// The global override is no longer active, so during this, no more tasks will be scheduled.
+
 			await schedulerProcessor.waitForEmptyQueue();
 		} finally {
 			schedulerProcessor.dispose();

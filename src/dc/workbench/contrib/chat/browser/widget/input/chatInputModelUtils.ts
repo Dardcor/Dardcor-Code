@@ -78,13 +78,13 @@ export function isModelValidForSession(
 	return !model.metadata.targetChatSessionType;
 }
 
-/**
- * Reconstructs the "Manage Models" identifier that an agent-host copy of an
- * extension-provided BYOK model is toggled under, or `undefined` when the model
- * is not such a copy. Re-exported from the shared `ILanguageModelChatMetadata`
- * namespace (which also backs the `common` model-visibility layer) so picker and
- * management code reconstruct the identifier the same way.
- */
+
+
+
+
+
+
+
 export const getAgentHostByokManageModelsIdentifier = ILanguageModelChatMetadata.getAgentHostByokManageModelsIdentifier;
 
 export function isModelHiddenInPicker(

@@ -200,13 +200,13 @@ export class MergedEnvironmentVariableCollection implements IMergedEnvironmentVa
 	}
 }
 
-/**
- * Returns whether a mutator matches with the scope provided.
- * @param mutator Mutator to filter
- * @param scope Scope to be used for querying
- * @param strictFilter If true, mutators with global scope is not returned when querying for workspace scope.
- * i.e whether mutator scope should always exactly match with query scope.
- */
+
+
+
+
+
+
+
 function filterScope(
 	mutator: IExtensionOwnedEnvironmentVariableMutator | IExtensionOwnedEnvironmentDescriptionMutator,
 	scope: EnvironmentVariableScope | undefined,

@@ -174,7 +174,7 @@ class TscTaskProvider extends Disposable implements vscode.TaskProvider {
 			}
 		}
 
-		// Use global tsc version
+
 		return 'tsc';
 	}
 

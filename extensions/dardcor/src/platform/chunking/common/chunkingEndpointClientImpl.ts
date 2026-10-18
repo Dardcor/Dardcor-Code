@@ -103,7 +103,7 @@ class RequestRateLimiter extends Disposable {
 					continue;
 				}
 
-				// Check the global github rate limit
+
 				if (this._latestRateLimitHint) {
 					const currentTime = Date.now();
 					if (currentTime < this._latestRateLimitHint.resetAt) {

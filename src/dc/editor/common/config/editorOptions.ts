@@ -3632,9 +3632,9 @@ export interface ISuggestOptions {
 	filterGraceful?: boolean;
 	snippetsPreventQuickSuggestions?: boolean;
 	localityBonus?: boolean;
-	/**
-	 * Enable using global storage for remembering suggestions.
-	 */
+
+
+
 	shareSuggestSelections?: boolean;
 	selectionMode?: 'always' | 'never' | 'whenTriggerCharacter' | 'whenQuickSuggestion';
 	showIcons?: boolean;

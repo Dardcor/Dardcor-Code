@@ -160,7 +160,7 @@ class AttachContextAction extends Action2 {
 
 	static readonly ID = 'workbench.action.chat.attachContext';
 
-	// used to enable/disable the keybinding and defined menu containment
+
 	private static _cdt = ContextKeyExpr.or(
 		ContextKeyExpr.and(CONTEXT_CHAT_LOCATION.isEqualTo(ChatAgentLocation.Panel)),
 		ContextKeyExpr.and(CONTEXT_CHAT_LOCATION.isEqualTo(ChatAgentLocation.Editor), ContextKeyExpr.equals('config.chat.experimental.variables.editor', true)),
@@ -204,10 +204,10 @@ class AttachContextAction extends Action2 {
 		const toAttach: IChatRequestVariableEntry[] = [];
 		for (const pick of picks) {
 			if (pick && typeof pick === 'object' && 'command' in pick && pick.command) {
-				// Dynamic variable with a followup command
+
 				const selection = await commandService.executeCommand(pick.command.id, ...(pick.command.arguments ?? []));
 				if (!selection) {
-					// User made no selection, skip this variable
+
 					continue;
 				}
 				toAttach.push({
@@ -215,11 +215,11 @@ class AttachContextAction extends Action2 {
 					isDynamic: pick.isDynamic,
 					value: pick.value,
 					name: `${typeof pick.value === 'string' && pick.value.startsWith('#') ? pick.value.slice(1) : ''}${selection}`,
-					// Apply the original icon with the new name
+
 					fullName: selection
 				});
 			} else if ('symbol' in pick && pick.symbol) {
-				// Symbol
+
 				toAttach.push({
 					...pick,
 					id: this._getFileContextId(pick.symbol.location),
@@ -229,7 +229,7 @@ class AttachContextAction extends Action2 {
 					isDynamic: true
 				});
 			} else if (pick && typeof pick === 'object' && 'resource' in pick && pick.resource) {
-				// #file variable
+
 				toAttach.push({
 					...pick,
 					id: this._getFileContextId({ resource: pick.resource }),
@@ -239,7 +239,7 @@ class AttachContextAction extends Action2 {
 					isDynamic: true
 				});
 			} else if ('symbolName' in pick && pick.uri && pick.range) {
-				// Symbol
+
 				toAttach.push({
 					...pick,
 					range: undefined,
@@ -259,7 +259,7 @@ class AttachContextAction extends Action2 {
 					isTool: true
 				});
 			} else {
-				// All other dynamic variables and static variables
+
 				toAttach.push({
 					...pick,
 					range: undefined,
@@ -332,7 +332,7 @@ class AttachContextAction extends Action2 {
 						kind: 'tool',
 						label: tool.displayName ?? tool.name ?? '',
 						id: tool.id,
-						icon: ThemeIcon.isThemeIcon(tool.icon) ? tool.icon : undefined // TODO need to support icon path?
+						icon: ThemeIcon.isThemeIcon(tool.icon) ? tool.icon : undefined
 					};
 					if (ThemeIcon.isThemeIcon(tool.icon)) {
 						item.iconClass = ThemeIcon.asClassName(tool.icon);
@@ -408,7 +408,7 @@ class AttachContextAction extends Action2 {
 				},
 				additionPicks: quickPickItems,
 				filter: (item: IChatContextQuickPickItem) => {
-					// Avoid attaching the same context twice
+
 					const attachedContext = widget.getContrib<ChatContextAttachments>(ChatContextAttachments.ID)?.getContext() ?? new Set();
 
 					if ('symbol' in item && item.symbol) {
@@ -417,7 +417,7 @@ class AttachContextAction extends Action2 {
 
 					if (item && typeof item === 'object' && 'resource' in item && URI.isUri(item.resource)) {
 						return [Schemas.file, Schemas.vscodeRemote].includes(item.resource.scheme)
-							&& !attachedContext.has(this._getFileContextId({ resource: item.resource })); // Hack because Typescript doesn't narrow this type correctly
+							&& !attachedContext.has(this._getFileContextId({ resource: item.resource }));
 					}
 
 					if (item && typeof item === 'object' && 'uri' in item && item.uri && item.range) {
@@ -428,7 +428,7 @@ class AttachContextAction extends Action2 {
 						return !attachedContext.has(item.id);
 					}
 
-					// Don't filter out dynamic variables which show secondary data (temporary)
+
 					return true;
 				}
 			}

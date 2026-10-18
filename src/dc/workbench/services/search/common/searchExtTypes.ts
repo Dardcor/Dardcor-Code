@@ -83,9 +83,9 @@ export interface TextSearchProviderFolderOptions {
 	useIgnoreFiles: {
 		local: boolean;
 		parent: boolean;
-		/**
-		 * Use global ignore files. If set, `local` in {@link TextSearchProviderFolderOptions.useIgnoreFiles} should also be `true`.
-		 */
+
+
+
 		global: boolean;
 	};
 
@@ -127,9 +127,9 @@ export interface FileSearchProviderFolderOptions {
 	useIgnoreFiles: {
 		local: boolean;
 		parent: boolean;
-		/**
-		 * Use global ignore files. If set, {@link FileSearchProviderOptions.useIgnoreFiles.local} should also be `true`.
-		 */
+
+
+
 		global: boolean;
 	};
 }

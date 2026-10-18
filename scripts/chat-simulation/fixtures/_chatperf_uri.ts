@@ -3,12 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// perf-benchmark-marker
 
-/**
- * Fixture for chat-simulation benchmarks.
- * Simplified from src/dc/base/common/uri.ts for stable perf testing.
- */
+
+
+
+
+
 
 const _empty = '';
 const _slash = '/';
@@ -30,7 +30,7 @@ export class URI {
 
 	static file(path: string): URI {
 		let authority = _empty;
-		if (path.length >= 2 && path.charCodeAt(0) === 47 /* / */ && path.charCodeAt(1) === 47 /* / */) {
+		if (path.length >= 2 && path.charCodeAt(0) === 47   && path.charCodeAt(1) === 47  ) {
 			const idx = path.indexOf(_slash, 2);
 			if (idx === -1) {
 				authority = path.substring(2);

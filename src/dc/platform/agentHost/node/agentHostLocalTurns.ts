@@ -24,7 +24,7 @@ export class AgentHostLocalTurns implements IAgentHostLocalTurns {
 	declare readonly _serviceBrand: undefined;
 
 	private readonly _byChat = new Map<string, Map<string, { readonly anchorTurnId: string | undefined; readonly seq: number }>>();
-	/** session URI → highest `seq` assigned so far (seq is session-global for stable ordering). */
+
 	private readonly _seqBySession = new Map<string, number>();
 
 	constructor(

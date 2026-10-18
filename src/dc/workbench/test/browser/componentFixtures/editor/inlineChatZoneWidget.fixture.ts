@@ -121,7 +121,7 @@ export function UserList() {
 }
 `;
 
-// since MenuRegistry is a global singleton.
+
 MenuRegistry.appendMenuItem(MenuId.ChatEditorInlineExecute, {
 	group: 'navigation', order: 1,
 	command: { id: 'inlineChat.accept', title: 'Accept' },

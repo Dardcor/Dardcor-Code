@@ -19,5 +19,5 @@ declare global {
 	var _VSCODE_USE_RELATIVE_IMPORTS: boolean | undefined;
 }
 
-// fake export to make global work
+
 export { }

@@ -3,25 +3,25 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Generates fixture data for nes-datagen pipeline e2e tests.
- *
- * Each scenario produces a JSON record with the same shape the pipeline's
- * `loadAndParseInput` expects:
- *   { status, action (JSON string), input (JSON string),
- *     response, outcome (JSON string), language }
- *
- * The recordings inside `action` contain:
- *   - A meta entry with repoRootUri
- *   - A documentEncountered entry mapping id → relativePath
- *   - A setContent entry with the file content
- *   - A changed entry (pre-request) so the replayer has a lastId
- *   - Post-request changed entries representing the oracle edit
- */
 
-// ---------------------------------------------------------------------------
-// Scenario 1 – TypeScript: rename a variable
-// ---------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const tsDocContent =
 	`import { readFile } from 'fs/promises';\n` +
@@ -31,26 +31,26 @@ const tsDocContent =
 	`\treturn data;\n` +
 	`}\n`;
 
-/**
- * Pre-request recording: the user types a no-op edit at offset 0
- * so `_lastId` is set after replay.
- *
- * Post-request: the user renames `data` → `contents` on line 4
- * (`data` starts at offset 116, ends at 120 exclusive).
- * Then renames `data` on the return line (offset 166 in the original,
- * shifted to 170 after the first +4-char edit).
- */
+
+
+
+
+
+
+
+
+
 const tsRecordingEntries = [
 	{ kind: 'meta', data: { repoRootUri: 'file:///workspace' } },
 	{ kind: 'documentEncountered', id: 0, time: 1000000, relativePath: 'src/loader.ts' },
 	{ kind: 'setContent', id: 0, time: 1000001, content: tsDocContent, v: 0 },
-	// No-op edit so _lastId gets set
+
 	{ kind: 'changed', id: 0, time: 1000002, edit: [[0, 0, '']], v: 1 },
-	// --- requestTime = 1000003 splits here ---
-	// Oracle edit 1: rename `data` → `contents` on line 4
+
+
 	{ kind: 'changed', id: 0, time: 1000004, edit: [[116, 120, 'contents']], v: 2 },
-	// Oracle edit 2: rename `data` → `contents` on return line
-	// (offset shifted +4 from the first edit: 166 → 170)
+
+
 	{ kind: 'changed', id: 0, time: 1000005, edit: [[170, 174, 'contents']], v: 3 },
 ];
 
@@ -81,9 +81,9 @@ const tsRecord = {
 	language: 'typescript',
 };
 
-// ---------------------------------------------------------------------------
-// Scenario 2 – Python: add a return type annotation
-// ---------------------------------------------------------------------------
+
+
+
 
 const pyDocContent =
 	`def greet(name):\n` +
@@ -92,19 +92,19 @@ const pyDocContent =
 	`def add(a, b):\n` +
 	`    return a + b\n`;
 
-/**
- * Pre-request: user has the file open with a no-op edit
- * Post-request: user adds ` -> str` annotation before the `:`
- *   `def greet(name):` → `def greet(name) -> str:`
- *   `:` is at offset 15, so we insert at offset 15.
- */
+
+
+
+
+
+
 const pyRecordingEntries = [
 	{ kind: 'meta', data: { repoRootUri: 'file:///workspace' } },
 	{ kind: 'documentEncountered', id: 0, time: 2000000, relativePath: 'src/utils.py' },
 	{ kind: 'setContent', id: 0, time: 2000001, content: pyDocContent, v: 0 },
 	{ kind: 'changed', id: 0, time: 2000002, edit: [[0, 0, '']], v: 1 },
-	// --- requestTime = 2000003 ---
-	// Oracle: insert ` -> str` before `:` at offset 15
+
+
 	{ kind: 'changed', id: 0, time: 2000004, edit: [[15, 15, ' -> str']], v: 2 },
 ];
 
@@ -135,10 +135,10 @@ const pyRecord = {
 	language: 'python',
 };
 
-// ---------------------------------------------------------------------------
-// Scenario 3 – Invalid record (missing `action.recording`)
-//   Used to verify the pipeline gracefully reports errors.
-// ---------------------------------------------------------------------------
+
+
+
+
 
 const invalidRecord = {
 	status: 'accepted',
@@ -156,9 +156,9 @@ const invalidRecord = {
 	language: 'plaintext',
 };
 
-// ---------------------------------------------------------------------------
-// Export
-// ---------------------------------------------------------------------------
+
+
+
 
 export const fixtures = {
 	ts: { record: tsRecord, docContent: tsDocContent },
@@ -166,7 +166,7 @@ export const fixtures = {
 	invalid: { record: invalidRecord },
 } as const;
 
-/**
- * All records in the format expected by `loadAndParseInput`: a JSON array.
- */
+
+
+
 export const allRecords = [tsRecord, pyRecord, invalidRecord];

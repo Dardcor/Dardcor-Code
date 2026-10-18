@@ -394,7 +394,7 @@ function formatUsage(optionId: string, option: Option<'boolean'> | Option<'strin
 	return `--${optionId}${args}`;
 }
 
-// exported only for testing
+
 export function formatOptions(options: OptionDescriptions<unknown> | Record<string, Option<'boolean'> | Option<'string'> | Option<'string[]'>>, columns: number): string[] {
 	const usageTexts: [string, string][] = [];
 	for (const optionId in options) {

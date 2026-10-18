@@ -1502,12 +1502,12 @@ export interface IChatSendRequestOptions {
 	modeInfo?: IChatRequestModeInfo;
 	isVoiceModeInput?: boolean;
 	userSelectedModelId?: string;
-	/**
-	 * The configuration (e.g. context size, thinking effort) for the selected
-	 * model as scoped to the requesting editor. When set, it takes precedence
-	 * over the global per-model configuration so the value sent matches what the
-	 * editor displays. See issue #320393.
-	 */
+
+
+
+
+
+
 	userSelectedModelConfiguration?: IStringDictionary<unknown>;
 	userSelectedTools?: IObservable<UserSelectedTools>;
 	location?: ChatAgentLocation;
@@ -1584,9 +1584,9 @@ export interface IChatService {
 
 	acquireOrLoadSession(sessionResource: URI, location: ChatAgentLocation, token: CancellationToken, debugOwner?: string, sessionTypeSelectionReason?: SessionTypeSelectionReason): Promise<IChatModelReference | undefined>;
 
-	/**
-	 * Loads a session from exported chat data
-	 */
+
+
+
 	loadSessionFromData(data: IExportableChatData | ISerializableChatData, debugOwner?: string, sessionTypeSelectionReason?: SessionTypeSelectionReason): IChatModelReference;
 
 	getChatModelReferenceDebugInfo(): IChatModelReferenceDebugSnapshot;

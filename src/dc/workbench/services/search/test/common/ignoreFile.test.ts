@@ -566,7 +566,7 @@ suite('Parsing .gitignore files', () => {
 	});
 
 	test('child negation overrides parent ignore', () => {
-		// Simulates: global gitignore has `.myconfig`, project .gitignore has `!.myconfig/`
+
 		const parentIgnore = new IgnoreFile('.myconfig\n', '/');
 		const childIgnore = new IgnoreFile('!.myconfig/\n', '/', parentIgnore);
 

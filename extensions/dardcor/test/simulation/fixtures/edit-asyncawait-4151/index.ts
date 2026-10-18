@@ -66,7 +66,7 @@ app.use(
 		apiSpec: './.well-known/openapi.json',
 		validateRequests: true,
 		validateResponses: true,
-		ignorePaths: /\/\.well-known\// // Add this line to ignore the .well-known folder
+		ignorePaths: /\/\.well-known\//
 	}),
 );
 

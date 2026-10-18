@@ -373,7 +373,7 @@ export class PluginMarketplaceService extends Disposable implements IPluginMarke
 		const { effectiveValues } = readConfiguredMarketplaces(this._configurationService);
 		const configRefs = parseMarketplaceReferences(effectiveValues);
 
-		// displayLabel overrides any matching global marketplace entry.
+
 		let allRefs: IMarketplaceReference[];
 		if (this._workspaceTrustService.isWorkspaceTrusted()) {
 			const workspaceEntries = this._workspacePluginSettingsService.extraMarketplaces.get();

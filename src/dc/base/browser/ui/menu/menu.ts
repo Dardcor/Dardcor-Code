@@ -1306,7 +1306,7 @@ ${formatRule(Codicon.menuSubmenu)}
 }`;
 
 	if (isForShadowDom) {
-		// otherwise leave their styling to the global workbench styling.
+
 		result += `
 			/* Arrows */
 			.monaco-scrollable-element > .scrollbar > .scra {

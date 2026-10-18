@@ -69,13 +69,13 @@ async function doEnsure(overrideDir: string, platformKey: string, download: IFou
 	return overrideDir;
 }
 
-/**
- * Download the `{target}`-substituted CDN tarball for `platformKey` into
- * `overrideDir`, extract + verify + atomically promote its payload, and write the
- * per-platform completion marker. Host-independent (does NOT run the glibc
- * loadability gate); exported for tests. Callers that provision for the running
- * host should use `ensureFoundryLocalRuntime`, which gates and de-dupes.
- */
+
+
+
+
+
+
+
 export async function provisionRuntime(overrideDir: string, platformKey: string, urlTemplate: string, version: string, token: CancellationToken): Promise<void> {
 	const addonPath = foundryAddonPath(overrideDir, platformKey);
 	const coreDir = foundryCoreDir(overrideDir, platformKey);
@@ -195,17 +195,17 @@ function hasAllCoreLibraries(coreDir: string): boolean {
 	return requiredCoreLibraryNames().every(name => fs.existsSync(join(coreDir, name)));
 }
 
-/**
- * Resolve the proxy URL to use for `targetUrl` from the standard proxy
- * environment variables, or `undefined` when the request should go direct.
- *
- * Mirrors the env-var handling of the GitHub desktop app's Rust
- * `foundry-local-sdk` (reqwest/ureq): for an `https:` target it prefers
- * `HTTPS_PROXY`, for an `http:` target `HTTP_PROXY`, each falling back to
- * `ALL_PROXY` (all case-insensitive), and it skips the proxy when the host
- * matches `NO_PROXY`. `env` defaults to `process.env`; it is a parameter so the
- * resolution can be unit-tested without mutating global environment state.
- */
+
+
+
+
+
+
+
+
+
+
+
 export function resolveProxyUrl(targetUrl: string, env: NodeJS.ProcessEnv = process.env): string | undefined {
 	let parsed: URL;
 	try {

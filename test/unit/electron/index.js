@@ -23,28 +23,28 @@ const { applyReporter, importMochaReporter } = require('../reporter');
 
 const minimist = require('minimist');
 
-/**
- * @type {{
- * _: string[];
- * grep: string;
- * run: string | string[];
- * runGlob: string;
- * testSplit: string;
- * dev: boolean;
- * reporter: string;
- * 'reporter-options': string;
- * 'waitServer': string;
- * timeout: string;
- * 'crash-reporter-directory': string;
- * tfs: string;
- * build: boolean;
- * coverage: boolean;
- * coveragePath: string;
- * coverageFormats: string | string[];
- * 'per-test-coverage': boolean;
- * help: boolean;
- * }}
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const args = minimist(process.argv.slice(2), {
 	string: ['grep', 'run', 'runGlob', 'reporter', 'reporter-options', 'waitServer', 'timeout', 'crash-reporter-directory', 'tfs', 'coveragePath', 'coverageFormats', 'testSplit'],
 	boolean: ['build', 'coverage', 'help', 'dev', 'per-test-coverage'],
@@ -252,11 +252,11 @@ app.on('ready', () => {
 
 	ipcMain.handle('vscode:fetchShellEnv', event => { });
 
-	/**
-	 * Validates that a file path is within the project root for security purposes.
-	 * @param {string} filePath - The file path to validate
-	 * @throws {Error} If the path is outside the project root
-	 */
+
+
+
+
+
 	function validatePathWithinProject(filePath) {
 		const projectRoot = path.join(__dirname, '../../..');
 		const resolvedPath = path.resolve(filePath);

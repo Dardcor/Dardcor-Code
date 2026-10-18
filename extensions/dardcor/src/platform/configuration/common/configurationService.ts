@@ -35,9 +35,9 @@ export interface InspectConfigResult<T> {
 
 	defaultValue?: T;
 
-	/**
-	 * The global or installation-wide value.
-	 */
+
+
+
 	globalValue?: T;
 
 	workspaceValue?: T;
@@ -46,9 +46,9 @@ export interface InspectConfigResult<T> {
 
 	defaultLanguageValue?: T;
 
-	/**
-	 * Language specific global value when this configuration value is created for a {@link ConfigurationScope language scope}.
-	 */
+
+
+
 	globalLanguageValue?: T;
 
 	workspaceLanguageValue?: T;
@@ -66,13 +66,13 @@ export interface IConfigurationService {
 
 	getConfigObservable<T>(key: Config<T>): IObservable<T>;
 
-	/**
-	 * Retrieve all information about a configuration setting. A configuration value
-	 * often consists of a *default* value, a global or installation-wide value,
-	 * a workspace-specific value and folder-specific value
-	 * @param configKey The config key to look up
-	 * @returns Information about a configuration setting or `undefined`.
-	 */
+
+
+
+
+
+
+
 	inspectConfig<T>(key: BaseConfig<T>, scope?: ConfigurationScope): InspectConfigResult<T> | undefined;
 
 	isConfigured<T>(key: BaseConfig<T>, scope?: ConfigurationScope): boolean;

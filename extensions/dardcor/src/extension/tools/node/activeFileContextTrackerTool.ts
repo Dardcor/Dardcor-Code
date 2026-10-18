@@ -85,7 +85,7 @@ export class DardcorFileContextTracker {
 			return true;
 		}
 
-		// Double-check disk hash against recorded baseline
+
 		const recorded = this.fileHashes.get(filePath);
 		if (recorded) {
 			const current = await this.computeHash(filePath);

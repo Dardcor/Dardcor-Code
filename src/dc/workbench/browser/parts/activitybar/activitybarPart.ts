@@ -404,7 +404,7 @@ export class ActivityBarCompositeBar extends PaneCompositeBar {
 			}));
 		}
 
-		// Up arrow on global icons
+
 		if (this.globalCompositeBar) {
 			this.keyboardNavigationDisposables.add(addDisposableListener(this.globalCompositeBar.element, EventType.KEY_DOWN, e => {
 				const kbEvent = new StandardKeyboardEvent(e);

@@ -213,7 +213,7 @@ async function* enumerateDefaultPowerShellInstallations(): AsyncIterable<IPossib
 		yield pwshExe;
 	}
 
-	// Look for the .NET global tool
+
 	pwshExe = findPSCoreDotnetGlobalTool();
 	if (pwshExe) {
 		yield pwshExe;

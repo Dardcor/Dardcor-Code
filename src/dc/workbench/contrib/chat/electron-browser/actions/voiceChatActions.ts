@@ -60,7 +60,7 @@ import './media/voiceChatActions.css';
 type VoiceChatSessionContext = 'view' | 'inline' | 'quick' | 'editor';
 const VoiceChatSessionContexts: VoiceChatSessionContext[] = ['view', 'inline', 'quick', 'editor'];
 
-// Global Context Keys (set on global context key service)
+
 const CanVoiceChat = ContextKeyExpr.and(ChatContextKeys.enabled, HasSpeechProvider);
 const FocusInChatInput = ContextKeyExpr.or(CTX_INLINE_CHAT_FOCUSED, ChatContextKeys.inChatInput);
 
@@ -616,7 +616,7 @@ export class StopListeningAndSubmitAction extends Action2 {
 				),
 				primary: KeyMod.CtrlCmd | KeyCode.KeyI
 			},
-			precondition: GlobalVoiceChatInProgress // need global context here because of `f1: true`
+			precondition: GlobalVoiceChatInProgress
 		});
 	}
 

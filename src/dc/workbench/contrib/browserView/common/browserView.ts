@@ -228,9 +228,9 @@ export interface IBrowserViewWorkbenchService {
 
 	getOrCreateLazy(data: IBrowserEditorInputData): BrowserEditorInput;
 
-	/**
-	 * Clear all storage data for the global browser session
-	 */
+
+
+
 	clearGlobalStorage(): Promise<void>;
 
 	clearWorkspaceStorage(): Promise<void>;

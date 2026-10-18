@@ -17,10 +17,10 @@ import { CompletionTriggerCharacter, IAgentHostCompletionItemProvider } from './
 import { extractWhitespaceDelimitedSlashToken, matchesSlashCompletion } from './agentHostSlashCompletion.js';
 
 
-/**
- * Generic completion provider that contributes slash completions for skills
- * exposed through an agent's global and session-effective customizations.
- */
+
+
+
+
 export class AgentHostSkillCompletionProvider extends Disposable implements IAgentHostCompletionItemProvider {
 
 	readonly kinds: ReadonlySet<CompletionItemKind> = new Set([CompletionItemKind.UserMessage]);

@@ -32,10 +32,10 @@ export function formatPII(value: string, excludePII: boolean, args: { [key: stri
 	});
 }
 
-/**
- * Filters exceptions (keys marked with "!") from the given object. Used to
- * ensure exception data is not sent on web remotes, see #97628.
- */
+
+
+
+
 export function filterExceptionsFromTelemetry<T extends { [key: string]: unknown }>(data: T): Partial<T> {
 	const output: Partial<T> = {};
 	for (const key of Object.keys(data) as (keyof T & string)[]) {
@@ -52,10 +52,10 @@ export function isSessionAttach(session: IDebugSession): boolean {
 	return session.configuration.request === 'attach' && !getExtensionHostDebugSession(session) && (!session.parentSession || isSessionAttach(session.parentSession));
 }
 
-/**
- * Returns the session or any parent which is an extension host debug session.
- * Returns undefined if there's none.
- */
+
+
+
+
 export function getExtensionHostDebugSession(session: IDebugSession): IDebugSession | void {
 	let type = session.configuration.type;
 	if (!type) {
@@ -73,7 +73,7 @@ export function getExtensionHostDebugSession(session: IDebugSession): IDebugSess
 	return session.parentSession ? getExtensionHostDebugSession(session.parentSession) : undefined;
 }
 
-// only a debugger contributions with a label, program, or runtime attribute is considered a "defining" or "main" debugger contribution
+
 export function isDebuggerMainContribution(dbg: IDebuggerContribution) {
 	return dbg.type && (dbg.label || dbg.program || dbg.runtime);
 }
@@ -82,12 +82,12 @@ export function getExactExpressionStartAndEnd(lineContent: string, looseStart: n
 	let matchingExpression: string | undefined = undefined;
 	let startOffset = 0;
 
-	// Some example supported expressions: myVar.prop, a.b.c.d, myVar?.prop, myVar->prop, MyClass::StaticProp, *myVar
-	// Match any character except a set of characters which often break interesting sub-expressions
+
+
 	const expression: RegExp = /([^()\[\]{}<>\s+\-/%~#^;=|,`!]|\->)+/g;
 	let result: RegExpExecArray | null = null;
 
-	// First find the full expression under the cursor
+
 	while (result = expression.exec(lineContent)) {
 		const start = result.index + 1;
 		const end = start + result[0].length;
@@ -99,8 +99,8 @@ export function getExactExpressionStartAndEnd(lineContent: string, looseStart: n
 		}
 	}
 
-	// If there are non-word characters after the cursor, we want to truncate the expression then.
-	// For example in expression 'a.b.c.d', if the focus was under 'b', 'a.b' would be evaluated.
+
+
 	if (matchingExpression) {
 		const subExpression: RegExp = /(\w|\p{L})+/gu;
 		let subExpressionResult: RegExpExecArray | null = null;
@@ -148,7 +148,7 @@ export async function getEvaluatableExpressionAtPosition(languageFeaturesService
 		const lineContent = model.getLineContent(position.lineNumber);
 		const { start, end } = getExactExpressionStartAndEnd(lineContent, position.column, position.column);
 
-		// use regex to extract the sub-expression #9821
+
 		const matchingExpression = lineContent.substring(start - 1, end);
 		return {
 			matchingExpression,
@@ -159,12 +159,12 @@ export async function getEvaluatableExpressionAtPosition(languageFeaturesService
 	return null;
 }
 
-// RFC 2396, Appendix A: https://www.ietf.org/rfc/rfc2396.txt
+
 const _schemePattern = /^[a-zA-Z][a-zA-Z0-9\+\-\.]+:/;
 
 export function isUri(s: string | undefined): boolean {
-	// heuristics: a valid uri starts with a scheme and
-	// the scheme has at least 2 characters so that it doesn't look like a drive letter.
+
+
 	return !!(s && s.match(_schemePattern));
 }
 
@@ -176,7 +176,7 @@ function stringToUri(source: PathContainer): string | undefined {
 			if (isUri(source.path)) {
 				return <string><unknown>uri.parse(source.path);
 			} else {
-				// assume path
+
 				if (isAbsolute(source.path)) {
 					return <string><unknown>uri.file(source.path);
 				} else {
@@ -202,7 +202,7 @@ function uriToString(source: PathContainer): string | undefined {
 	return source.path;
 }
 
-// path hooks helpers
+
 
 interface PathContainer {
 	path?: string;
@@ -213,7 +213,7 @@ export function convertToDAPaths(message: DebugProtocol.ProtocolMessage, toUri: 
 
 	const fixPath = toUri ? stringToUri : uriToString;
 
-	// since we modify Source.paths in the message in place, we need to make a copy of it (see #61129)
+
 	const msg = deepClone(message);
 
 	convertPaths(msg, (toDA: boolean, source: PathContainer | undefined) => {
@@ -228,7 +228,7 @@ export function convertToVSCPaths(message: DebugProtocol.ProtocolMessage, toUri:
 
 	const fixPath = toUri ? stringToUri : uriToString;
 
-	// since we modify Source.paths in the message in place, we need to make a copy of it (see #61129)
+
 	const msg = deepClone(message);
 
 	convertPaths(msg, (toDA: boolean, source: PathContainer | undefined) => {
@@ -369,7 +369,7 @@ export async function saveAllBeforeDebugStart(configurationService: IConfigurati
 		if (saveBeforeStartConfig === 'allEditorsInActiveGroup') {
 			const activeEditor = editorService.activeEditorPane;
 			if (activeEditor && activeEditor.input.resource?.scheme === Schemas.untitled) {
-				// Make sure to save the active editor in case it is in untitled file it wont be saved as part of saveAll #111850
+
 				await editorService.save({ editor: activeEditor.input, groupId: activeEditor.group.id });
 			}
 		}

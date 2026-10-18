@@ -50,7 +50,7 @@ export function createStyleSheet(container: HTMLElement = mainWindow.document.he
 		disposableStore.add(toDisposable(() => style.remove()));
 	}
 
-	// With <head> as container, the stylesheet becomes global and is tracked
+
 	if (container === mainWindow.document.head) {
 		const globalStylesheetClones = new Set<HTMLStyleElement>();
 		globalStylesheets.set(style, globalStylesheetClones);
@@ -117,7 +117,7 @@ export function createCSSRule(selector: string, cssText: string, style = getShar
 
 	style.sheet?.insertRule(`${selector} {${cssText}}`, 0);
 
-	// Apply rule also to all cloned global stylesheets
+
 	for (const clonedGlobalStylesheet of globalStylesheets.get(style) ?? []) {
 		createCSSRule(selector, cssText, clonedGlobalStylesheet);
 	}
@@ -141,7 +141,7 @@ export function removeCSSRulesContainingSelector(ruleName: string, style = getSh
 		style.sheet?.deleteRule(toDelete[i]);
 	}
 
-	// Remove rules also from all cloned global stylesheets
+
 	for (const clonedGlobalStylesheet of globalStylesheets.get(style) ?? []) {
 		removeCSSRulesContainingSelector(ruleName, clonedGlobalStylesheet);
 	}

@@ -37,10 +37,10 @@ export default class Client {
 			this.emitter.emit('ready');
 		} else {
 			this.ipc.on('init', (uid: string) => {
-				// we cache so that if the object
-				// gets re-instantiated we don't
-				// wait for a `init` event
-				// window.profileName = profileName;
+
+
+
+
 				this.id = uid;
 				this.emitter.emit('ready');
 			});

@@ -221,7 +221,7 @@ export class SSEProcessor {
 
 	async *processSSE(finishedCb: FinishedCallback = async () => undefined): AsyncIterable<FinishedCompletion> {
 		try {
-			// If it's n > 1 we don't handle usage as the usage is global for the stream and all our code assumes per choice
+
 			if (this.expectedNumChoices > 1) {
 				for await (const usageOrCompletions of this.processSSEInner(finishedCb)) {
 					if (!isApiUsage(usageOrCompletions)) {
@@ -301,7 +301,7 @@ export class SSEProcessor {
 					continue;
 				}
 
-				// Track usage data for this stream. Usage is global and not per choice. Therefore it's emitted as its own chunk
+
 				if (json.usage) {
 					if (json.dardcor_usage && typeof json.dardcor_usage.total_nano_aiu === 'number') {
 						json.usage.dardcor_usage = json.dardcor_usage;

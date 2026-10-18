@@ -559,7 +559,7 @@ export class ChatSessionsService extends Disposable implements IChatSessionsServ
 		const rawMenuActions = this._menuService.getMenuActions(MenuId.AgentSessionsCreateSubMenu, contextKeyService);
 		const menuActions = rawMenuActions.map(value => value[1]).flat();
 
-		// Mirror create submenu actions into the global Chat New menu. For a
+
 		const menuItemActions = menuActions.filter((action): action is MenuItemAction => action instanceof MenuItemAction);
 		const actionsToMirror = contribution.canDelegate ? menuItemActions : menuItemActions.slice(1);
 		for (const action of actionsToMirror) {

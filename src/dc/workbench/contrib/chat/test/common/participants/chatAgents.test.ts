@@ -5,12 +5,11 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/test/common/utils.js';
-import { Emitter } from '../../../../../../base/common/event.js';
 import { ContextKeyExpression } from '../../../../../../platform/contextkey/common/contextkey.js';
 import { ExtensionIdentifier } from '../../../../../../platform/extensions/common/extensions.js';
 import { MockContextKeyService } from '../../../../../../platform/keybinding/test/common/mockKeybindingService.js';
 import { DardcorAgentToolRuntime } from '../../../../../../platform/agentHost/common/agentToolRuntime.js';
-import { ChatAgentService, IChatAgentData, IChatAgentImplementation, DARDCOR_AGENT_TOOLS, isDardcorMaxTokensCompatibilityError, isDardcorNativeToolCompatibilityError, isDardcorRouterStreamTerminal, normalizeDardcorRouterModelCapabilities, shouldAttachDardcorBrowserScreenshot } from '../../../common/participants/chatAgents.js';
+import { ChatAgentService, IChatAgentData, IChatAgentImplementation, DARDCOR_AGENT_TOOLS, isAgentFilePathOutsideWorkspace, resolveAgentFileReadTarget, isDardcorMaxTokensCompatibilityError, isDardcorNativeToolCompatibilityError, isDardcorRouterStreamTerminal, normalizeDardcorRouterModelCapabilities, shouldAttachDardcorBrowserScreenshot } from '../../../common/participants/chatAgents.js';
 import { TestConfigurationService } from '../../../../../../platform/configuration/test/common/testConfigurationService.js';
 import { TestInstantiationService } from '../../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
 import { createChatAgentRunState, migrateChatAgentRunState, updateChatAgentRunState } from '../../../common/tools/agentRunStateService.js';
@@ -18,6 +17,7 @@ import { getDardcorBrowserVerificationRequirement, getDardcorCompletionBlocker, 
 import { getDardcorBrowserSnapshotChanges, performDardcorBrowserClick } from '../../../common/participants/dardcorBrowserActions.js';
 import { attachPlaywrightPageToGroups, IPlaywrightService, isBrowserDocumentReadyState, matchPlaywrightTargetToView } from '../../../../../../platform/browserView/common/playwrightService.js';
 import { DardcorBrowserAgentController } from '../../../common/participants/dardcorBrowserAgentController.js';
+import { URI } from '../../../../../../base/common/uri.js';
 
 const testAgentId = 'testAgent';
 const testAgentData: IChatAgentData = {
@@ -266,7 +266,7 @@ suite('Dardcor autonomous task policy', () => {
 	});
 
 	test('resolves browser dependencies before the instantiation accessor expires', () => {
-		const serviceReferences = [{ name: 'browser' }, { name: 'editor' }, { name: 'commands' }, { name: 'playwright' }];
+		const serviceReferences = [{ name: 'browser' }, { name: 'editor' }, { name: 'playwright' }, { name: 'networkFilter' }];
 		let invocationActive = true;
 		let lookupCount = 0;
 		const accessor = {
@@ -282,14 +282,64 @@ suite('Dardcor autonomous task policy', () => {
 		assert.strictEqual(lookupCount, 4);
 		assert.strictEqual(services.browserService, serviceReferences[0]);
 		assert.strictEqual(services.editorService, serviceReferences[1]);
-		assert.strictEqual(services.commandService, serviceReferences[2]);
-		assert.strictEqual(services.playwrightService, serviceReferences[3]);
+		assert.strictEqual(services.playwrightService, serviceReferences[2]);
+		assert.strictEqual(services.agentNetworkFilterService, serviceReferences[3]);
 		assert.doesNotThrow(() => Object.values(services));
 	});
 
+	test('rejects a Router browser navigation denied by the configured network filter', async () => {
+		const result = await DardcorBrowserAgentController.executeBrowserTool({
+			browserService: {} as any,
+			editorService: {} as any,
+			playwrightService: {} as any,
+			agentNetworkFilterService: {
+				isUriAllowed: () => false,
+				formatError: (uri: URI) => `Blocked by policy: ${uri.authority}`
+			} as any,
+		}, 'open_browser_page', { url: 'https://blocked.example.test' });
+
+		assert.strictEqual(result.executionStatus, 'failed');
+		assert.match(result.output, /Blocked by policy: blocked\.example\.test/);
+	});
+
+	test('requires approval for file reads that escape or cannot be resolved within the workspace', async () => {
+		const workspace = URI.file('/workspace');
+		const externalPath = URI.file('/outside/secret.txt');
+		const fileService = {
+			exists: async () => true,
+			realpath: async (resource: URI) => resource,
+		} as any;
+
+		assert.strictEqual(await isAgentFilePathOutsideWorkspace(fileService, 'src/app.ts', workspace), false);
+		assert.strictEqual(await isAgentFilePathOutsideWorkspace(fileService, '../outside/secret.txt', workspace), true);
+		assert.strictEqual(await isAgentFilePathOutsideWorkspace(fileService, externalPath.fsPath, workspace), true);
+		assert.strictEqual(await isAgentFilePathOutsideWorkspace(fileService, 'src/app.ts', undefined), true);
+		assert.strictEqual(requiresDardcorToolConfirmation('read_file', { filePath: 'src/app.ts' }, 'default'), false);
+		assert.strictEqual(requiresDardcorToolConfirmation('read_file', { filePath: externalPath.fsPath }, 'default', true), true);
+		assert.strictEqual(requiresDardcorToolConfirmation('read_file', { filePath: externalPath.fsPath }, 'autoApprove', true), false);
+	});
+
+	test('binds a file read to its canonical path and requires approval when resolution is uncertain', async () => {
+		const workspace = URI.file('/workspace');
+		const external = URI.file('/outside/secret.ts');
+		const fileService = {
+			exists: async () => true,
+			realpath: async (resource: URI) => resource.fsPath === workspace.fsPath ? workspace : external,
+		} as any;
+
+		const resolution = await resolveAgentFileReadTarget(fileService, 'src/link.ts', workspace);
+		assert.strictEqual(resolution.requiresApproval, true);
+		assert.strictEqual(resolution.target.fsPath, external.fsPath);
+		assert.strictEqual(resolution.canonicalTarget?.fsPath, external.fsPath);
+
+		const unverifiable = await resolveAgentFileReadTarget({ exists: async () => true, realpath: async () => undefined } as any, 'src/file.ts', workspace);
+		assert.strictEqual(unverifiable.requiresApproval, true);
+		assert.strictEqual(unverifiable.canonicalTarget, undefined);
+	});
+
 	test('resolves an explicit browser page from the union of known and contextual tabs', async () => {
-		const knownView = { id: 'known-tab', url: 'http://localhost:3000/known', resolve: async () => ({ url: 'http://localhost:3000/known' }) } as any;
-		const contextualView = { id: 'contextual-tab', url: 'http://localhost:3000/contextual', resolve: async () => ({ url: 'http://localhost:3000/contextual' }) } as any;
+		const knownView = { id: 'known-tab', url: 'http://localhost:3000/known', resolve: async () => ({ url: 'http://localhost:3000/known', sharingState: 'shared' }) } as any;
+		const contextualView = { id: 'contextual-tab', url: 'http://localhost:3000/contextual', resolve: async () => ({ url: 'http://localhost:3000/contextual', sharingState: 'shared' }) } as any;
 		let openedView: unknown;
 		const services = {
 			browserService: {
@@ -297,7 +347,6 @@ suite('Dardcor autonomous task policy', () => {
 				getContextualBrowserViews: () => new Map([[contextualView.id, contextualView]]),
 			},
 			editorService: { openEditor: async (view: unknown) => { openedView = view; } },
-			commandService: { executeCommand: async () => { throw new Error('Explicit page lookup must not open another tab.'); } },
 			playwrightService: {} as any,
 		} as any;
 
@@ -307,15 +356,15 @@ suite('Dardcor autonomous task policy', () => {
 	});
 
 	test('fails closed for an unknown explicit browser page instead of selecting another tab', async () => {
-		const existingView = { id: 'existing-tab', url: 'http://localhost:3000', resolve: async () => ({ url: 'http://localhost:3000' }) } as any;
-		let openCommandCount = 0;
+		const existingView = { id: 'existing-tab', url: 'http://localhost:3000', resolve: async () => ({ url: 'http://localhost:3000', sharingState: 'shared' }) } as any;
+		let createCount = 0;
 		const services = {
 			browserService: {
 				getKnownBrowserViews: () => new Map([[existingView.id, existingView]]),
 				getContextualBrowserViews: () => new Map(),
+				createBrowserView: async () => { createCount++; throw new Error('An explicit unknown page must not create a replacement tab.'); },
 			},
 			editorService: { openEditor: async () => undefined },
-			commandService: { executeCommand: async () => { openCommandCount++; } },
 			playwrightService: {} as any,
 		} as any;
 
@@ -323,7 +372,24 @@ suite('Dardcor autonomous task policy', () => {
 			DardcorBrowserAgentController.resolveBrowserView(services, { pageId: 'missing-tab' }),
 			/No integrated browser tab matches page ID or URL selector/,
 		);
-		assert.strictEqual(openCommandCount, 0);
+		assert.strictEqual(createCount, 0);
+	});
+
+	test('does not let Router interact with an unshared user browser page', async () => {
+		const userView = { id: 'private-tab', url: 'http://localhost:3000', resolve: async () => ({ url: 'http://localhost:3000', sharingState: 'available' }) } as any;
+		const services = {
+			browserService: {
+				getKnownBrowserViews: () => new Map([[userView.id, userView]]),
+				getContextualBrowserViews: () => new Map(),
+			},
+			editorService: { openEditor: async () => undefined },
+			playwrightService: {} as any,
+		} as any;
+
+		await assert.rejects(
+			DardcorBrowserAgentController.resolveBrowserView(services, { pageId: userView.id }),
+			/not shared with the agent/,
+		);
 	});
 
 	test('cancels browser tab resolution before opening or selecting a page', async () => {
@@ -335,24 +401,23 @@ suite('Dardcor autonomous task policy', () => {
 		await assert.rejects(DardcorBrowserAgentController.resolveBrowserView(services, undefined, cancelledToken as any));
 	});
 
-	test('waits for the newly opened browser tab to be registered and match its target URL', async () => {
-		const changed = new Emitter<void>();
+	test('creates a visible Router browser tab in an isolated agent session', async () => {
 		const views = new Map<string, any>();
-		const createdView = { id: 'created-tab', url: 'http://localhost:3000/dashboard', resolve: async () => ({ url: 'http://localhost:3000/dashboard' }) } as any;
+		const createdView = { id: 'created-tab', url: 'http://localhost:3000/dashboard', resolve: async () => ({ url: 'http://localhost:3000/dashboard', sharingState: 'shared' }) } as any;
+		let creationOptions: any;
+		let openedView: unknown;
 		const services = {
 			browserService: {
 				getKnownBrowserViews: () => views,
 				getContextualBrowserViews: () => new Map(),
-				onDidChangeBrowserViews: changed.event,
-			},
-			editorService: { openEditor: async () => undefined },
-			commandService: {
-				executeCommand: async () => {
+				createBrowserView: async (options: unknown) => {
+					creationOptions = options;
 					await new Promise(resolve => setTimeout(resolve, 5));
 					views.set(createdView.id, createdView);
-					changed.fire();
+					return createdView;
 				},
 			},
+			editorService: { openEditor: async (view: unknown) => { openedView = view; } },
 			playwrightService: {} as any,
 		} as any;
 
@@ -361,15 +426,20 @@ suite('Dardcor autonomous task policy', () => {
 				url: 'http://localhost:3000/dashboard',
 				openIfMissing: true,
 				forceNew: true,
+				agentSessionId: 'router-chat-1',
 			});
 			assert.strictEqual(resolved, createdView);
+			assert.strictEqual(openedView, createdView);
+			assert.deepStrictEqual(creationOptions.owner, { type: 'agent', sessionId: 'router-chat-1' });
+			assert.deepStrictEqual(creationOptions.session, { scope: 'agent', affinity: 'router-chat-1' });
+			assert.deepStrictEqual(creationOptions.initialAudiences, [{ type: 'agent', sessionId: 'router-chat-1' }]);
 		} finally {
-			changed.dispose();
+			views.clear();
 		}
 	});
 
 	test('returns a timed-out status when wait_for_browser does not find its requested condition', async () => {
-		const view = { id: 'wait-page', url: 'http://localhost:3000', resolve: async () => ({ url: 'http://localhost:3000' }) } as any;
+		const view = { id: 'wait-page', url: 'http://localhost:3000', resolve: async () => ({ url: 'http://localhost:3000', sharingState: 'shared' }) } as any;
 		const controller = DardcorBrowserAgentController as any;
 		const originalWithPageCDPSession = controller.withPageCDPSession;
 		const originalCaptureBrowserDiagnostics = controller.captureBrowserDiagnostics;
@@ -394,8 +464,8 @@ suite('Dardcor autonomous task policy', () => {
 					getContextualBrowserViews: () => new Map(),
 				},
 				editorService: { openEditor: async () => undefined },
-				commandService: {} as any,
 				playwrightService: { startTrackingPage: async () => undefined } as any,
+				agentNetworkFilterService: { isEnabled: () => false, isUriAllowed: () => true, formatError: () => 'Blocked by policy' } as any,
 			} as any;
 
 			const result = await DardcorBrowserAgentController.executeBrowserTool(services, 'wait_for_browser', {
@@ -428,8 +498,8 @@ suite('Dardcor autonomous task policy', () => {
 				getContextualBrowserViews: () => new Map(),
 			},
 			editorService: {} as any,
-			commandService: {} as any,
 			playwrightService: {} as any,
+			agentNetworkFilterService: { isEnabled: () => false, isUriAllowed: () => true, formatError: () => 'Blocked by policy' } as any,
 		} as any;
 
 		const result = await DardcorBrowserAgentController.executeBrowserTool(services, 'open_browser_page', { url: 'http://127.0.0.1:8000' });

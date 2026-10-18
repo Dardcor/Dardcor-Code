@@ -10,7 +10,7 @@ import { runWithFakedTimers } from '../../../../base/test/common/timeTravelSched
 import { StorageScope, StorageTarget } from '../../../storage/common/storage.js';
 import { IApplicationStorageMainService } from '../../../storage/electron-main/storageMainService.js';
 import { BrowserSessionTrust } from '../../electron-main/browserSessionTrust.js';
-import type { BrowserSession } from '../../electron-main/browserSession.js';
+import { BrowserSession } from '../../electron-main/browserSession.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 
 const STORAGE_KEY = 'browserView.sessionTrustData';
@@ -114,6 +114,18 @@ function invokeVerifyProc(
 }
 
 suite('BrowserSessionTrust', () => {
+	test('enforces the current network policy for agent browser requests, including WebSockets', () => {
+		const filter = {
+			isEnabled: () => true,
+			isUriAllowed: (uri: { authority: string }) => uri.authority === 'allowed.example.test'
+		} as any;
+
+		assert.strictEqual(BrowserSession.isAgentRequestAllowed('https://allowed.example.test/page', filter), true);
+		assert.strictEqual(BrowserSession.isAgentRequestAllowed('https://blocked.example.test/pixel', filter), false);
+		assert.strictEqual(BrowserSession.isAgentRequestAllowed('wss://blocked.example.test/socket', filter), false);
+		assert.strictEqual(BrowserSession.isAgentRequestAllowed('https://blocked.example.test/page', { ...filter, isEnabled: () => false }), true);
+	});
+
 	teardown(() => {
 		sinon.restore();
 	});

@@ -9,7 +9,7 @@ function init(address: string, options: { hot?: boolean, latency?: number } | nu
 		hot = options.hot !== undefined ? options.hot : hot;
 		latency = options.latency !== undefined ? options.latency : latency;
 	}
-	// TODO: Finish
+
 	return address
 
 }

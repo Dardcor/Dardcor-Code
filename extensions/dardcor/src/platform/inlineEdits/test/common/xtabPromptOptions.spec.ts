@@ -114,7 +114,7 @@ describe('GlobalBudgetOptions', () => {
 	}
 
 	describe('volume-neutral defaults', () => {
-		// Guards the core no-regression promise: enabling the global budget with the
+
 		it('reproduce the legacy per-part caps', () => {
 			const total = GlobalBudgetOptions.DEFAULT_TOTAL_TOKENS;
 			const shares = GlobalBudgetOptions.DEFAULT_SHARES;

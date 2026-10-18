@@ -39,16 +39,16 @@ async function resolveProjectId(apiKey) {
   return projectId;
 }
 
-/**
- * VertexExecutor - Google Cloud Vertex AI
- *
- * "vertex"         → Gemini models via regional/global Vertex endpoint
- * "vertex-partner" → Partner models (Llama, Mistral, GLM, DeepSeek, Qwen)
- *                    via global OpenAI-compatible endpoint
- *
- * Auth: SA JSON (stored as apiKey) → JWT assertion → Bearer token (via jose)
- * Token is minted/cached in tokenRefresh.js, not here.
- */
+
+
+
+
+
+
+
+
+
+
 export class VertexExecutor extends BaseExecutor {
   constructor(providerId = "vertex") {
     super(providerId, PROVIDERS[providerId] || {});
@@ -85,7 +85,7 @@ export class VertexExecutor extends BaseExecutor {
       return url;
     }
 
-    // Raw API key: use global publishers endpoint with ?key= param
+
     let url = `https://aiplatform.googleapis.com/v1/publishers/google/models/${model}:${action}`;
     if (stream) url += "?alt=sse";
     if (rawKey) url += stream ? `&key=${rawKey}` : `?key=${rawKey}`;

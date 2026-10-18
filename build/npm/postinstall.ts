@@ -62,14 +62,14 @@ async function npmInstallAsync(dir: string, opts?: child_process.SpawnOptions): 
 		env,
 		...(opts ?? {}),
 		cwd: path.join(root, dir),
-		// Invoke npm directly so Node 24 and Node 26 do not depend on a
-		// platform shell being available or configured as /bin/sh.
+
+
 		shell: false,
 	};
 
 	const command = (process.env['npm_command'] === 'install' || process.env['npm_command'] === 'ci') ? process.env['npm_command'] : 'install';
-	// npm 12 can expose a shim that is not resolvable from a child process.
-	// Re-enter the exact npm CLI used by the parent process when available.
+
+
 	const npmCommand = process.env['npm_execpath'] ? process.execPath : npm;
 	const npmArgs = process.env['npm_execpath'] ? [process.env['npm_execpath'], ...command.split(' ')] : command.split(' ');
 
@@ -146,20 +146,20 @@ function setNpmrcConfig(dir: string, env: NodeJS.ProcessEnv) {
 		}
 	}
 
-	// Use our bundled node-gyp version
+
 	env['npm_config_node_gyp'] =
 		process.platform === 'win32'
 			? path.join(import.meta.dirname, 'gyp', 'node_modules', '.bin', 'node-gyp.cmd')
 			: path.join(import.meta.dirname, 'gyp', 'node_modules', '.bin', 'node-gyp');
 
-	// Force node-gyp to use process.config on macOS
-	// which defines clang variable as expected. Otherwise we
-	// run into compilation errors due to incorrect compiler
-	// configuration.
-	// NOTE: This means the process.config should contain
-	// the correct clang variable. So keep the version check
-	// in preinstall sync with this logic.
-	// Change was first introduced in https://github.com/nodejs/node/commit/6e0a2bb54c5bbeff0e9e33e1a0c683ed980a8a0f
+
+
+
+
+
+
+
+
 	if ((dir === 'remote' || dir === 'build') && process.platform === 'darwin') {
 		env['npm_config_force_process_config'] = 'true';
 	} else {
@@ -167,11 +167,11 @@ function setNpmrcConfig(dir: string, env: NodeJS.ProcessEnv) {
 	}
 
 	if (dir === 'build') {
-		// Temporarily lock the target version.
-		// Node 24 V8 headers require C++20, but tree-sitter hard-pin "c++17" in their binding.gyp.
-		// This is fixed in v0.25.1 however the version is not published to npm, refs
-		// https://github.com/tree-sitter/node-tree-sitter/issues/268.
-		// env['npm_config_target'] = process.versions.node;
+
+
+
+
+
 		env['npm_config_arch'] = process.arch;
 	}
 
@@ -301,7 +301,7 @@ async function main() {
 	for (const dir of dirs) {
 		if (dir === '') {
 			removeParcelWatcherPrebuild(dir);
-			continue; // already executed in root
+			continue;
 		}
 
 		if (dir === 'build') {
@@ -354,12 +354,12 @@ async function main() {
 		});
 	}
 
-	// Native dirs (build, remote) run sequentially to avoid node-gyp conflicts
+
 	for (const task of nativeTasks) {
 		await task();
 	}
 
-	// JS-only dirs run in parallel
+
 	const concurrency = Math.min(os.cpus().length, 8);
 	log('.', `Running ${parallelTasks.length} npm installs with concurrency ${concurrency}...`);
 	await runWithConcurrency(parallelTasks, concurrency);
@@ -370,7 +370,7 @@ async function main() {
 	fs.writeFileSync(stateFile, JSON.stringify(_state));
 	fs.writeFileSync(stateContentsFile, JSON.stringify(computeContents()));
 
-	// Symlink .claude/ files to their canonical locations to test Claude agent harness
+
 	const claudeDir = path.join(root, '.claude');
 	fs.mkdirSync(claudeDir, { recursive: true });
 
@@ -386,14 +386,14 @@ async function main() {
 		log('.', `Created ${claudeSkillsLinkType} .claude/skills -> .agents/skills`);
 	}
 
-	// foundry-local-sdk (on-device chat dictation) resolves its prebuilt N-API
-	// addon and native core libraries from fixed, package-relative paths. We do
-	// not ship that native payload (its addon requires a newer glibc than our
-	// minimum supported Linux distros); it is downloaded on demand at runtime
-	// into a per-user cache. Patch the SDK loader so it honors the
-	// `VSCODE_FOUNDRY_LOCAL_NATIVE_DIR` env var (pointing at that cache) for both
-	// the addon and the core libraries, falling back to the original
-	// package-relative logic so dev-from-source still works. Idempotent.
+
+
+
+
+
+
+
+
 	for (const dir of ['', 'remote']) {
 		const vendorDir = path.join(root, 'build', 'vendor', 'foundry-local-sdk');
 		const nodeModulesDir = path.join(root, dir, 'node_modules');
@@ -411,12 +411,12 @@ async function main() {
 			continue;
 		}
 		const content = fs.readFileSync(coreInteropFile, 'utf8');
-		// Apply the addon and core patches independently. They previously shared
-		// a single `VSCODE_FOUNDRY_LOCAL_NATIVE_DIR` presence check, so if only
-		// one SDK needle changed the file was left half-patched and every later
-		// run skipped it entirely — and since packaging removes both native
-		// fallbacks, a missing half makes shipped dictation unusable. Use a
-		// distinct marker per half and apply whichever is absent.
+
+
+
+
+
+
 		const addonMarker = '// VSCODE_PATCH:foundry-addon-native-dir';
 		const coreMarker = '// VSCODE_PATCH:foundry-core-native-dir';
 		const addonNeedle = `    const platformKey = \`\${platform}-\${arch}\`;\n    // The prebuilt addon ships inside the SDK package under prebuilds/<platform>/\n    const sdkRoot = path.resolve(__dirname, '..', '..');`;

@@ -9,9 +9,9 @@ var M;
     (function (x, property, number) {
         if (property === undefined) { property = w; }
         var local = 1;
-        // unresolved symbol because x is local
-        //self.x++;
-        self.w--; // ok because w is a property
+
+
+        self.w--;
         property;
         f = function (y) {
             return y + x + local + w + self.w;

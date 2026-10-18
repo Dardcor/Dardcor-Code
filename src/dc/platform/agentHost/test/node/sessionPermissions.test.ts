@@ -140,7 +140,7 @@ suite('SessionPermissionManager', () => {
 	test('isForbiddenSnapshotWrite is independent of auto-approve config (used by the interactive deny path) (#331154)', async () => {
 		configService.updateRootConfig({ [AgentHostGlobalAutoApproveEnabledConfigKey]: true });
 		const snapshot = URI.joinPath(sessionDataService.getSessionDataDir(URI.parse(sessionUri)), SESSION_ATTACHMENTS_DIRNAME, 'id', 'Pasted text #1.txt').fsPath;
-		// getAutoApproval approves the write once global auto-approve is on (the auto-approve checks
+
 		assert.deepStrictEqual({
 			autoApproval: await permissions.getAutoApproval(writeEvent(snapshot), sessionUri),
 			forbidden: permissions.isForbiddenSnapshotWrite(writeEvent(snapshot), sessionUri),
@@ -547,7 +547,7 @@ suite('SessionPermissionManager', () => {
 			[AgentHostTerminalAutoApproveEnabledConfigKey]: false,
 		});
 
-		// auto-approve disabled) is approved because global auto-approve is a
+
 		const result = await permissions.getAutoApproval(shellEvent('rm -rf /tmp/whatever', 'bash'), sessionUri);
 		assert.strictEqual(result, ToolCallConfirmationReason.Setting);
 	});
@@ -558,7 +558,7 @@ suite('SessionPermissionManager', () => {
 
 		configService.updateRootConfig({ [AgentHostGlobalAutoApproveEnabledConfigKey]: true });
 
-		// The global setting is a superset of all settings but does not change the
+
 		assert.strictEqual(permissions.isGlobalAutoApproveEnabled(), true);
 		assert.strictEqual(permissions.isSessionAutoApproveEnabled(sessionUri), false);
 	});

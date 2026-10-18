@@ -469,11 +469,11 @@ class MigrationItemRenderer implements IListRenderer<CustomizationMigrationCandi
 }
 
 
-/**
- * Editor pane for the AI Customizations Management Editor.
- * Provides a global view of all AI customizations with a sidebar for navigation
- * and a content area showing a searchable list of items.
- */
+
+
+
+
+
 export class AICustomizationManagementEditor extends EditorPane {
 
 	static readonly ID = AI_CUSTOMIZATION_MANAGEMENT_EDITOR_ID;

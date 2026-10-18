@@ -9,10 +9,10 @@ const AGENT_SDK_SETUP_STATUS_KEY_PREFIX = 'vscode.agentSdkSetup.status.';
 
 export const AGENT_SDK_SETUP_DOWNLOAD_REQUEST_KEY = 'vscode.agentSdkSetup.downloadRequest';
 
-/**
- * Ask an agent to look again at a setup the user completed outside the app
- * (`claude login`, an exported key) — the only completion signal there is.
- */
+
+
+
+
 export const AGENT_SDK_SETUP_RELOAD_REQUEST_KEY = 'vscode.agentSdkSetup.reloadRequest';
 
 export function agentSdkSetupStatusKey(agent: string): string {
@@ -24,10 +24,10 @@ export type AgentSdkDownloadStatus = 'notDownloaded' | 'downloadOnUse' | 'downlo
 export interface IAgentSdkSetupInfo {
 	readonly agent: string;
 	readonly download: AgentSdkDownloadStatus;
-	/**
-	 * Where the user goes to finish setup, for the agents whose setup happens
-	 * outside the app (`claude login`, an exported API key).
-	 */
+
+
+
+
 	readonly setupDocsUrl?: string;
 	readonly signInProviderName?: string;
 }

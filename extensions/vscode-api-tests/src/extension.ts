@@ -10,6 +10,6 @@ declare global {
 }
 
 export function activate(_context: vscode.ExtensionContext) {
-	// Set context as a global as some tests depend on it
+
 	global.testExtensionContext = _context;
 }

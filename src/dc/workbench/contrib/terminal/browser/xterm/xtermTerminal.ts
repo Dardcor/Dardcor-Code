@@ -89,13 +89,13 @@ export interface IXtermTerminalOptions {
 	disableShellIntegrationReporting?: boolean;
 	xtermAddonImporter?: XtermAddonImporter;
 	disableOverviewRuler?: boolean;
-	/**
-	 * When true, skips registering listeners on global singleton services
-	 * (configuration, theme, log level) to avoid accumulating listeners when
-	 * many detached terminals are created concurrently. The caller should use
-	 * {@link XtermTerminal.updateConfig}, {@link XtermTerminal.updateTheme},
-	 * and {@link XtermTerminal.updateLogLevel} to apply those changes externally.
-	 */
+
+
+
+
+
+
+
 	detached?: boolean;
 }
 
@@ -262,7 +262,7 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 		}
 		this._core = (this.raw as ITerminalWithCore)._core as IXtermCore;
 
-		// Skip global service listeners for detached terminals to avoid
+
 		if (!options.detached) {
 			this._register(this._configurationService.onDidChangeConfiguration(async e => {
 				if (e.affectsConfiguration(TerminalSettingId.GpuAcceleration)) {
@@ -1022,10 +1022,10 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 		this.raw.options.theme = this.getXtermTheme(theme);
 	}
 
-	/**
-	 * Updates the terminal theme. Use this to externally trigger a theme
-	 * refresh for detached terminals that skip global service listeners.
-	 */
+
+
+
+
 	updateTheme(): void {
 		this._updateTheme();
 	}

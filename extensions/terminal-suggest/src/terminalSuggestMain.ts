@@ -251,7 +251,7 @@ export async function activate(context: vscode.ExtensionContext) {
 				console.debug('#terminalCompletions No commands found in path');
 				return;
 			}
-			// Order is important here, add shell globals first so they are prioritized over path commands
+
 			const commands = [...shellGlobals, ...commandsInPath.completionResources];
 			const currentCommandString = getCurrentCommandAndArgs(terminalContext.commandLine, terminalContext.cursorIndex, terminalShellType);
 			const pathSeparator = isWindows ? '\\' : '/';

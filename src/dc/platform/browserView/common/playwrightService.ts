@@ -22,7 +22,7 @@ export interface IPlaywrightService {
 
 	startTrackingPage(viewId: string): Promise<void>;
 
-	/** Waits for the exact BrowserView page to be mapped and its document to be usable. */
+
 	waitForPageReady(sessionId: string, pageId: string, timeoutMs?: number): Promise<{ url: string; title: string; readyState: string }>;
 
 	stopTrackingPage(viewId: string): Promise<void>;
@@ -88,7 +88,7 @@ export function isBrowserDocumentReadyState(readyState: string): boolean {
 	return readyState === 'interactive' || readyState === 'complete';
 }
 
-/** Resolves only after every browser group has attached the page, rolling back partial attachment on failure. */
+
 export async function attachPlaywrightPageToGroups(viewId: string, groups: readonly IPlaywrightPageGroup[]): Promise<void> {
 	const results = await Promise.allSettled(groups.map(group => group.addView(viewId)));
 	const failure = results.find((result): result is PromiseRejectedResult => result.status === 'rejected');

@@ -913,7 +913,7 @@ export class CodexAgent extends Disposable implements IAgent {
 					if (earlyCompletion) {
 						await loginCompleted.complete(earlyCompletion);
 					}
-					// A persistent connection's global completion handler can finish its
+
 					if (this._openAIAccountState.status === 'signedIn' && this._openAIAccountState.authType === 'chatgpt') {
 						this._publishAccountInfo(this._toAccountInfo(this._openAIAccountState));
 						return;
@@ -1615,7 +1615,7 @@ export class CodexAgent extends Disposable implements IAgent {
 				this._disposeConnectionResources(ready);
 				throw new CodexConnectionReplacedError('Codex app-server was replaced while starting');
 			}
-			// Skill roots are process-global app-server state. Seed every new process
+
 			await this._queueSkillExtraRootsForClient(ready.client);
 			if (generation !== this._connectionGeneration) {
 				this._disposeConnectionResources(ready);
@@ -1753,7 +1753,7 @@ export class CodexAgent extends Disposable implements IAgent {
 			throw new Error(`Codex app-server exited before persistent startup completed (code=${exitCode ?? 'null'}, signal=${signalCode ?? 'null'})`);
 		}
 
-		// Wire global notification → SessionAction dispatch.
+
 		this._registerIgnoredNotifications(client, subscriptions);
 		subscriptions.add(client.onNotification('account/login/completed', () => {
 			void this._refreshAccount(client).then(() => this._queueModelRefresh());
@@ -4467,7 +4467,7 @@ export class CodexAgent extends Disposable implements IAgent {
 		session.mcpController?.dispose();
 		this._sessionMcpDiscoveries.get(sessionId)?.dispose();
 		this._sessionMcpDiscoveries.delete(sessionId);
-		// process-global skill-root union now that it is gone.
+
 		if (!session.clientCustomizations.isEmpty()) {
 			void this._refreshSkillExtraRoots();
 		}
@@ -5265,15 +5265,15 @@ export class CodexAgent extends Disposable implements IAgent {
 	}
 
 
-	/**
-	 * Materialize + parse a client's pushed plugin customizations and store
-	 * them on the session. Mirrors the Claude client-plugin path: the shared
-	 * {@link IAgentPluginManager} copies each plugin to local disk (nonce
-	 * cached), we parse the resulting directory into its
-	 * {@link IParsedPlugin | components}, publish the customization surface,
-	 * and refresh the process-global skill roots. MCP servers are attached
-	 * per-thread at the next {@link _materialize}.
-	 */
+
+
+
+
+
+
+
+
+
 	private async _syncClientCustomizations(sessionUri: URI, clientId: string, customizations: readonly ClientPluginCustomization[], options?: { readonly quiet?: boolean; readonly isCurrent?: () => boolean }): Promise<void> {
 		const session = this._sessions.get(AgentSession.id(sessionUri));
 		if (!session) {
@@ -5439,14 +5439,14 @@ export class CodexAgent extends Disposable implements IAgent {
 		}, 100);
 	}
 
-	/**
-	 * Recompute the process-global skill roots from every live session's
-	 * enabled client plugins and push them to codex via `skills/extraRoots/set`.
-	 * codex's extra skill roots are a single shared list (there is no per-thread
-	 * equivalent), so we send the union across all sessions — which matches the
-	 * global nature of client plugin choices. No-op when the connection is not
-	 * ready; the next {@link _materialize} re-applies.
-	 */
+
+
+
+
+
+
+
+
 	private async _refreshSkillExtraRoots(): Promise<void> {
 		return this._skillExtraRootsSequencer.queue(async () => {
 			if (this._connection.kind !== 'ready') {
@@ -5479,17 +5479,17 @@ export class CodexAgent extends Disposable implements IAgent {
 	}
 
 
-	/**
-	 * Surfaces codex's MCP servers to AHP clients as per-session
-	 * customizations. Codex has no plugin/directory customization layer, so
-	 * every server is a bare top-level {@link McpServerCustomization}. The
-	 * returned snapshot reflects the current connection-global inventory;
-	 * subsequent lifecycle transitions arrive as customization actions
-	 * emitted by the session's {@link McpCustomizationController}.
-	 * `hostCustomizations` is unused: codex reconciles a client's pushed
-	 * plugin customizations directly (see {@link _syncClientCustomizations}),
-	 * so the host's copy carries nothing this method needs.
-	 */
+
+
+
+
+
+
+
+
+
+
+
 	async getChatCustomizations(chat: URI, context: URI | IAgentChatContext, _hostCustomizations?: readonly Customization[]): Promise<readonly Customization[]> {
 		const sessionUri = this._resolveConversationSession(chat, context);
 		if (!sessionUri) {

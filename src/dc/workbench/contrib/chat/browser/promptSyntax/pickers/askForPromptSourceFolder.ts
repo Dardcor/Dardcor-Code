@@ -77,7 +77,7 @@ export async function askForPromptSourceFolder(
 	if (isMultiRoot) {
 		const getWorkspaceFolderIndex = (uri: URI, storage: PromptsStorage): number => {
 			if (storage !== PromptsStorage.local) {
-				return workspaceFolders.length; // global items go last
+				return workspaceFolders.length;
 			}
 			const wsFolder = workspaceService.getWorkspaceFolder(uri);
 			return wsFolder?.index ?? workspaceFolders.length;

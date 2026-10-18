@@ -377,7 +377,7 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 
 	async hasLocalData(): Promise<boolean> {
 		const result = await this.performAction(this.userDataProfilesService.defaultProfile, async synchronizer => {
-			// skip global state synchronizer
+
 			if (synchronizer.resource !== SyncResource.GlobalState && await synchronizer.hasLocalData()) {
 				return true;
 			}

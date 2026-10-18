@@ -133,9 +133,9 @@ export interface INativeSystemWideKeybinding {
 
 	readonly accelerator: string;
 
-	/**
-	 * The command to execute when the global shortcut is triggered.
-	 */
+
+
+
 	readonly commandId: string;
 
 	readonly args?: unknown;

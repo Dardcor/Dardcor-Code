@@ -1,6 +1,6 @@
-/**
- * Derived from https://github.com/zikaari/onigasm/blob/master/src/OnigScanner.ts
- */
+
+
+
 declare const onigasmH: {
     _malloc(n: number): number;
     HEAPU8: Buffer;
@@ -19,15 +19,15 @@ class OnigString {
     private source: string
     private _utf8Bytes: Uint8Array | null
 
-    /**
-     * utf16-offset where the mapping table starts. Before that index: utf16-index === utf8-index
-     */
+
+
+
     private _mappingTableStartOffset: number
-    /**
-     * utf-16 to utf-8 mapping table for all uft-8 indexes starting at `_mappingTableStartOffset`. utf8-index are always starting at 0.
-     * `null` if there are no multibyte characters in the utf8 string and all utf-8 indexes are matching the utf-16 indexes.
-     * Example: _mappingTableStartOffset === 10, _utf16OffsetToUtf8 = [0, 3, 6] -> _utf8Indexes[10] = 10, _utf8Indexes[11] = 13
-     */
+
+
+
+
+
     private _utf8Indexes: UintArray | null
 
     constructor(content: string) {
@@ -47,9 +47,9 @@ class OnigString {
         return this._utf8Bytes!;
     }
 
-    /**
-     * Returns `null` if all utf8 offsets match utf-16 offset (content has no multi byte characters)
-     */
+
+
+
     private get utf8Indexes(): UintArray {
         if (!this._utf8Bytes) {
             this.encode()
@@ -120,11 +120,11 @@ class OnigString {
             utf16OffsetToUtf8[utf8Offset++] = 0
         }
 
-        const u8view = new Uint8Array((n * 3) /* alloc max now, trim later*/ + 1 /** null termination character */)
+        const u8view = new Uint8Array((n * 3)   + 1  )
 
         let ptrHead = 0
         let i = 0
-        // for some reason, v8 is faster with str.length than using a variable (might be illusion)
+
         while (i < str.length) {
             let codepoint
             const c = str.charCodeAt(i)
@@ -224,7 +224,7 @@ function findFirstInSorted<T>(array: UintArray, i: number): number {
     let high = array.length
 
     if (high === 0) {
-        return 0 // no children
+        return 0
     }
     while (low < high) {
         const mid = Math.floor((low + high) / 2)
@@ -235,11 +235,11 @@ function findFirstInSorted<T>(array: UintArray, i: number): number {
         }
     }
 
-    // low is on the index of the first value >= i or array.length. Decrement low until we find array[low] <= i
+
     while (low > 0 && (low >= array.length || array[low] > i)) {
         low--
     }
-    // check whether we are on the second index of a utf-16 surrogate char. If so, go to the first index.
+
     if (low > 0 && array[low] === array[low - 1]) {
         low--
     }
@@ -249,16 +249,16 @@ function findFirstInSorted<T>(array: UintArray, i: number): number {
 }
 
 
-/**
- * Every instance of OnigScanner internally calls native libonig API
- * Since (at the moment) transferring complex objects between C runtime and JS runtime is not easy,
- * pointers are used to tap into their runtimes to read values (for example result of regex match)
- */
+
+
+
+
+
 interface INativeOnigHInfo {
-    /**
-     * regex_t* is used by libonig to match string against an expression
-     * this is the output of compiling raw string pattern to libonig's internal representation
-     */
+
+
+
+
     regexTPtrs: Uint8Array;
 }
 
@@ -304,11 +304,11 @@ class LRUCache<T, U> {
     }
 }
 
-/**
- * Allocates space on the heap and copies the string bytes on to it
- * @param str
- * @returns pointer to the first byte's address on heap
- */
+
+
+
+
+
 function mallocAndWriteString(str: OnigString): number {
     const ptr = onigasmH._malloc(str.utf8Bytes.length)
     onigasmH.HEAPU8.set(str.utf8Bytes, ptr)
@@ -339,10 +339,10 @@ const cache = new LRUCache<OnigScanner, INativeOnigHInfo>(100, onDispose);
 
 export class OnigScanner {
     private sources: string[]
-    /**
-     * Create a new scanner with the given patterns
-     * @param patterns  An array of string patterns
-     */
+
+
+
+
     constructor(patterns: string[]) {
         if (onigasmH === null) {
             throw new Error(`Onigasm has not been initialized, call loadWASM from 'onigasm' exports before using any other API`)
@@ -360,12 +360,12 @@ export class OnigScanner {
         return this.sources.slice()
     }
 
-    /**
-     * Find the next match from a given position
-     * @param string The string to search
-     * @param startPosition The optional position to start at, defaults to 0
-     * @param callback The (error, match) function to call when done, match will null when there is no match
-     */
+
+
+
+
+
+
     public findNextMatch(string: string | OnigString, startPosition: number, callback: (err: any, match?: IOnigMatch) => void) {
         if (startPosition == null) { startPosition = 0 }
         if (typeof startPosition === 'function') {
@@ -381,11 +381,11 @@ export class OnigScanner {
         }
     }
 
-    /**
-     * Find the next match from a given position
-     * @param string The string to search
-     * @param startPosition The optional position to start at, defaults to 0
-     */
+
+
+
+
+
     public findNextMatchSync(string: string | OnigString, startPosition: number): IOnigMatch | null {
         if (startPosition == null) { startPosition = 0 }
         startPosition = this.convertToNumber(startPosition)
@@ -421,17 +421,17 @@ export class OnigScanner {
         onigasmH.HEAPU8.set(onigNativeInfo.regexTPtrs, regexTPtrsPtr)
 
         status = onigasmH._findBestMatch(
-            // regex_t **patterns
+
             regexTPtrsPtr,
-            // int patternCount
+
             this.sources.length,
-            // UChar *utf8String
+
             strPtr,
-            // int strLen
+
             onigString.utf8Bytes.length - 1,
-            // int startOffset
+
             onigString.convertUtf16OffsetToUtf8(startPosition),
-            // int *resultInfo
+
             resultInfoReceiverPtr,
         )
 
@@ -440,16 +440,16 @@ export class OnigScanner {
             throw new Error(errMessage)
         }
         const [
-            // The index of pattern which matched the string at least offset from 0 (start)
+
             bestPatternIdx,
 
-            // Begin address of capture info encoded as pairs
-            // like [start, end, start, end, start, end, ...]
-            //  - first start-end pair is entire match (index 0 and 1)
-            //  - subsequent pairs are capture groups (2, 3 = first capture group, 4, 5 = second capture group and so on)
+
+
+
+
             encodedResultBeginAddress,
 
-            // Length of the [start, end, ...] sequence so we know how much memory to read (will always be 0 or multiple of 2)
+
             encodedResultLength,
         ] = new Uint32Array(onigasmH.HEAPU32.buffer, resultInfoReceiverPtr, 3);
 

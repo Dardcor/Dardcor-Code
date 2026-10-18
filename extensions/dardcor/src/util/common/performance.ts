@@ -25,36 +25,36 @@ const chatExtPrefix = 'code/chat/ext/';
 
 const chatExtMarksBySession = new Map<string, Set<string>>();
 
-/**
- * Well-defined perf marks for the chat extension request lifecycle.
- * Each mark is a boundary of a measurable scenario — don't add marks
- * without defining what scenario they belong to.
- *
- * These marks live inside the vscode-side `agent/willInvoke` → `agent/didInvoke`
- * window and break down what happens in the extension during a chat request.
- *
- * ## Per-Session Scenarios (scoped by sessionId via {@link markChatExt})
- *
- * **Extension Handler Duration** — total time in the participant handler:
- * `willHandleParticipant` → `didHandleParticipant`
- * Corresponds to vscode's `agent/willInvoke` → `agent/didInvoke`.
- *
- * **Prompt Build Time** — context gathering and prompt assembly (per turn):
- * `willBuildPrompt` → `didBuildPrompt`
- * If this is slow, context resolution (workspace search, file reads, instructions) is the bottleneck.
- *
- * **LLM Fetch Time** — network round-trip to the language model (per turn):
- * `willFetch` → `didFetch`
- * If this is slow, model latency or network is the bottleneck.
- *
- * ## One-Time Activation Scenarios (global marks, not request-scoped)
- *
- * **Extension Activation Duration** — cold-start time:
- * `code/chat/ext/willActivate` → `code/chat/ext/didActivate`
- *
- * **Copilot Token Wait** — authentication readiness blocking activation:
- * `code/chat/ext/willWaitForCopilotToken` → `code/chat/ext/didWaitForCopilotToken`
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 export const ChatExtPerfMark = {
 	WillHandleParticipant: 'willHandleParticipant',
 	DidHandleParticipant: 'didHandleParticipant',

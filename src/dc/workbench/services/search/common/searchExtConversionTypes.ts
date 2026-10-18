@@ -45,10 +45,10 @@ export interface SearchOptions {
 
 	followSymlinks: boolean;
 
-	/**
-	 * Whether global files that exclude files, like .gitignore, should be respected.
-	 * See the vscode setting `"search.useGlobalIgnoreFiles"`.
-	 */
+
+
+
+
 	useGlobalIgnoreFiles: boolean;
 
 	useParentIgnoreFiles: boolean;
@@ -145,10 +145,10 @@ export interface FindTextInFilesOptions {
 
 	useIgnoreFiles?: boolean;
 
-	/**
-	 * Whether global files that exclude files, like .gitignore, should be respected.
-	 * See the vscode setting `"search.useGlobalIgnoreFiles"`.
-	 */
+
+
+
+
 	useGlobalIgnoreFiles?: boolean;
 
 	useParentIgnoreFiles: boolean;

@@ -5,21 +5,21 @@
 
 // @ts-check
 
-/**
- * Chat performance benchmark.
- *
- * Uses the real copilot extension with IS_SCENARIO_AUTOMATION=1 and a local
- * mock LLM server. Measures the full stack: prompt building, context
- * gathering, tool resolution, rendering, GC, and layout overhead.
- *
- * Usage:
- *   npm run perf:chat                                 # all scenarios vs 1.115.0
- *   npm run perf:chat -- --runs 10                    # 10 runs per scenario
- *   npm run perf:chat -- --scenario text-only         # single scenario
- *   npm run perf:chat -- --no-baseline                # skip baseline comparison
- *   npm run perf:chat -- --build 1.110.0 --baseline-build 1.115.0
- *   npm run perf:chat -- --resume .chat-simulation-data/2026-04-14/results.json --runs 3
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const path = require('path');
 const fs = require('fs');
@@ -46,26 +46,26 @@ function parseArgs() {
 		force: false,
 		heapSnapshots: false,
 		gcObjectStats: false,
-		/** @type {string[]} */
+
 		scenarios: [],
-		/** @type {string | undefined} */
+
 		build: undefined,
-		/** @type {string | undefined} */
+
 		baseline: undefined,
-		/** @type {string | undefined} */
+
 		baselineBuild: CONFIG.baselineBuild ?? '1.115.0',
 		saveBaseline: false,
 		threshold: CONFIG.regressionThreshold ?? 0.2,
-		/** @type {Record<string, number | string>} */
+
 		metricThresholds: CONFIG.metricThresholds ?? {},
-		/** @type {string | undefined} */
+
 		resume: undefined,
 		productionBuild: false,
-		/** @type {Record<string, any>} */
+
 		settingsOverrides: {},
-		/** @type {Record<string, any>} */
+
 		testSettingsOverrides: {},
-		/** @type {Record<string, any>} */
+
 		baselineSettingsOverrides: {},
 		cleanupDiagnostics: false,
 	};
@@ -151,11 +151,11 @@ function parseArgs() {
 }
 
 
-/**
- * Classify an electron path into a build mode.
- * @param {string} electronPath
- * @returns {'dev' | 'production' | 'release'}
- */
+
+
+
+
+
 function detectBuildMode(electronPath) {
 	if (electronPath.includes('.vscode-test')) {
 		return 'release';
@@ -166,11 +166,11 @@ function detectBuildMode(electronPath) {
 	return 'dev';
 }
 
-/**
- * Return a human-readable label for a build mode.
- * @param {'dev' | 'production' | 'release'} mode
- * @returns {string}
- */
+
+
+
+
+
 function buildModeLabel(mode) {
 	switch (mode) {
 		case 'dev': return 'development (unbundled)';
@@ -180,14 +180,14 @@ function buildModeLabel(mode) {
 }
 
 
-/**
- * Build a local production (bundled) VS Code package using `gulp vscode`.
- * Returns the path to the Electron executable in the packaged output.
- *
- * The gulp task compiles TypeScript, bundles JS, and packages with Electron
- * into `../VSCode-<platform>-<arch>/`.  This is the same process used for
- * release builds, minus minification and mangling.
- */
+
+
+
+
+
+
+
+
 function buildProductionBuild() {
 	const product = require(path.join(ROOT, 'product.json'));
 	const platform = process.platform;
@@ -208,7 +208,7 @@ function buildProductionBuild() {
 		console.warn('[chat-simulation] gulp vscode exited with errors (see above). Checking if executable was still produced...');
 	}
 
-	/** @type {string} */
+
 	let electronPath;
 	if (platform === 'darwin') {
 		electronPath = path.join(destDir, `${product.nameLong}.app`, 'Contents', 'MacOS', product.nameShort);
@@ -225,7 +225,7 @@ function buildProductionBuild() {
 
 	const overridesPath = path.join(ROOT, 'product.overrides.json');
 	if (fs.existsSync(overridesPath)) {
-		/** @type {string} */
+
 		let appDir;
 		if (platform === 'darwin') {
 			appDir = path.join(destDir, `${product.nameLong}.app`, 'Contents', 'Resources', 'app');
@@ -246,17 +246,17 @@ function buildProductionBuild() {
 	return electronPath;
 }
 
-/**
- * @typedef {{ type: 'fraction', value: number } | { type: 'absolute', value: number }} MetricThreshold
- */
 
-/**
- * Parse a metric threshold value from config.
- * - A number is treated as a fraction (e.g. 0.2 = 20%).
- * - A string like "100ms" or "5" is treated as an absolute delta.
- * @param {number | string} raw
- * @returns {MetricThreshold}
- */
+
+
+
+
+
+
+
+
+
+
 function parseMetricThreshold(raw) {
 	if (typeof raw === 'number') {
 		return { type: 'fraction', value: raw };
@@ -268,13 +268,13 @@ function parseMetricThreshold(raw) {
 	return { type: 'absolute', value: num };
 }
 
-/**
- * Get the regression threshold for a specific metric.
- * Uses per-metric override from config if available, otherwise the global threshold.
- * @param {{ threshold: number, metricThresholds?: Record<string, number | string> }} opts
- * @param {string} metric
- * @returns {MetricThreshold}
- */
+
+
+
+
+
+
+
 function getMetricThreshold(opts, metric) {
 	const raw = opts.metricThresholds?.[metric];
 	if (raw !== undefined) {
@@ -283,13 +283,13 @@ function getMetricThreshold(opts, metric) {
 	return { type: 'fraction', value: opts.threshold };
 }
 
-/**
- * Check whether a change exceeds the threshold.
- * @param {MetricThreshold} threshold
- * @param {number} change - fractional change (e.g. 0.5 = 50% increase)
- * @param {number} absoluteDelta - absolute difference (cur.median - bas.median)
- * @returns {boolean}
- */
+
+
+
+
+
+
+
 function exceedsThreshold(threshold, change, absoluteDelta) {
 	if (threshold.type === 'absolute') {
 		return absoluteDelta > threshold.value;
@@ -298,59 +298,59 @@ function exceedsThreshold(threshold, change, absoluteDelta) {
 }
 
 
-/**
- * @typedef {{
- *   timeToUIUpdated: number,
- *   timeToFirstToken: number,
- *   timeToComplete: number,
- *   timeToRenderComplete: number,
- *   instructionCollectionTime: number,
- *   agentInvokeTime: number,
- *   heapUsedBefore: number,
- *   heapUsedAfter: number,
- *   heapDelta: number,
- *   heapDeltaPostGC: number,
- *   majorGCs: number,
- *   minorGCs: number,
- *   gcDurationMs: number,
- *   layoutCount: number,
- *   layoutDurationMs: number,
- *   recalcStyleCount: number,
- *   forcedReflowCount: number,
- *   longTaskCount: number,
- *   longAnimationFrameCount: number,
- *   longAnimationFrameTotalMs: number,
- *   frameCount: number,
- *   compositeLayers: number,
- *   paintCount: number,
- *   hasInternalMarks: boolean,
- *   responseHasContent: boolean,
- *   internalFirstToken: number,
- *   profilePath: string,
- *   tracePath: string,
- *   snapshotPath: string,
- *   extHostHeapUsedBefore: number,
- *   extHostHeapUsedAfter: number,
- *   extHostHeapDelta: number,
- *   extHostHeapDeltaPostGC: number,
- *   extHostProfilePath: string,
- *   extHostSnapshotPath: string,
- * }} RunMetrics
- */
 
 
-/**
- * @param {string} electronPath
- * @param {string} scenario
- * @param {{ url: string, requestCount: () => number, waitForRequests: (n: number, ms: number) => Promise<void>, completionCount: () => number, waitForCompletion: (n: number, ms: number) => Promise<void> }} mockServer
- * @param {boolean} verbose
- * @param {string} runIndex
- * @param {string} runDir - timestamped run directory for diagnostics
- * @param {'baseline' | 'test'} role - whether this is a baseline or test run
- * @param {Record<string, any>} [settingsOverrides] - custom VS Code settings
- * @param {{ heapSnapshots?: boolean }} [runOpts] - additional run options
- * @returns {Promise<RunMetrics>}
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, runDir, role, settingsOverrides, runOpts) {
 	const takeHeapSnapshots = runOpts?.heapSnapshots ?? false;
 	const { userDataDir, extDir, logsDir } = prepareRunDir(runIndex, mockServer, settingsOverrides);
@@ -388,11 +388,11 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 	activeVSCode = vscode;
 	const window = vscode.page;
 
-	/** @type {{ send: (method: string, params?: any) => Promise<any>, on: (event: string, listener: (params: any) => void) => void, close: () => void } | null} */
+
 	let extHostInspector = null;
-	/** @type {{ usedSize: number, totalSize: number } | null} */
+
 	let extHostHeapBefore = null;
-	/** @type {Omit<RunMetrics, 'majorGCs' | 'minorGCs' | 'gcDurationMs' | 'longTaskCount' | 'longAnimationFrameCount' | 'longAnimationFrameTotalMs' | 'timeToUIUpdated' | 'timeToFirstToken' | 'timeToComplete' | 'timeToRenderComplete' | 'layoutDurationMs' | 'instructionCollectionTime' | 'agentInvokeTime' | 'hasInternalMarks' | 'internalFirstToken'> | null} */
+
 	let partialMetrics = null;
 	let submitTime = 0;
 	let firstResponseTime = 0;
@@ -723,7 +723,7 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 		}
 
 
-		/** @param {any} r @param {string} name */
+
 		function getMetric(r, name) {
 			const e = r.metrics?.find((/** @type {any} */ m) => m.name === name);
 			return e ? e.value : 0;
@@ -768,7 +768,7 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 		await vscode.close();
 	}
 
-	/** @type {Array<any>} */
+
 	let traceEvents = [];
 	try {
 		const traceData = JSON.parse(fs.readFileSync(tracePath, 'utf-8'));
@@ -823,14 +823,14 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 	let longAnimationFrameCount = 0;
 	let longAnimationFrameTotalMs = 0;
 	{
-		/** @type {Map<number, number>} */
+
 		const frameStarts = new Map();
 		for (const event of traceEvents) {
 			if (event.cat === 'devtools.timeline' && event.name === 'AnimationFrame') {
 				if (event.ph === 's') {
 					frameStarts.set(event.id, event.ts);
 				} else if (event.ph === 'f' && frameStarts.has(event.id)) {
-					const durationMs = (event.ts - /** @type {number} */(frameStarts.get(event.id))) / 1000;
+					const durationMs = (event.ts -  (frameStarts.get(event.id))) / 1000;
 					frameStarts.delete(event.id);
 					if (durationMs > 50) {
 						longAnimationFrameCount++;
@@ -858,14 +858,14 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 
 const GITHUB_REPO = 'https://github.com/microsoft/vscode';
 
-/**
- * Format a build identifier as a Markdown link when possible.
- * - Commit SHAs link to the commit page.
- * - Semver versions link to the release tag page.
- * - Everything else (e.g. "baseline", "dev (local)") is returned as inline code.
- * @param {string} label
- * @returns {string}
- */
+
+
+
+
+
+
+
+
 function formatBuildLink(label) {
 	if (/^[0-9a-f]{7,40}$/.test(label)) {
 		const short = label.substring(0, 7);
@@ -877,13 +877,13 @@ function formatBuildLink(label) {
 	return `\`${label}\``;
 }
 
-/**
- * Build a GitHub compare link between two build identifiers, if both are
- * commit-like or version-like references.  Returns empty string otherwise.
- * @param {string} base
- * @param {string} test
- * @returns {string}
- */
+
+
+
+
+
+
+
 function formatCompareLink(base, test) {
 	const isRef = (/** @type {string} */ v) => /^[0-9a-f]{7,40}$/.test(v) || /^\d+\.\d+\.\d+/.test(v);
 	if (!isRef(base) || !isRef(test)) {
@@ -892,14 +892,14 @@ function formatCompareLink(base, test) {
 	return `[compare](${GITHUB_REPO}/compare/${base}...${test})`;
 }
 
-/**
- * Generate a detailed Markdown summary table for CI.
- * Printed to stdout and written to ci-summary.md.
- *
- * @param {Record<string, any>} jsonReport
- * @param {Record<string, any> | null} baseline
- * @param {{ threshold: number, metricThresholds?: Record<string, number | string>, runs: number, baselineBuild?: string, build?: string }} opts
- */
+
+
+
+
+
+
+
+
 function generateCISummary(jsonReport, baseline, opts) {
 	const baseLabel = opts.baselineBuild || 'baseline';
 	const testBuildMode = jsonReport.buildMode || 'dev';
@@ -933,7 +933,7 @@ function generateCISummary(jsonReport, baseline, opts) {
 	const lines = [];
 	const scenarios = Object.keys(jsonReport.scenarios);
 
-	/** @type {Map<string, { metric: string, verdict: string, change: number, pValue: string, basStr: string, curStr: string }[]>} */
+
 	const scenarioVerdicts = new Map();
 	let totalRegressions = 0;
 	let totalImprovements = 0;
@@ -941,7 +941,7 @@ function generateCISummary(jsonReport, baseline, opts) {
 	for (const scenario of scenarios) {
 		const current = jsonReport.scenarios[scenario];
 		const base = baseline?.scenarios?.[scenario];
-		/** @type {{ metric: string, verdict: string, change: number, pValue: string, basStr: string, curStr: string }[]} */
+
 		const verdicts = [];
 
 		if (base) {
@@ -1177,9 +1177,9 @@ function generateCISummary(jsonReport, baseline, opts) {
 }
 
 
-/** @type {{ close: () => Promise<void> } | null} */
+
 let activeVSCode = null;
-/** @type {{ close: () => Promise<void> } | null} */
+
 let activeMockServer = null;
 
 function installSignalHandlers() {
@@ -1194,11 +1194,11 @@ function installSignalHandlers() {
 }
 
 
-/**
- * Remove large diagnostic files (heap snapshots, CPU profiles, traces) from
- * a run's metrics to free disk space.  Keeps the JSON results data intact.
- * @param {RunMetrics} metrics
- */
+
+
+
+
+
 function cleanupRunDiagnostics(metrics) {
 	const filesToDelete = [
 		metrics.profilePath,
@@ -1217,12 +1217,12 @@ function cleanupRunDiagnostics(metrics) {
 	}
 }
 
-/**
- * Clean up diagnostics for all scenarios that did NOT regress.
- * Keeps diagnostics for regressed scenarios so they can be investigated.
- * @param {Record<string, RunMetrics[]>} allResults - test results by scenario
- * @param {Set<string>} regressedScenarios - scenarios that regressed
- */
+
+
+
+
+
+
 function cleanupNonRegressedDiagnostics(allResults, regressedScenarios) {
 	for (const [scenario, runs] of Object.entries(allResults)) {
 		if (regressedScenarios.has(scenario)) {
@@ -1366,7 +1366,7 @@ async function main() {
 
 	const isBaselineVersionString = opts.baselineBuild && isVersionString(opts.baselineBuild);
 	const isBaselineLocalPath = opts.baselineBuild && !isBaselineVersionString;
-	/** @type {string | undefined} */
+
 	let baselineElectronPath;
 	if (isBaselineLocalPath) {
 		baselineElectronPath = await resolveBuild(opts.baselineBuild);
@@ -1426,7 +1426,7 @@ async function main() {
 				for (const scenario of scenariosToRun) {
 					const existingRuns = cachedBaseline.scenarios?.[scenario]?.rawRuns || [];
 					const runsNeeded = opts.runs - existingRuns.length;
-					/** @type {RunMetrics[]} */
+
 					const newResults = [];
 					for (let i = 0; i < runsNeeded; i++) {
 						try {
@@ -1453,10 +1453,10 @@ async function main() {
 		} else {
 			const baselineExePath = baselineElectronPath || await resolveBuild(opts.baselineBuild);
 			console.log(`[chat-simulation] Benchmarking baseline build (${baselineLabel})...`);
-			/** @type {Record<string, RunMetrics[]>} */
+
 			const baselineResults = {};
 			for (const scenario of opts.scenarios) {
-				/** @type {RunMetrics[]} */
+
 				const results = [];
 				for (let i = 0; i < opts.runs; i++) {
 					try {
@@ -1477,7 +1477,7 @@ async function main() {
 			};
 			for (const [scenario, results] of Object.entries(baselineResults)) {
 				const sd = /** @type {any} */ ({ runs: results.length, timing: {}, memory: {}, rendering: {}, extHost: {}, rawRuns: results });
-				for (const [metric, group] of METRIC_DEFS) { sd[group][metric] = robustStats(results.map(r => /** @type {any} */(r)[metric])); }
+				for (const [metric, group] of METRIC_DEFS) { sd[group][metric] = robustStats(results.map(r =>  (r)[metric])); }
 				baselineReport.scenarios[scenario] = sd;
 			}
 			fs.writeFileSync(baselineJsonPath, JSON.stringify(baselineReport, null, 2));
@@ -1529,13 +1529,13 @@ async function main() {
 	}
 	console.log('');
 
-	/** @type {Record<string, RunMetrics[]>} */
+
 	const allResults = {};
 	let anyFailed = false;
 
 	for (const scenario of opts.scenarios) {
 		console.log(`[chat-simulation] === Scenario: ${scenario} ===`);
-		/** @type {RunMetrics[]} */
+
 		const results = [];
 		for (let i = 0; i < opts.runs; i++) {
 			console.log(`[chat-simulation]   Run ${i + 1}/${opts.runs}...`);
@@ -1601,7 +1601,7 @@ async function main() {
 	});
 	for (const [scenario, results] of Object.entries(allResults)) {
 		const sd = /** @type {any} */ ({ runs: results.length, timing: {}, memory: {}, rendering: {}, extHost: {}, rawRuns: results });
-		for (const [metric, group] of METRIC_DEFS) { sd[group][metric] = robustStats(results.map(r => /** @type {any} */(r)[metric])); }
+		for (const [metric, group] of METRIC_DEFS) { sd[group][metric] = robustStats(results.map(r =>  (r)[metric])); }
 		jsonReport.scenarios[scenario] = sd;
 	}
 	fs.writeFileSync(jsonPath, JSON.stringify(jsonReport, null, 2));
@@ -1625,17 +1625,17 @@ async function main() {
 	await mockServer.close();
 }
 
-/**
- * Print baseline comparison and exit with code 1 if regressions found.
- * Returns the set of scenario IDs that regressed.
- * @param {Record<string, any>} jsonReport
- * @param {{ threshold: number, metricThresholds?: Record<string, number | string>, baseline?: string, ci?: boolean, resume?: string, build?: string, baselineBuild?: string, runs: number, cleanupDiagnostics?: boolean }} opts
- * @returns {Promise<Set<string>>}
- */
+
+
+
+
+
+
+
 async function printComparison(jsonReport, opts) {
 	let regressionFound = false;
 	let inconclusiveFound = false;
-	/** @type {Set<string>} */
+
 	const regressedScenarios = new Set();
 	if (opts.baseline && fs.existsSync(opts.baseline)) {
 		const baseline = JSON.parse(fs.readFileSync(opts.baseline, 'utf-8'));
@@ -1669,7 +1669,7 @@ async function printComparison(jsonReport, opts) {
 			const base = baseline.scenarios?.[scenario];
 			if (!base) { console.log(`  ${scenario}: (no baseline)`); continue; }
 
-			/** @type {string[]} */
+
 			const diffs = [];
 			let scenarioRegression = false;
 

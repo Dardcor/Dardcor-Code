@@ -380,7 +380,7 @@ declare namespace DebugProtocol {
 	interface DataBreakpointInfoArguments {
 		variablesReference?: number;
 		name: string;
-		/** When `name` is an expression, evaluate it in the scope of this stack frame. If not specified, the expression is evaluated in the global scope. When `variablesReference` is specified, this property has no effect. */
+
 		frameId?: number;
 		bytes?: number;
 		asAddress?: boolean;
@@ -682,7 +682,7 @@ declare namespace DebugProtocol {
 
 	interface EvaluateArguments {
 		expression: string;
-		/** Evaluate the expression in the scope of this stack frame. If not specified, the expression is evaluated in the global scope. */
+
 		frameId?: number;
 		line?: number;
 		column?: number;
@@ -711,7 +711,7 @@ declare namespace DebugProtocol {
 	interface SetExpressionArguments {
 		expression: string;
 		value: string;
-		/** Evaluate the expressions in the scope of this stack frame. If not specified, the expressions are evaluated in the global scope. */
+
 		frameId?: number;
 		format?: ValueFormat;
 	}
@@ -764,7 +764,7 @@ declare namespace DebugProtocol {
 	}
 
 	interface CompletionsArguments {
-		/** Returns completions in the scope of this stack frame. If not specified, the completions are returned for the global scope. */
+
 		frameId?: number;
 		text: string;
 		column: number;

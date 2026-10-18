@@ -46,9 +46,9 @@ export const ILinkifyService = createServiceIdentifier<ILinkifyService>('ILinkif
 export interface ILinkifyService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Register a new global linkifier that is run for all text.
-	 */
+
+
+
 	registerGlobalLinkifier(linkifier: IContributedLinkifierFactory): IDisposable;
 
 	createLinkifier(

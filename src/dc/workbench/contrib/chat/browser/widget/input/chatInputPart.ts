@@ -282,10 +282,10 @@ export interface IChatInputPartOptions {
 	secondaryToolbarActionViewItemProvider?: (action: IAction, options?: IActionViewItemOptions) => IActionViewItem | undefined;
 	secondaryToolbarOverflowActionHandler?: (actionId: string, anchor: HTMLElement) => boolean;
 	suppressModePreferredModel?: boolean;
-	/**
-	 * When true, model picks via the picker do not write to global storage.
-	 * Note: `switchToNextModel` keybindings still persist globally.
-	 */
+
+
+
+
 	suppressModelPersistence?: boolean;
 	inputPartHorizontalPadding?: number;
 }
@@ -1270,12 +1270,12 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		return sessionType === SessionType.Codex;
 	}
 
-	/**
-	 * Returns this editor's snapshot of the given model's configuration (e.g.
-	 * context size, thinking effort), scoped to this editor rather than the
-	 * profile-global value. Delegates to {@link ChatModelConfigurationStore}.
-	 * See issue #320393.
-	 */
+
+
+
+
+
+
 	getModelConfiguration(modelId: string): IStringDictionary<unknown> | undefined {
 		return this._modelConfigStore.getModelConfiguration(modelId);
 	}
@@ -1326,8 +1326,8 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 
 	private _createPermissionPickerDelegate(): IPermissionPickerDelegate {
 		return {
-			// Legacy Autopilot can still control continuation elsewhere, but it is
-			// displayed here as the conservative access level and grants no tool access.
+
+
 			currentPermissionLevel: derived(this, reader => {
 				const level = this._currentPermissionLevel.read(reader);
 				return level === ChatPermissionLevel.Autopilot ? ChatPermissionLevel.Default : level;
@@ -1599,7 +1599,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 				}
 			}
 
-			// Sync permission level (skip if global auto-approve is on, so the picker stays unchanged)
+
 			if (!this.configurationService.getValue<boolean>(ChatConfiguration.GlobalAutoApprove)) {
 				const targetLevel = this.getPermittedPermissionLevel(state?.permissionLevel ?? ChatPermissionLevel.Default);
 				if (this._currentPermissionLevel.get() !== targetLevel) {

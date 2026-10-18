@@ -1356,7 +1356,7 @@ suite('AgentHostProtocolClient', () => {
 		const configurationService = new ManagedPermissionsConfigurationService({
 			[AgentHostMapLegacySettingsToManagedSettingsSettingId]: true,
 		});
-		// Isolate this setting's notification path from the global auto-approve mapping.
+
 		configurationService.clearGlobalAutoApprovePolicy();
 		configurationService.setEligibleForAutoApprovalPolicy({ runTask: false });
 		const { client, transport } = createClientForIdentity(

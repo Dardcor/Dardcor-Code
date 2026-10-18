@@ -105,7 +105,7 @@ class InteractiveEditorWidget {
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
 	) {
 
-		// editor logic
+
 		const editorOptions: IEditorConstructionOptions = {
 			ariaLabel: localize('aria-label', "Interactive Editor Input"),
 			fontFamily: DEFAULT_FONT_FAMILY,
@@ -166,8 +166,8 @@ class InteractiveEditorWidget {
 		this._inputModel = this._modelService.getModel(uri) ?? this._modelService.createModel('', null, uri);
 		this.inputEditor.setModel(this._inputModel);
 
-		// show/hide placeholder depending on text model being empty
-		// content height
+
+
 
 		const currentContentHeight = 0;
 
@@ -215,14 +215,14 @@ class InteractiveEditorWidget {
 		try {
 			const innerEditorWidth = Math.min(
 				Number.MAX_SAFE_INTEGER, //  TODO@jrieken define max width?
-				dim.width - (getTotalWidth(this._elements.rhsToolbar) + 12 /* L/R-padding */)
+				dim.width - (getTotalWidth(this._elements.rhsToolbar) + 12  )
 			);
 			const newDim = new Dimension(innerEditorWidth, this.inputEditor.getContentHeight());
 			if (!this._editorDim || !Dimension.equals(this._editorDim, newDim)) {
 				this._editorDim = newDim;
 				this.inputEditor.layout(this._editorDim);
 
-				this._elements.placeholder.style.width = `${innerEditorWidth - 4 /* input-padding*/}px`;
+				this._elements.placeholder.style.width = `${innerEditorWidth - 4  }px`;
 			}
 		} finally {
 			this._isLayouting = false;
@@ -231,8 +231,8 @@ class InteractiveEditorWidget {
 
 	getHeight(): number {
 		const base = getTotalHeight(this._elements.progress) + getTotalHeight(this._elements.status);
-		const editorHeight = this.inputEditor.getContentHeight() + 6 /* padding and border */;
-		return base + editorHeight + 12 /* padding */;
+		const editorHeight = this.inputEditor.getContentHeight() + 6  ;
+		return base + editorHeight + 12  ;
 	}
 
 	updateProgress(show: boolean) {
@@ -272,7 +272,7 @@ class InteractiveEditorWidget {
 			this.acceptInput = (preview) => {
 				const newValue = this.inputEditor.getModel()!.getValue();
 				if (newValue.trim().length === 0) {
-					// empty or whitespace only
+
 					this._cancelInput();
 					return;
 				}
@@ -284,9 +284,9 @@ class InteractiveEditorWidget {
 
 			disposeOnDone.add(token.onCancellationRequested(() => this._cancelInput()));
 
-			// CONTEXT KEYS
 
-			// (1) inner cursor position (last/first line selected)
+
+
 			const updateInnerCursorFirstLast = () => {
 				if (!this.inputEditor.hasModel()) {
 					return;
@@ -298,7 +298,7 @@ class InteractiveEditorWidget {
 			disposeOnDone.add(this.inputEditor.onDidChangeCursorPosition(updateInnerCursorFirstLast));
 			updateInnerCursorFirstLast();
 
-			// (2) input editor focused or not
+
 			const updateFocused = () => {
 				const hasFocus = this.inputEditor.hasWidgetFocus();
 				ctxInputEditorFocused.set(hasFocus);
@@ -409,7 +409,7 @@ export class InteractiveEditorZoneWidget extends ZoneWidget {
 		this.create();
 
 
-		// todo@jrieken listen ONLY when showing
+
 		const updateCursorIsAboveContextKey = () => {
 			if (!this.position || !this.editor.hasModel()) {
 				this._ctxCursorPosition.reset();
@@ -431,9 +431,9 @@ export class InteractiveEditorZoneWidget extends ZoneWidget {
 	}
 
 	protected override _getWidth(info: EditorLayoutInfo): number {
-		// TODO@jrieken
-		// makes the zone widget wider than wanted but this aligns
-		// it with wholeLine decorations that are added above
+
+
+
 		return info.width;
 	}
 
@@ -480,9 +480,9 @@ export class InteractiveEditorZoneWidget extends ZoneWidget {
 	}
 
 	updatePosition(where: IPosition) {
-		// todo@jrieken
-		// UGYLY: we need to restore focus because showing the zone removes and adds it and that
-		// means we loose focus for a bit
+
+
+
 		const hasFocusNow = this.widget.inputEditor.hasWidgetFocus();
 		super.show(where, this._computeHeightInLines());
 		if (hasFocusNow) {
@@ -773,10 +773,10 @@ export class InteractiveEditorController implements IEditorContribution {
 			store.add(this._instaService.invokeFunction(installSlashCommandSupport, this._zone.widget.inputEditor as IActiveCodeEditor, session.slashCommands));
 		}
 
-		// CANCEL when input changes
+
 		this._editor.onDidChangeModel(this._ctsSession.cancel, this._ctsSession, store);
 
-		// REposition the zone widget whenever the block decoration changes
+
 		let lastPost: Position | undefined;
 		wholeRangeDecoration.onDidChange(e => {
 			const range = wholeRangeDecoration.getRange(0);
@@ -790,13 +790,13 @@ export class InteractiveEditorController implements IEditorContribution {
 		this._editor.onDidChangeModelContent(e => {
 			if (!ignoreModelChanges) {
 
-				// remove inline diff when the model changes
+
 				inlineDiffDecorations.clear();
 
-				// note when "other" edits happen
+
 				data.edits = true;
 
-				// CANCEL if the document has changed outside the current range
+
 				const wholeRange = wholeRangeDecoration.getRange(0);
 				if (!wholeRange) {
 					this._ctsSession.cancel();
@@ -825,12 +825,12 @@ export class InteractiveEditorController implements IEditorContribution {
 
 			const wholeRange = wholeRangeDecoration.getRange(0);
 			if (!wholeRange) {
-				// nuked whole file contents?
+
 				this._logService.trace('[IE] ABORT wholeRange seems gone/collapsed');
 				break;
 			}
 
-			// visuals: add block decoration
+
 			blockDecoration.set([{
 				range: wholeRange,
 				options: InteractiveEditorController._decoBlock
@@ -875,9 +875,9 @@ export class InteractiveEditorController implements IEditorContribution {
 				if (!isCancellationError(e)) {
 					this._logService.error('[IE] ERROR during request', provider.debugName);
 					this._logService.error(e);
-					// this._zone.widget.showMessage(toErrorMessage(e));
+
 					statusWidget.update({ message: toErrorMessage(e), classes: ['error'], actions: [] });
-					// statusWidget
+
 					continue;
 				}
 			} finally {
@@ -902,8 +902,8 @@ export class InteractiveEditorController implements IEditorContribution {
 			if (reply.type === 'bulkEdit') {
 				this._logService.info('[IE] performaing a BULK EDIT, exiting interactive editor', provider.debugName);
 				this._bulkEditService.apply(reply.edits, { editor: this._editor, label: localize('ie', "{0}", input.value), showPreview: true });
-				// todo@jrieken preview bulk edit?
-				// todo@jrieken keep interactive editor?
+
+
 				break;
 			}
 
@@ -914,15 +914,15 @@ export class InteractiveEditorController implements IEditorContribution {
 				continue;
 			}
 
-			// make edits more minimal
+
 			const moreMinimalEdits = (await this._editorWorkerService.computeMoreMinimalEdits(textModel.uri, reply.edits, true));
 			this._logService.trace('[IE] edits from PROVIDER and after making them MORE MINIMAL', provider.debugName, reply.edits, moreMinimalEdits);
 			this._recorder.addExchange(session, request, reply);
 
-			// inline diff
+
 			inlineDiffDecorations.clear();
 
-			// use whole range from reply
+
 			if (reply.wholeRange) {
 				wholeRangeDecoration.set([{
 					range: reply.wholeRange,
@@ -980,7 +980,7 @@ export class InteractiveEditorController implements IEditorContribution {
 
 		this._inlineDiffEnabled = inlineDiffDecorations.visible;
 
-		// done, cleanup
+
 		wholeRangeDecoration.clear();
 		blockDecoration.clear();
 		inlineDiffDecorations.clear();
@@ -1091,7 +1091,7 @@ function installSlashCommandSupport(accessor: ServicesAccessor, editor: IActiveC
 					}
 				});
 
-				// inject detail when otherwise empty
+
 				if (firstLine === `/${command.command} `) {
 					newDecorations.push({
 						range: new Range(1, withSlash.length + 1, 1, withSlash.length + 2),
@@ -1124,12 +1124,12 @@ async function showMessageResponse(accessor: ServicesAccessor, query: string) {
 	const interactiveSessionContributionService = accessor.get(IInteractiveSessionContributionService);
 
 	if (widgetService.lastFocusedWidget && widgetService.lastFocusedWidget.viewId) {
-		// option 1 - take the most recent view
+
 		viewsService.openView(widgetService.lastFocusedWidget.viewId, true);
 		widgetService.lastFocusedWidget.acceptInput(query);
 
 	} else {
-		// fallback - take the first view that's openable
+
 		for (const { id } of interactiveSessionContributionService.registeredProviders) {
 			const viewId = interactiveSessionContributionService.getViewIdForProvider(id);
 			const view = await viewsService.openView<InteractiveSessionViewPane>(viewId, true);

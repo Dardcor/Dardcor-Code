@@ -1,473 +1,275 @@
-name: Release Multi-OS Complete Build
+name: Dardcor Code Release
 
 on:
   push:
     tags:
+      - 'Dardcor-Code-v*'
       - 'v*'
-      - 'Dardcor*'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
+  RELEASE_TAG: ${{ github.ref_name }}
   VSCODE_SKIP_NODE_VERSION_CHECK: '1'
   VSCODE_SKIP_PREINSTALL_CHECK: '1'
 
 jobs:
-  build-win32:
-    name: Build Windows Packages
+  build-windows:
+    name: Build Windows x64 and ARM64
     runs-on: windows-latest
+    timeout-minutes: 180
     steps:
-      - name: Checkout Code
+      - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Install Build Tools (Inno Setup & WiX)
+      - name: Validate release version
+        shell: pwsh
         run: |
-          choco install innosetup -y
-          choco install wixtoolset -y
+          $version = $env:RELEASE_TAG -replace '^(Dardcor-Code-v?|v)', ''
+          if ($version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') { throw "Invalid release tag: $env:RELEASE_TAG" }
+          "RELEASE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          node -e 'const fs=require("fs");const p=JSON.parse(fs.readFileSync("product.json","utf8"));p.dardcorVersion=process.argv[1];fs.writeFileSync("product.json",JSON.stringify(p,null,"\t")+"\n")' $version
+
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup --yes --no-progress
           echo "C:\Program Files (x86)\Inno Setup 6" >> $env:GITHUB_PATH
-          echo "C:\Program Files (x86)\WiX Toolset v3.11\bin" >> $env:GITHUB_PATH
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24
 
-      - name: Install Project Dependencies
-        run: npm install
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Sync Release Version in product.json
-        shell: powershell
-        run: |
-          $rawTag = if ("${{ github.ref_name }}") { "${{ github.ref_name }}" } else { "v1.0.1" }
-          $cleanVer = $rawTag -replace '^(Dardcor-Code-v?|v)', ''
-          if (-not $cleanVer) { $cleanVer = "1.0.1" }
-          Write-Host "Updating product.json with dardcorVersion: $cleanVer"
-          $content = Get-Content product.json -Raw
-          $content = $content -replace '"dardcorVersion":\s*"[^"]*"', "`"dardcorVersion`": `"$cleanVer`""
-          $content | Set-Content product.json -Encoding utf8
-
-      - name: Build Dardcor Router Standalone
-        run: |
-          cd .dardcor-router
-          npm install
-          npm run build
-          cd ..
-
-      - name: Verify Router Standalone & Smoke Test
-        shell: powershell
-        run: |
-          cd .dardcor-router
-          $chunkCount = (Get-ChildItem -Path ".next\standalone\.next\server\chunks\*.js" -ErrorAction SilentlyContinue).Count
-          Write-Host "Verified Standalone Chunks Count: $chunkCount"
-          if ($chunkCount -lt 50) {
-            Write-Error "CRITICAL: Router standalone missing required chunks!"
-            exit 1
-          }
-          $env:PORT = "25128"
-          $env:HOSTNAME = "127.0.0.1"
-          $env:DATA_DIR = "$HOME\.dardcor\provider"
-          $proc = Start-Process -FilePath "node" -ArgumentList ".next/standalone/custom-server.js" -PassThru -NoNewWindow
-          $ready = $false
-          for ($i = 0; $i -lt 20; $i++) {
-            Start-Sleep -Seconds 1
-            try {
-              $res = Invoke-RestMethod -Uri "http://127.0.0.1:25128/v1/models" -TimeoutSec 3 -ErrorAction Stop
-              if ($res) {
-                $ready = $true
-                Write-Host "Router Smoke Test OK, models response received on attempt $i"
-                break
-              }
-            } catch { }
-          }
-          Stop-Process -Id $proc.Id -Force
-          if (-not $ready) {
-            Write-Error "Router Smoke Test FAILED: server did not respond on /v1/models within 20s"
-            exit 1
-          }
-          cd ..
-
-      - name: Pre-download Built-in Extensions
-        continue-on-error: true
+      - name: Download built-in extensions
         run: node --experimental-strip-types ./build/lib/builtInExtensions.ts
 
-      - name: Compile Client Code
+      - name: Compile project
         run: npm run compile
 
-      - name: Build Windows Standalone Package
-        run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-win32-x64
-
-      - name: Build Windows System Setup Package
-        run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-win32-x64-system-setup
-
-      - name: Package Windows Release Assets
-        shell: powershell
+      - name: Build Windows packages
+        shell: pwsh
         run: |
-          $rawTag = if ("${{ github.ref_name }}") { "${{ github.ref_name }}" } else { "v1.0.1" }
-          $cleanVer = $rawTag -replace '^(Dardcor-Code-v?|v)', ''
-          if (-not $cleanVer) { $cleanVer = "1.0.1" }
-          Write-Host "Packaging Windows assets for version: $cleanVer"
-
-          New-Item -ItemType Directory -Force -Path "win_assets" | Out-Null
-
-          # Priority 1: Use InnoSetup installer from gulp vscode-win32-x64-system-setup
-          $SetupFile = Get-ChildItem -Path ".build" -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*Setup*" -or $_.Name -like "*setup*" } | Select-Object -First 1
-
-          if ($SetupFile) {
-            Write-Host "SUCCESS: Found compiled InnoSetup installer: $($SetupFile.FullName) ($([math]::Round($SetupFile.Length/1MB, 2)) MB)"
-            Copy-Item -Path $SetupFile.FullName -Destination "win_assets\Dardcor-Code_${cleanVer}_x64-setup.exe" -Force
-
-          } else {
-            Write-Host "ERROR: Found no Setup file!"
-            Write-Host "The official Gulp build must have failed. Aborting."
-            exit 1
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path win_assets | Out-Null
+          foreach ($arch in @('x64', 'arm64')) {
+            npm run gulp -- "vscode-win32-$arch"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run gulp -- "vscode-win32-$arch-inno-updater"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            npm run gulp -- "vscode-win32-$arch-user-setup"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            $setupDirectory = ".build\win32-$arch\user-setup"
+            $setupFiles = @(Get-ChildItem -LiteralPath $setupDirectory -Filter '*.exe' -File)
+            if ($setupFiles.Count -ne 1) { throw "Expected one real Inno Setup package in $setupDirectory, found $($setupFiles.Count)." }
+            $assetPath = Join-Path 'win_assets' "Dardcor-Code_$($env:RELEASE_VERSION)_$arch-setup.exe"
+            Copy-Item -LiteralPath $setupFiles[0].FullName -Destination $assetPath
+            $hash = (Get-FileHash -LiteralPath $assetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            [IO.File]::WriteAllText("$assetPath.sha256", $hash)
           }
 
-          # Verify setup exe was created
-          if (-not (Test-Path "win_assets\Dardcor-Code_${cleanVer}_x64-setup.exe")) {
-            Write-Host "ERROR: Setup exe was not created!"
-            exit 1
-          }
-
-          $size = [math]::Round((Get-Item "win_assets\Dardcor-Code_${cleanVer}_x64-setup.exe").Length / 1MB, 2)
-          Write-Host "Setup installer size: $size MB"
-
-          # Authentic MSI Package via WiX Toolset
-          $candleCmd = Get-Command candle.exe -ErrorAction SilentlyContinue
-          $candlePath = if ($candleCmd) { $candleCmd.Source } else { $null }
-          $wixCandidate = @(
-            $candlePath,
-            "${env:ProgramFiles(x86)}\WiX Toolset v3.11\bin\candle.exe",
-            "${env:ProgramFiles}\WiX Toolset v3.11\bin\candle.exe",
-            "C:\Program Files (x86)\WiX Toolset v3.11\bin\candle.exe"
-          ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
-
-          if ($wixCandidate) {
-            $wixBinDir = Split-Path $wixCandidate
-            $env:PATH = "$wixBinDir;$env:PATH"
-            Write-Host "Found WiX Toolset at: $wixBinDir"
-
-            $setupPath = (Resolve-Path "win_assets\Dardcor-Code_${cleanVer}_x64-setup.exe").Path
-            $msiVersion = if ($cleanVer -match '^\d+\.\d+\.\d+$') { "$cleanVer.0" } else { "1.0.1.0" }
-            Copy-Item -Path "build\win32\dardcor.wxs" -Destination "dardcor.wxs" -Force
-            (Get-Content "dardcor.wxs") -replace 'SETUP_EXE_PATH', $setupPath -replace 'Version="1.0.0.0"', "Version=`"$msiVersion`"" | Set-Content "dardcor.wxs" -Encoding utf8
-            & "$wixBinDir\candle.exe" -arch x64 dardcor.wxs -out dardcor.wixobj
-            & "$wixBinDir\light.exe" -spdb -ext WixUIExtension dardcor.wixobj -out "win_assets\Dardcor-Code_${cleanVer}_x64_en-US.msi"
-            Remove-Item -Path "win_assets\*.wixpdb" -Force -ErrorAction SilentlyContinue
-            Write-Host "SUCCESS: Generated authentic WiX MSI package: win_assets\Dardcor-Code_${cleanVer}_x64_en-US.msi"
-          } else {
-            Write-Host "WARNING: WiX Toolset not found, creating fallback MSI placeholder"
-            Copy-Item -Path "win_assets\Dardcor-Code_${cleanVer}_x64-setup.exe" -Destination "win_assets\Dardcor-Code_${cleanVer}_x64_en-US.msi" -Force
-          }
-
-          # Generate SHA256 Signatures
-          (Get-FileHash "win_assets\Dardcor-Code_${cleanVer}_x64-setup.exe" -Algorithm SHA256).Hash.ToLower() | Out-File -FilePath "win_assets\Dardcor-Code_${cleanVer}_x64-setup.exe.sig" -Encoding utf8
-          (Get-FileHash "win_assets\Dardcor-Code_${cleanVer}_x64_en-US.msi" -Algorithm SHA256).Hash.ToLower() | Out-File -FilePath "win_assets\Dardcor-Code_${cleanVer}_x64_en-US.msi.sig" -Encoding utf8
-
-          Get-ChildItem win_assets
-
-      - name: Upload Windows Artifacts
+      - name: Upload Windows packages
         uses: actions/upload-artifact@v4
         with:
-          name: win_assets
+          name: windows-packages
           path: win_assets/*
+          if-no-files-found: error
 
   build-linux:
-    name: Build Linux Packages
+    name: Build Linux x64 and ARM64
     runs-on: ubuntu-latest
+    timeout-minutes: 180
     steps:
-      - name: Checkout Code
+      - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Install Linux Build Dependencies
+      - name: Validate release version
+        shell: bash
+        run: |
+          version="${RELEASE_TAG#Dardcor-Code-v}"
+          version="${version#v}"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "Invalid release tag: $RELEASE_TAG" >&2; exit 1; }
+          echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
+          node -e 'const fs=require("fs");const p=JSON.parse(fs.readFileSync("product.json","utf8"));p.dardcorVersion=process.argv[1];fs.writeFileSync("product.json",JSON.stringify(p,null,"\t")+"\n")' "$version"
+
+      - name: Install Linux packaging dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pkg-config libxkbfile-dev libkrb5-dev libsecret-1-dev rpm dpkg fakeroot libarchive-tools zip
+          sudo apt-get install --yes pkg-config libxkbfile-dev libkrb5-dev libsecret-1-dev rpm dpkg fakeroot zip
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24
 
-      - name: Install Project Dependencies
-        run: npm install
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Sync Release Version in product.json
-        run: |
-          TAG="${{ github.ref_name }}"
-          CLEAN_VER=$(echo "$TAG" | sed -E 's/^(Dardcor-Code-v?|v)//')
-          [ -z "$CLEAN_VER" ] && CLEAN_VER="1.0.1"
-          node -e "const fs = require('fs'); const p = JSON.parse(fs.readFileSync('product.json', 'utf8')); p.dardcorVersion = '$CLEAN_VER'; fs.writeFileSync('product.json', JSON.stringify(p, null, '\t') + '\n');"
-
-      - name: Build Dardcor Router Standalone
-        run: |
-          cd .dardcor-router
-          npm install
-          npm run build
-          cd ..
-
-      - name: Pre-download Built-in Extensions
-        continue-on-error: true
+      - name: Download built-in extensions
         run: node --experimental-strip-types ./build/lib/builtInExtensions.ts
 
-      - name: Compile Client Code
+      - name: Compile project
         run: npm run compile
 
-      - name: Build Linux Standalone Package
-        continue-on-error: true
-        run: node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-x64
-
-      - name: Build Linux DEB Package
-        continue-on-error: true
+      - name: Build Linux packages
+        shell: bash
         run: |
-          node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-x64-prepare-deb
-          node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-x64-build-deb
-
-      - name: Build Linux RPM Package
-        continue-on-error: true
-        run: |
-          node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-x64-prepare-rpm
-          node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-x64-build-rpm
-
-      - name: Package Linux Release Assets
-        run: |
-          set -e
+          set -euo pipefail
           mkdir -p linux_assets
+          for arch in x64 arm64; do
+            deb_arch=amd64
+            rpm_arch=x86_64
+            if [[ "$arch" == arm64 ]]; then deb_arch=arm64; rpm_arch=aarch64; fi
+            npm run gulp -- "vscode-linux-$arch"
+            npm run gulp -- "vscode-linux-$arch-prepare-deb"
+            npm run gulp -- "vscode-linux-$arch-build-deb"
+            npm run gulp -- "vscode-linux-$arch-prepare-rpm"
+            npm run gulp -- "vscode-linux-$arch-build-rpm"
+            app_dir="../Dardcor-Code-linux-$arch"
+            test -d "$app_dir"
+            deb_source=(.build/linux/deb/"$deb_arch"/deb/*.deb)
+            rpm_source=(.build/linux/rpm/"$rpm_arch"/*.rpm)
+            [[ ${#deb_source[@]} -eq 1 && -s "${deb_source[0]}" ]]
+            [[ ${#rpm_source[@]} -eq 1 && -s "${rpm_source[0]}" ]]
+            if [[ "$arch" == x64 ]]; then package_arch=amd64; else package_arch=arm64; fi
+            cp "${deb_source[0]}" "linux_assets/Dardcor-Code_${RELEASE_VERSION}_${package_arch}.deb"
+            cp "${rpm_source[0]}" "linux_assets/Dardcor-Code_${RELEASE_VERSION}_${rpm_arch}.rpm"
+            tar -czf "linux_assets/Dardcor-Code_${RELEASE_VERSION}_${arch}.tar.gz" -C "$app_dir" .
+            for asset in linux_assets/*; do
+              case "$asset" in *"_${arch}.tar.gz"|*"_${package_arch}.deb"|*"_${rpm_arch}.rpm") sha256sum "$asset" | awk '{print $1}' > "$asset.sha256" ;; esac
+            done
+          done
 
-          create_app_tar() {
-            local dest="$1"
-            if [ -d "../Dardcor-Code-linux-x64" ]; then
-              tar -czf "$dest" -C "../Dardcor-Code-linux-x64" .
-            elif [ -d "../VSCode-linux-x64" ]; then
-              tar -czf "$dest" -C "../VSCode-linux-x64" .
-            elif [ -d "out-build" ]; then
-              tar -czf "$dest" -C "out-build" .
-            else
-              # Lightweight fallback: only compiled output + production deps
-              tar -czf "$dest" \
-                --exclude='*.map' \
-                --exclude='node_modules/*/test' \
-                --exclude='node_modules/*/tests' \
-                --exclude='node_modules/*/.github' \
-                --exclude='node_modules/*/docs' \
-                --exclude='node_modules/*/examples' \
-                --exclude='extensions/*/node_modules/*/test' \
-                out package.json product.json resources/linux 2>/dev/null || \
-              tar -czf "$dest" package.json product.json
-            fi
-          }
-
-          TAG="${{ github.ref_name }}"
-          CLEAN_VER=$(echo "$TAG" | sed -E 's/^(Dardcor-Code-v?|v)//')
-          [ -z "$CLEAN_VER" ] && CLEAN_VER="1.0.1"
-
-          # 1 & 2. RPM aarch64
-          create_app_tar "linux_assets/Dardcor-Code-${CLEAN_VER}-1.aarch64.rpm"
-          sha256sum "linux_assets/Dardcor-Code-${CLEAN_VER}-1.aarch64.rpm" | awk '{print $1}' > "linux_assets/Dardcor-Code-${CLEAN_VER}-1.aarch64.rpm.sig"
-
-          # 3 & 4. RPM x86_64
-          RPM_FILE=$(find .build/linux/rpm -name "*.rpm" 2>/dev/null | head -n 1)
-          if [ -n "$RPM_FILE" ]; then cp "$RPM_FILE" "linux_assets/Dardcor-Code-${CLEAN_VER}-1.x86_64.rpm"; else create_app_tar "linux_assets/Dardcor-Code-${CLEAN_VER}-1.x86_64.rpm"; fi
-          sha256sum "linux_assets/Dardcor-Code-${CLEAN_VER}-1.x86_64.rpm" | awk '{print $1}' > "linux_assets/Dardcor-Code-${CLEAN_VER}-1.x86_64.rpm.sig"
-
-          # 5 & 6. AppImage aarch64
-          create_app_tar "linux_assets/Dardcor-Code_${CLEAN_VER}_aarch64.AppImage"
-          sha256sum "linux_assets/Dardcor-Code_${CLEAN_VER}_aarch64.AppImage" | awk '{print $1}' > "linux_assets/Dardcor-Code_${CLEAN_VER}_aarch64.AppImage.sig"
-
-          # 8 & 9. AppImage amd64
-          create_app_tar "linux_assets/Dardcor-Code_${CLEAN_VER}_amd64.AppImage"
-          sha256sum "linux_assets/Dardcor-Code_${CLEAN_VER}_amd64.AppImage" | awk '{print $1}' > "linux_assets/Dardcor-Code_${CLEAN_VER}_amd64.AppImage.sig"
-
-          # 10 & 11. DEB amd64
-          DEB_FILE=$(find .build/linux/deb -name "*.deb" 2>/dev/null | head -n 1)
-          if [ -n "$DEB_FILE" ]; then cp "$DEB_FILE" "linux_assets/Dardcor-Code_${CLEAN_VER}_amd64.deb"; else create_app_tar "linux_assets/Dardcor-Code_${CLEAN_VER}_amd64.deb"; fi
-          sha256sum "linux_assets/Dardcor-Code_${CLEAN_VER}_amd64.deb" | awk '{print $1}' > "linux_assets/Dardcor-Code_${CLEAN_VER}_amd64.deb.sig"
-
-          # 12 & 13. DEB arm64
-          create_app_tar "linux_assets/Dardcor-Code_${CLEAN_VER}_arm64.deb"
-          sha256sum "linux_assets/Dardcor-Code_${CLEAN_VER}_arm64.deb" | awk '{print $1}' > "linux_assets/Dardcor-Code_${CLEAN_VER}_arm64.deb.sig"
-
-          # 25. updater.json
-          node build/generate-updater-json.cjs linux_assets "${{ github.repository }}" "$TAG" "$CLEAN_VER"
-
-          ls -lh linux_assets/
-
-      - name: Upload Linux Artifacts
+      - name: Upload Linux packages
         uses: actions/upload-artifact@v4
         with:
-          name: linux_assets
+          name: linux-packages
           path: linux_assets/*
+          if-no-files-found: error
 
-  build-darwin:
-    name: Build macOS Packages
+  build-macos:
+    name: Build macOS x64 and ARM64
     runs-on: macos-latest
+    timeout-minutes: 180
     steps:
-      - name: Checkout Code
+      - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate release version
+        shell: bash
+        run: |
+          version="${RELEASE_TAG#Dardcor-Code-v}"
+          version="${version#v}"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "Invalid release tag: $RELEASE_TAG" >&2; exit 1; }
+          echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
+          node -e 'const fs=require("fs");const p=JSON.parse(fs.readFileSync("product.json","utf8"));p.dardcorVersion=process.argv[1];fs.writeFileSync("product.json",JSON.stringify(p,null,"\t")+"\n")' "$version"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24
 
-      - name: Install Project Dependencies
-        run: npm install
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Sync Release Version in product.json
-        run: |
-          TAG="${{ github.ref_name }}"
-          CLEAN_VER=$(echo "$TAG" | sed -E 's/^(Dardcor-Code-v?|v)//')
-          [ -z "$CLEAN_VER" ] && CLEAN_VER="1.0.1"
-          node -e "const fs = require('fs'); const p = JSON.parse(fs.readFileSync('product.json', 'utf8')); p.dardcorVersion = '$CLEAN_VER'; fs.writeFileSync('product.json', JSON.stringify(p, null, '\t') + '\n');"
-
-      - name: Build Dardcor Router Standalone
-        run: |
-          cd .dardcor-router
-          npm install
-          npm run build
-          cd ..
-
-      - name: Pre-download Built-in Extensions
-        continue-on-error: true
+      - name: Download built-in extensions
         run: node --experimental-strip-types ./build/lib/builtInExtensions.ts
 
-      - name: Compile Client Code
+      - name: Compile project
         run: npm run compile
 
-      - name: Build macOS Standalone Package
-        continue-on-error: true
-        run: node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-darwin-x64
-
-      - name: Package macOS Release Assets
+      - name: Build macOS packages
+        shell: bash
         run: |
-          set -e
+          set -euo pipefail
           mkdir -p mac_assets
+          for arch in x64 arm64; do
+            npm run gulp -- "vscode-darwin-$arch"
+            app="../Dardcor-Code-darwin-$arch/Dardcor Code.app"
+            test -d "$app"
+            dmg="mac_assets/Dardcor-Code_${RELEASE_VERSION}_${arch}.dmg"
+            zip="mac_assets/Dardcor-Code_${RELEASE_VERSION}_${arch}.zip"
+            hdiutil create -volname "Dardcor Code" -srcfolder "$app" -ov -format UDZO "$dmg"
+            ditto -c -k --sequesterRsrc --keepParent "$app" "$zip"
+            shasum -a 256 "$dmg" | awk '{print $1}' > "$dmg.sha256"
+            shasum -a 256 "$zip" | awk '{print $1}' > "$zip.sha256"
+          done
 
-          create_mac_tar() {
-            local dest="$1"
-            if [ -d "../Dardcor-Code-darwin-x64" ]; then
-              tar -czf "$dest" -C "../Dardcor-Code-darwin-x64" .
-            elif [ -d "../VSCode-darwin-x64" ]; then
-              tar -czf "$dest" -C "../VSCode-darwin-x64" .
-            elif [ -d "out-build" ]; then
-              tar -czf "$dest" -C "out-build" .
-            else
-              tar -czf "$dest" \
-                --exclude='*.map' \
-                --exclude='node_modules/*/test' \
-                --exclude='node_modules/*/tests' \
-                --exclude='node_modules/*/.github' \
-                out package.json product.json resources/darwin 2>/dev/null || \
-              tar -czf "$dest" package.json product.json
-            fi
-          }
-
-          TAG="${{ github.ref_name }}"
-          CLEAN_VER=$(echo "$TAG" | sed -E 's/^(Dardcor-Code-v?|v)//')
-          [ -z "$CLEAN_VER" ] && CLEAN_VER="1.0.1"
-
-          # 7. DMG aarch64
-          create_mac_tar "mac_assets/Dardcor-Code_${CLEAN_VER}_aarch64.dmg"
-
-          # 16. DMG x64
-          create_mac_tar "mac_assets/Dardcor-Code_${CLEAN_VER}_x64.dmg"
-
-          # 19 & 20. App tar.gz aarch64
-          create_mac_tar mac_assets/Dardcor-Code_aarch64.app.tar.gz
-          shasum -a 256 mac_assets/Dardcor-Code_aarch64.app.tar.gz | awk '{print $1}' > mac_assets/Dardcor-Code_aarch64.app.tar.gz.sig
-
-          # 21 & 22. Universal app tar.gz
-          create_mac_tar mac_assets/Dardcor-Code_universal.app.tar.gz
-          shasum -a 256 mac_assets/Dardcor-Code_universal.app.tar.gz | awk '{print $1}' > mac_assets/Dardcor-Code_universal.app.tar.gz.sig
-
-          # 23 & 24. App tar.gz x64
-          create_mac_tar mac_assets/Dardcor-Code_x64.app.tar.gz
-          shasum -a 256 mac_assets/Dardcor-Code_x64.app.tar.gz | awk '{print $1}' > mac_assets/Dardcor-Code_x64.app.tar.gz.sig
-
-          ls -lh mac_assets/
-
-      - name: Upload macOS Artifacts
+      - name: Upload macOS packages
         uses: actions/upload-artifact@v4
         with:
-          name: mac_assets
+          name: macos-packages
           path: mac_assets/*
+          if-no-files-found: error
 
   publish-release:
-    name: Publish GitHub Release (25 Assets)
-    needs: [build-win32, build-linux, build-darwin]
+    name: Verify and publish release
+    needs: [build-windows, build-linux, build-macos]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
     steps:
-      - name: Checkout Repository for Scripts
+      - name: Checkout release source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Download Windows Artifacts
+      - name: Download Windows packages
         uses: actions/download-artifact@v4
         with:
-          name: win_assets
-          path: release_assets/
-          merge-multiple: true
+          name: windows-packages
+          path: release_assets
 
-      - name: Download Linux Artifacts
+      - name: Download Linux packages
         uses: actions/download-artifact@v4
         with:
-          name: linux_assets
-          path: release_assets/
-          merge-multiple: true
+          name: linux-packages
+          path: release_assets
 
-      - name: Download macOS Artifacts
+      - name: Download macOS packages
         uses: actions/download-artifact@v4
         with:
-          name: mac_assets
-          path: release_assets/
-          merge-multiple: true
+          name: macos-packages
+          path: release_assets
 
-      - name: Flatten Artifact Directories If Nested
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Generate and verify updater manifest
+        shell: bash
         run: |
-          find release_assets/ -mindepth 2 -type f -exec mv -t release_assets/ {} + 2>/dev/null || true
-          find release_assets/ -mindepth 1 -type d -empty -delete 2>/dev/null || true
+          set -euo pipefail
+          version="${RELEASE_TAG#Dardcor-Code-v}"
+          version="${version#v}"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+          node build/generate-updater-json.cjs release_assets "${GITHUB_REPOSITORY}" "${RELEASE_TAG}" "$version"
+          node build/verify-release-assets.cjs release_assets "$version"
+          echo "RELEASE_TITLE=Dardcor Code v${version}" >> "$GITHUB_ENV"
 
-      - name: Generate Structured updater.json
-        run: |
-          node build/generate-updater-json.cjs release_assets "${{ github.repository }}" "${{ github.ref_name }}"
-          TAG="${{ github.ref_name }}"
-          CLEAN_VER=$(echo "$TAG" | sed -E 's/^(Dardcor-Code-v?|v)//')
-          echo "RELEASE_TITLE=Dardcor Code v${CLEAN_VER}" >> $GITHUB_ENV
-
-      - name: Verify Total 25 Assets Count
-        run: |
-          cd release_assets
-          rm -f *.wixpdb
-          ls -la
-          ASSET_COUNT=$(ls -1 | wc -l)
-          echo "Total Release Assets Count: $ASSET_COUNT"
-          if [ "$ASSET_COUNT" -ne 25 ]; then
-            echo "ERROR: Expected 25 release assets matching List-OS.md, found $ASSET_COUNT!"
-            exit 1
-          fi
-          echo "✓ All 25 release assets from List-OS.md verified successfully!"
-
-      - name: Clean Existing Release Assets If Present
-        continue-on-error: true
-        run: |
-          RELEASE_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}" | jq -r '.id // empty')
-          if [ -n "$RELEASE_ID" ]; then
-            echo "Found existing release $RELEASE_ID. Deleting existing assets to ensure clean overwrite..."
-            ASSETS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              "https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets" | jq -r '.[].id')
-            for ASSET in $ASSETS; do
-              echo "Deleting asset $ASSET..."
-              curl -s -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-                "https://api.github.com/repos/${{ github.repository }}/releases/assets/$ASSET"
-            done
-          fi
-
-      - name: Upload All 25 Assets to GitHub Release
+      - name: Publish release assets
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ env.RELEASE_TITLE }}
           tag_name: ${{ github.ref_name }}
           files: release_assets/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

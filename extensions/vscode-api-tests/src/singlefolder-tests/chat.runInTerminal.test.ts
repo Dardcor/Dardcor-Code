@@ -61,7 +61,7 @@ function extractTextContent(result: vscode.LanguageModelToolResult): string {
 			vscode.lm.registerLanguageModelChatProvider('copilot', testLanguageModelProvider),
 		);
 
-		// Enable global auto-approve + skip the confirmation dialog via test-mode context key
+
 		const chatToolsConfig = vscode.workspace.getConfiguration('chat.tools.global');
 		await chatToolsConfig.update('autoApprove', true, vscode.ConfigurationTarget.Global);
 		await vscode.commands.executeCommand('setContext', 'vscode.chat.tools.global.autoApprove.testMode', true);

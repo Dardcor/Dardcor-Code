@@ -37,13 +37,13 @@ export interface IChatDebugFileLoggerService {
 
 	flush(sessionId: string): Promise<void>;
 
-	/**
-	 * Get the URI of the debug logs directory, or undefined if it cannot be
-	 * determined (e.g. no storage is available at all, or an error occurs).
-	 * Resolves to workspace-scoped storage when a workspace/folder is open and
-	 * only falls back to global storage when no workspace is open. The directory
-	 * may not actually exist on disk yet if no sessions have been started.
-	 */
+
+
+
+
+
+
+
 	readonly debugLogsDir: URI | undefined;
 
 	getLogPath(sessionId: string): URI | undefined;

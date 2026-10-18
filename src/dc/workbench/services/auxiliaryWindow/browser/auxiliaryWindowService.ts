@@ -451,7 +451,7 @@ export class BrowserAuxiliaryWindowService extends Disposable implements IAuxili
 
 		function cloneNode(originalNode: Element): void {
 			if (isGlobalStylesheet(originalNode)) {
-				return; // global stylesheets are handled by `cloneGlobalStylesheets` below
+				return;
 			}
 
 			const clonedNode = auxiliaryWindow.document.head.appendChild(originalNode.cloneNode(true));

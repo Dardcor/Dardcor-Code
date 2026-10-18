@@ -18,10 +18,10 @@ declare module 'vscode' {
 		useIgnoreFiles?: {
 			local?: boolean;
 			parent?: boolean;
-			/**
-			 * Use global ignore files. When set to `true`, `local` in {@link FindTextInFilesOptions2.useIgnoreFiles} must also be `true`.
-			 * May default to `search.useGlobalIgnoreFiles` setting if not set.
-			 */
+
+
+
+
 			global?: boolean;
 		};
 

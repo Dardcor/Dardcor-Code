@@ -35,12 +35,12 @@ export type CursorJumpPrediction =
 
 const DEFAULT_CURSOR_JUMP_MODEL_NAME = 'dardcor-utility-small';
 
-/**
- * System prompt used for the cursor-jump (next-cursor-line) prediction model.
- * Kept as an exported constant so that training-data generation can mirror it
- * verbatim — drift between this string and the datagen prompt would corrupt
- * the training distribution.
- */
+
+
+
+
+
+
 export const NEXT_CURSOR_PREDICTION_SYSTEM_MESSAGE = `Your task is to predict the line number where the developer is most likely to make their next edit. If you jump in the current file, just output the line number. If you want to jump to another file, output the filepath (relative to workspace root), colon, then line number. If you don't think anywhere is a good next line jump target, just output the current line number of the cursor. Make sure to output no explanation, reasoning, extra spaces, etc.`;
 
 export class XtabNextCursorPredictor {

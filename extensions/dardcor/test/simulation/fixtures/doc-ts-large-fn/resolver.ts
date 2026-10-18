@@ -1,5 +1,5 @@
 function handleRemovals(rules: ResolvedKeybindingItem[]): ResolvedKeybindingItem[] {
-	// Do a first pass and construct a hash-map for removals
+
 	const removals = new Map</* commandId */ string, ResolvedKeybindingItem[]>();
 	for (let i = 0, len = rules.length; i < len; i++) {
 		const rule = rules[i];
@@ -14,11 +14,11 @@ function handleRemovals(rules: ResolvedKeybindingItem[]): ResolvedKeybindingItem
 	}
 
 	if (removals.size === 0) {
-		// There are no removals
+
 		return rules;
 	}
 
-	// Do a second pass and keep only non-removed keybindings
+
 	const result: ResolvedKeybindingItem[] = [];
 	for (let i = 0, len = rules.length; i < len; i++) {
 		const rule = rules[i];

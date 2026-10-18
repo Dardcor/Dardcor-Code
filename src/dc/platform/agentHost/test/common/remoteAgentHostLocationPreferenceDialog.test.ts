@@ -62,7 +62,7 @@ suite('promptRemoteAgentHostLocationPreference', () => {
 	});
 
 	test('exports the exact command id registered by the sessions-layer "Chat: Change Preferred Remote Agent Location" command', () => {
-		// registration must match when it consumes this exported constant.
+
 		assert.strictEqual(ChangeRemoteAgentHostLocationPreferenceCommandId, 'workbench.action.sessions.changeRemoteAgentHostLocationPreference');
 	});
 

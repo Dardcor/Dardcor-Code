@@ -3,14 +3,14 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Client-side GUI for the mock policy server. Loaded via a `<script>` tag in
- * `index.html`; the server uses `module.stripTypeScriptTypes()` to serve this
- * TypeScript source as plain JavaScript — no build step needed.
- *
- * Relies on `MOCK_POLICY_ENDPOINTS` being defined as a global by
- * `endpoints.ts` (loaded via an earlier `<script>` tag).
- */
+
+
+
+
+
+
+
+
 declare const MOCK_POLICY_ENDPOINTS: import('../endpoints').EndpointDef[];
 
 (function () {

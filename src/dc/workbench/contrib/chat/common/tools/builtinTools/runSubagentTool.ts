@@ -320,7 +320,7 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 				this.logService.warn('[ChatService] Failed to collect hooks:', error);
 			}
 
-			// Merge subagent-level hooks (from the agent's frontmatter) with global hooks.
+
 			if (subagent?.hooks) {
 				const remapped: ChatRequestHooks = { ...subagent.hooks };
 				if (remapped[HookType.Stop]) {

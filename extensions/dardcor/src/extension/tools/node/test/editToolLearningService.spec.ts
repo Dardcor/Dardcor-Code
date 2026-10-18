@@ -72,7 +72,7 @@ describe('EditToolLearningService', () => {
 		} as any;
 
 		mockContext = new MockExtensionContext();
-		// Set up proper spies for global state methods
+
 		mockContext.globalState.get = vi.fn().mockReturnValue(undefined);
 		mockContext.globalState.update = vi.fn().mockResolvedValue(undefined);
 		service = new EditToolLearningService(mockContext as any, mockEndpointProvider, new NullTelemetryService());

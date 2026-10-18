@@ -182,7 +182,7 @@
 	};
 
 	try {
-		// Use `contextBridge` APIs to expose globals to VSCode
+
 		contextBridge.exposeInMainWorld('vscode', globals);
 	} catch (error) {
 		console.error(error);

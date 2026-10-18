@@ -74,19 +74,19 @@ function _processContinuousRecord(record: IContinuousRecord, pivotTime: number):
 	});
 }
 
-/**
- * Process a batch of continuous recordings into processed rows.
- *
- * Each record's pivot selection is seeded from `deriveSeed(baseSeed, rowOffset +
- * record.originalRowIndex)`, so output is reproducible from `--seed` and
- * independent of how records are sharded across parallel workers.
- *
- * `rowOffset` is the global index of the first record in this chunk (0 for
- * single-process runs); it is added to each record's local index to form the
- * global record index used for seeding.
- *
- * Each returned `IProcessedRow` holds a live replayer that the caller must dispose.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
 export function processContinuousRecords(
 	records: readonly IContinuousRecord[],
 	strategy: PivotStrategy,

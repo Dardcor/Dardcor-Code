@@ -1763,7 +1763,7 @@ export abstract class AbstractTaskService extends Disposable implements ITaskSer
 			}
 			await this._textFileService.create([{ resource: workspaceFolder.toResource(`${FOLDER_CONFIG_FOLDER_NAME}/tasks.json`), value: content }]);
 		} else {
-			// We have a global task configuration
+
 			if ((index === -1) && properties) {
 				if (properties.problemMatcher !== undefined) {
 					fileConfig.problemMatcher = properties.problemMatcher;

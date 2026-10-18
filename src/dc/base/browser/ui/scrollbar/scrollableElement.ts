@@ -268,7 +268,7 @@ export abstract class AbstractScrollableElement extends Widget {
 
 		this._revealOnScroll = true;
 
-		// Subscribe to global default size changes, but only for axes whose size
+
 		const hSizeExplicit = typeof options.horizontalScrollbarSize !== 'undefined';
 		const vSizeExplicit = typeof options.verticalScrollbarSize !== 'undefined';
 		if (!hSizeExplicit || !vSizeExplicit) {

@@ -1,6 +1,6 @@
-/**
- * Represents a gap (before the first child, between two children, or after the last child) in a `LinkedOverlayNode`.
- */
+
+
+
 class LinkedOverlayNodeGap {
 
 	constructor(

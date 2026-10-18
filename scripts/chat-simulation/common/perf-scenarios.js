@@ -5,32 +5,32 @@
 
 // @ts-check
 
-/**
- * Built-in scenario definitions for chat performance benchmarks and leak checks.
- *
- * Each test file imports this module and calls `registerScenario()` for the
- * scenarios it needs, keeping scenario ownership close to the test that uses it.
- */
+
+
+
+
+
+
 
 const path = require('path');
 const { ScenarioBuilder, registerScenario } = require('./mock-llm-server.ts');
 
 const FIXTURES_DIR = path.join(__dirname, '..', 'fixtures');
 
-/**
- * @typedef {{
- *   description: string,
- *   chunks: import('./mock-llm-server').StreamChunk[],
- * }} ContentScenarioDef
- *
- * @typedef {{
- *   description: string,
- *   scenario: import('./mock-llm-server').MultiTurnScenario,
- * }} MultiTurnScenarioDef
- */
 
 
-/** @type {Record<string, ContentScenarioDef>} */
+
+
+
+
+
+
+
+
+
+
+
+
 const CONTENT_SCENARIOS = {
 	'text-only': {
 		description: 'Plain text, 4 paragraphs',
@@ -264,7 +264,7 @@ const CONTENT_SCENARIOS = {
 };
 
 
-/** @type {Record<string, MultiTurnScenarioDef>} */
+
 const TOOL_CALL_SCENARIOS = {
 	'tool-read-file': {
 		description: 'Read 8 files across 2 tool-call rounds',
@@ -492,7 +492,7 @@ const TOOL_CALL_SCENARIOS = {
 };
 
 
-/** @type {Record<string, MultiTurnScenarioDef>} */
+
 const MULTI_TURN_SCENARIOS = {
 	'thinking-response': {
 		description: 'Thinking block before content response',
@@ -635,7 +635,7 @@ const MULTI_TURN_SCENARIOS = {
 				{ question: 'How does the settings editor work?', heading: 'Settings Editor', content: 'Settings are declared in `package.json` contribution points. The settings editor reads the configuration registry, groups settings by category, and renders appropriate input controls for each type.' },
 			];
 
-			/** @type {import('./mock-llm-server').ScenarioTurn[]} */
+
 			const turns = [];
 
 			const firstTopic = topics[0];
@@ -734,11 +734,11 @@ const MULTI_TURN_SCENARIOS = {
 };
 
 
-/**
- * Get a brief description of a scenario by ID.
- * @param {string} id
- * @returns {string}
- */
+
+
+
+
+
 function getScenarioDescription(id) {
 	const content = CONTENT_SCENARIOS[id];
 	if (content) { return content.description; }
@@ -749,10 +749,10 @@ function getScenarioDescription(id) {
 	return '';
 }
 
-/**
- * Register all built-in perf scenarios into the mock LLM server.
- * Call this from your test file before starting the server.
- */
+
+
+
+
 function registerPerfScenarios() {
 	for (const [id, def] of Object.entries(CONTENT_SCENARIOS)) {
 		registerScenario(id, def.chunks);

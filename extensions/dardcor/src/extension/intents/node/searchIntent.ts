@@ -82,7 +82,7 @@ function jsonToTable(args: any): string[] {
 		}
 		let nonEscapeValue = value;
 		if (typeof value === 'string' || value instanceof String) {
-			// CodeQL [SM02383] Since this is inside of a markdown table cell, only a `|` pipe character would interfere with formatting.
+
 			nonEscapeValue = value.replace(/\|/g, '\\|');
 		}
 		table.push(`| ${key} | \`${nonEscapeValue}\` |\n`);

@@ -857,7 +857,7 @@ export class ChatStatusDashboard extends DomWidget {
 			const isEnterpriseUser = this.chatEntitlementService.entitlement === ChatEntitlement.Enterprise || this.chatEntitlementService.entitlement === ChatEntitlement.Business;
 			const isUsageBasedBilling = quotas.usageBasedBilling === true;
 
-			// Only chat quotas drive the global callout. Reaching the inline
+
 			const allQuotas: IQuotaSnapshot[] = [];
 			if (quotas.chat && !quotas.chat.unlimited) { allQuotas.push(quotas.chat); }
 			if (quotas.premiumChat && !quotas.premiumChat.unlimited) { allQuotas.push(quotas.premiumChat); }

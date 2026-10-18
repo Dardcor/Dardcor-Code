@@ -406,7 +406,7 @@ suite('AgentSessionRegistry', () => {
 		await registerExplicit(registry, a, 'copilot', 100);
 		await registry.markProviderBackfilled('copilot');
 
-		// unlike the legacy global marker which covered every provider at once.
+
 		assert.strictEqual(await registry.isProviderBackfilled('copilot'), true);
 		assert.strictEqual(await registry.isProviderBackfilled('claude'), false);
 

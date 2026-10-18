@@ -23,7 +23,7 @@ export class MenuPreventer extends Disposable implements IEditorContribution {
 		this._altListeningMouse = false;
 		this._altMouseTriggered = false;
 
-		// A global crossover handler to prevent menu bar from showing up
+
 
 		this._register(this._editor.onMouseDown((e) => {
 			if (this._altListeningMouse) {

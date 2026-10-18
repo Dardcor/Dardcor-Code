@@ -2349,7 +2349,7 @@ export class CommandCenter {
 			}
 		}
 
-		// we set the option to undefined so that we let git use the repository/global config.
+
 		opts.signCommit = config.get<boolean>('enableCommitSigning') === true ? true : undefined;
 
 		if (config.get<boolean>('alwaysSignOff')) {

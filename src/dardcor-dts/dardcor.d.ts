@@ -1891,29 +1891,29 @@ declare module 'vscode' {
 
 		has(section: string): boolean;
 
-		/**
-		 * Retrieve all information about a configuration setting. A configuration value
-		 * often consists of a *default* value, a global or installation-wide value,
-		 * a workspace-specific value, folder-specific value
-		 * and language-specific values (if {@link WorkspaceConfiguration} is scoped to a language).
-		 *
-		 * Also provides all language ids under which the given configuration setting is defined.
-		 *
-		 * *Note:* The configuration name must denote a leaf in the configuration tree
-		 * (`editor.fontSize` vs `editor`) otherwise no result is returned.
-		 *
-		 * @param section Configuration name, supports _dotted_ names.
-		 * @returns Information about a configuration setting or `undefined`.
-		 */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 		inspect<T>(section: string): {
 
 			key: string;
 
 			defaultValue?: T;
 
-			/**
-			 * The global or installation-wide value.
-			 */
+
+
+
 			globalValue?: T;
 
 			workspaceValue?: T;
@@ -1922,9 +1922,9 @@ declare module 'vscode' {
 
 			defaultLanguageValue?: T;
 
-			/**
-			 * Language specific global value when this configuration value is created for a {@link ConfigurationScope language scope}.
-			 */
+
+
+
 			globalLanguageValue?: T;
 
 			workspaceLanguageValue?: T;
@@ -2268,14 +2268,14 @@ declare module 'vscode' {
 	}
 
 	export interface TerminalLinkProvider<T extends TerminalLink = TerminalLink> {
-		/**
-		 * Provide terminal links for the given context. Note that this can be called multiple times
-		 * even before previous calls resolve, make sure to not share global objects (eg. `RegExp`)
-		 * that could have problems when asynchronous usage may overlap.
-		 * @param context Information about what links are being provided for.
-		 * @param token A cancellation token.
-		 * @returns A list of terminal links for the given line.
-		 */
+
+
+
+
+
+
+
+
 		provideTerminalLinks(context: TerminalLinkContext, token: CancellationToken): ProviderResult<T[]>;
 
 		handleTerminalLink(link: T): ProviderResult<void>;
@@ -2343,10 +2343,10 @@ declare module 'vscode' {
 
 		extensionKind: ExtensionKind;
 
-		/**
-		 * The public API exported by this extension (return value of `activate`).
-		 * It is an invalid action to access this field before this extension has been activated.
-		 */
+
+
+
+
 		readonly exports: T;
 
 		activate(): Thenable<T>;
@@ -2378,10 +2378,10 @@ declare module 'vscode' {
 
 		readonly extensionPath: string;
 
-		/**
-		 * Gets the extension's global environment variable collection for this workspace, enabling changes to be
-		 * applied to terminal environment variables.
-		 */
+
+
+
+
 		readonly environmentVariableCollection: GlobalEnvironmentVariableCollection;
 
 		asAbsolutePath(relativePath: string): string;
@@ -2390,16 +2390,16 @@ declare module 'vscode' {
 
 		readonly storagePath: string | undefined;
 
-		/**
-		 * The uri of a directory in which the extension can store global state.
-		 * The directory might not exist on disk and creation is
-		 * up to the extension. However, the parent directory is guaranteed to be existent.
-		 *
-		 * Use {@linkcode ExtensionContext.globalState globalState} to store key value data.
-		 *
-		 * @see {@linkcode FileSystem workspace.fs} for how to read and write files and folders from
-		 *  an uri.
-		 */
+
+
+
+
+
+
+
+
+
+
 		readonly globalStorageUri: Uri;
 
 		/**
@@ -2596,9 +2596,9 @@ declare module 'vscode' {
 	}
 
 	export enum TaskScope {
-		/**
-		 * The task is a global task. Global tasks are currently not supported.
-		 */
+
+
+
 		Global = 1,
 
 		Workspace = 2
@@ -3553,22 +3553,22 @@ declare module 'vscode' {
 	}
 
 	export interface GlobalEnvironmentVariableCollection extends EnvironmentVariableCollection {
-		/**
-		 * Gets scope-specific environment variable collection for the extension. This enables alterations to
-		 * terminal environment variables solely within the designated scope, and is applied in addition to (and
-		 * after) the global collection.
-		 *
-		 * Each object obtained through this method is isolated and does not impact objects for other scopes,
-		 * including the global collection.
-		 *
-		 * @param scope The scope to which the environment variable collection applies to.
-		 *
-		 * If a scope parameter is omitted, collection applicable to all relevant scopes for that parameter is
-		 * returned. For instance, if the 'workspaceFolder' parameter is not specified, the collection that applies
-		 * across all workspace folders will be returned.
-		 *
-		 * @returns Environment variable collection for the passed in scope.
-		 */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 		getScoped(scope: EnvironmentVariableScope): EnvironmentVariableCollection;
 	}
 
@@ -3968,10 +3968,10 @@ declare module 'vscode' {
 
 		export function match(selector: DocumentSelector, document: TextDocument): number;
 
-		/**
-		 * An {@link Event} which fires when the global set of diagnostics changes. This is
-		 * newly added and removed diagnostics.
-		 */
+
+
+
+
 		export const onDidChangeDiagnostics: Event<DiagnosticChangeEvent>;
 
 		export function getDiagnostics(resource: Uri): Diagnostic[];
